@@ -1,7 +1,8 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
+
+import { serverEnv } from "./lib/env"
 
 const nextConfig: NextConfig = {
-  /* config options here */
   experimental: {
     agentFeedback: true,
   },
@@ -15,6 +16,17 @@ const nextConfig: NextConfig = {
       },
     },
   },
-};
+  // The browser only talks to this origin; Laravel stays behind the rewrite,
+  // so Sanctum's session and XSRF cookies are first-party and no CORS is needed.
+  async rewrites() {
+    return [
+      { source: "/api/:path*", destination: `${serverEnv.API_URL}/api/:path*` },
+      {
+        source: "/sanctum/:path*",
+        destination: `${serverEnv.API_URL}/sanctum/:path*`,
+      },
+    ]
+  },
+}
 
-export default nextConfig;
+export default nextConfig

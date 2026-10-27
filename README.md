@@ -34,28 +34,28 @@ The frontend owns **presentation and user experience only**. Business rules, per
 
 ## Tech Stack
 
-| Concern | Technology |
-|---|---|
-| Framework | Next.js 16 (App Router, Turbopack) |
-| UI library | React 19 |
-| Language | TypeScript (strict) |
-| Runtime | Node.js 24 LTS |
-| Package manager | pnpm |
-| Styling | Tailwind CSS 4 |
-| Components | shadcn/ui (Radix primitives), `lucide-react` icons |
-| Server state | TanStack Query 5 |
-| Tables | TanStack Table 8 (shadcn Data Table pattern) |
-| URL state (filters, pagination) | `nuqs` |
-| Forms | `react-hook-form` + `@hookform/resolvers` |
-| Schema validation | Zod 4 |
-| Toasts | Sonner |
-| Confirmations | shadcn `AlertDialog` |
-| Dates | `date-fns` + `@date-fns/tz` (`Asia/Dhaka`) |
-| Authentication | Laravel Sanctum (SPA cookie session), no client auth library |
-| Error tracking | Sentry (self-hosted), `@sentry/nextjs` |
-| Unit / component tests | Vitest + React Testing Library + MSW |
-| End-to-end tests | Playwright |
-| Lint / format | ESLint (flat config) + Prettier (`prettier-plugin-tailwindcss`) |
+| Concern                         | Technology                                                      |
+| ------------------------------- | --------------------------------------------------------------- |
+| Framework                       | Next.js 16 (App Router, Turbopack)                              |
+| UI library                      | React 19                                                        |
+| Language                        | TypeScript (strict)                                             |
+| Runtime                         | Node.js 24 LTS                                                  |
+| Package manager                 | pnpm                                                            |
+| Styling                         | Tailwind CSS 4                                                  |
+| Components                      | shadcn/ui (Radix primitives), `lucide-react` icons              |
+| Server state                    | TanStack Query 5                                                |
+| Tables                          | TanStack Table 8 (shadcn Data Table pattern)                    |
+| URL state (filters, pagination) | `nuqs`                                                          |
+| Forms                           | `react-hook-form` + `@hookform/resolvers`                       |
+| Schema validation               | Zod 4                                                           |
+| Toasts                          | Sonner                                                          |
+| Confirmations                   | shadcn `AlertDialog`                                            |
+| Dates                           | `date-fns` + `@date-fns/tz` (`Asia/Dhaka`)                      |
+| Authentication                  | Laravel Sanctum (SPA cookie session), no client auth library    |
+| Error tracking                  | Sentry (self-hosted), `@sentry/nextjs`                          |
+| Unit / component tests          | Vitest + React Testing Library + MSW                            |
+| End-to-end tests                | Playwright                                                      |
+| Lint / format                   | ESLint (flat config) + Prettier (`prettier-plugin-tailwindcss`) |
 
 Exact versions are pinned by `pnpm-lock.yaml`.
 
@@ -108,15 +108,15 @@ Browser
 
 ### Modules
 
-| Module | Status | Backend module |
-|---|---|---|
-| Shared | In progress | Shared (Auth, Patient, ...) |
-| Blood Bank | In progress | BloodBank |
-| Registration & Billing | Planned | Billing |
-| Lab (Pathology) | Planned | Lab |
-| Radiology (Non-Lab) | Planned | Radiology |
-| Report Delivery | Planned | ReportDelivery |
-| Accounts / HR / Inventory / OPD / Test Config | Planned | |
+| Module                                        | Status      | Backend module              |
+| --------------------------------------------- | ----------- | --------------------------- |
+| Shared                                        | In progress | Shared (Auth, Patient, ...) |
+| Blood Bank                                    | In progress | BloodBank                   |
+| Registration & Billing                        | Planned     | Billing                     |
+| Lab (Pathology)                               | Planned     | Lab                         |
+| Radiology (Non-Lab)                           | Planned     | Radiology                   |
+| Report Delivery                               | Planned     | ReportDelivery              |
+| Accounts / HR / Inventory / OPD / Test Config | Planned     |                             |
 
 ### Boundary rules
 
@@ -197,21 +197,21 @@ src/modules/blood-bank/
 └── index.ts                    # Public surface for other modules
 ```
 
-| Folder | Responsibility | Must not |
-|---|---|---|
-| `app/**/page.tsx` | Read route params, render one screen | Fetch data, hold logic |
-| `screens/` | Compose a page from components and hooks | Call `fetch` directly |
-| `components/` | Render UI, emit events | Know about URLs or query keys |
-| `api/*.ts` (endpoints) | Build the request, return typed data | Use React hooks |
-| `api/queries.ts`, `mutations.ts` | Wrap endpoints in TanStack Query, invalidate caches | Render UI |
-| `schemas/` | Client-side validation for forms | Be treated as the source of truth |
-| `types.ts` | Shapes of API responses | Contain logic |
+| Folder                           | Responsibility                                      | Must not                          |
+| -------------------------------- | --------------------------------------------------- | --------------------------------- |
+| `app/**/page.tsx`                | Read route params, render one screen                | Fetch data, hold logic            |
+| `screens/`                       | Compose a page from components and hooks            | Call `fetch` directly             |
+| `components/`                    | Render UI, emit events                              | Know about URLs or query keys     |
+| `api/*.ts` (endpoints)           | Build the request, return typed data                | Use React hooks                   |
+| `api/queries.ts`, `mutations.ts` | Wrap endpoints in TanStack Query, invalidate caches | Render UI                         |
+| `schemas/`                       | Client-side validation for forms                    | Be treated as the source of truth |
+| `types.ts`                       | Shapes of API responses                             | Contain logic                     |
 
 A page stays this small:
 
 ```tsx
 // src/app/(app)/blood-bank/requests/page.tsx
-import { BloodRequestListScreen } from '@/modules/blood-bank'
+import { BloodRequestListScreen } from "@/modules/blood-bank"
 
 export default function Page() {
   return <BloodRequestListScreen />
@@ -252,19 +252,23 @@ All requests go through `lib/api/client.ts`:
 
 ```ts
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const method = (init.method ?? 'GET').toUpperCase()
+  const method = (init.method ?? "GET").toUpperCase()
   const headers = new Headers(init.headers)
-  headers.set('Accept', 'application/json')
+  headers.set("Accept", "application/json")
 
   if (init.body && !(init.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json')
+    headers.set("Content-Type", "application/json")
   }
-  if (method !== 'GET') {
-    const xsrf = readCookie('XSRF-TOKEN')
-    if (xsrf) headers.set('X-XSRF-TOKEN', xsrf)
+  if (method !== "GET") {
+    const xsrf = readCookie("XSRF-TOKEN")
+    if (xsrf) headers.set("X-XSRF-TOKEN", xsrf)
   }
 
-  const res = await fetch(`/api${path}`, { ...init, headers, credentials: 'include' })
+  const res = await fetch(`/api${path}`, {
+    ...init,
+    headers,
+    credentials: "include",
+  })
   if (res.status === 204) return undefined as T
 
   const body = await res.json().catch(() => null)
@@ -279,10 +283,11 @@ Each module has a key factory so invalidation is predictable:
 
 ```ts
 export const bloodRequestKeys = {
-  all: ['blood-bank', 'requests'] as const,
-  lists: () => [...bloodRequestKeys.all, 'list'] as const,
-  list: (params: BloodRequestListParams) => [...bloodRequestKeys.lists(), params] as const,
-  detail: (id: number) => [...bloodRequestKeys.all, 'detail', id] as const,
+  all: ["blood-bank", "requests"] as const,
+  lists: () => [...bloodRequestKeys.all, "list"] as const,
+  list: (params: BloodRequestListParams) =>
+    [...bloodRequestKeys.lists(), params] as const,
+  detail: (id: number) => [...bloodRequestKeys.all, "detail", id] as const,
 }
 ```
 
@@ -299,16 +304,16 @@ export const bloodRequestKeys = {
 
 ## Error Handling
 
-The backend returns one error shape (see backend README, *API Conventions*). `ApiError` carries `status`, `code`, `message` and `errors`.
+The backend returns one error shape (see backend README, _API Conventions_). `ApiError` carries `status`, `code`, `message` and `errors`.
 
-| Status / code | Frontend behaviour |
-|---|---|
-| `401` | Clear query cache, redirect to `/login` |
-| `403` | Toast: "You don't have permission for this action" |
-| `419` (CSRF expired) | Fetch `/sanctum/csrf-cookie` and retry once |
-| `422` `VALIDATION_FAILED` | Errors applied to form fields (see below) |
+| Status / code                              | Frontend behaviour                                                     |
+| ------------------------------------------ | ---------------------------------------------------------------------- |
+| `401`                                      | Clear query cache, redirect to `/login`                                |
+| `403`                                      | Toast: "You don't have permission for this action"                     |
+| `419` (CSRF expired)                       | Fetch `/sanctum/csrf-cookie` and retry once                            |
+| `422` `VALIDATION_FAILED`                  | Errors applied to form fields (see below)                              |
 | Domain codes (`BB_INCOMPATIBLE_UNIT`, ...) | Handled by the feature where meaningful; otherwise toast the `message` |
-| `5xx` / network | Toast generic error, report to Sentry |
+| `5xx` / network                            | Toast generic error, report to Sentry                                  |
 
 - **Logic branches on `code`, never on `message`.** The `message` is only displayed.
 - Global handling lives in the `QueryCache` / `MutationCache` `onError` in `lib/api/query-client.ts`. A mutation can opt out with `meta: { skipGlobalError: true }` when the screen handles the error itself.
@@ -325,8 +330,10 @@ The backend returns one error shape (see backend README, *API Conventions*). `Ap
 
 ```ts
 export const createDonorSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required'),
-  mobile: z.string().regex(/^01[3-9]\d{8}$/, 'Valid Bangladeshi mobile number (01XXXXXXXXX)'),
+  name: z.string().trim().min(1, "Name is required"),
+  mobile: z
+    .string()
+    .regex(/^01[3-9]\d{8}$/, "Valid Bangladeshi mobile number (01XXXXXXXXX)"),
   blood_group: z.enum(BLOOD_GROUPS),
 })
 export type CreateDonorInput = z.infer<typeof createDonorSchema>
@@ -334,10 +341,14 @@ export type CreateDonorInput = z.infer<typeof createDonorSchema>
 
 ```ts
 // lib/api/errors.ts
-export function applyServerErrors<T extends FieldValues>(form: UseFormReturn<T>, error: unknown) {
-  if (!(error instanceof ApiError) || error.code !== 'VALIDATION_FAILED') return false
+export function applyServerErrors<T extends FieldValues>(
+  form: UseFormReturn<T>,
+  error: unknown
+) {
+  if (!(error instanceof ApiError) || error.code !== "VALIDATION_FAILED")
+    return false
   for (const [field, messages] of Object.entries(error.errors ?? {})) {
-    form.setError(field as Path<T>, { type: 'server', message: messages[0] })
+    form.setError(field as Path<T>, { type: "server", message: messages[0] })
   }
   return true
 }
@@ -378,11 +389,11 @@ Form UX rules:
 
 ## Notifications & Confirmations
 
-| Need | Use |
-|---|---|
-| Success / failure feedback | Sonner `toast.success` / `toast.error` |
+| Need                               | Use                                                       |
+| ---------------------------------- | --------------------------------------------------------- |
+| Success / failure feedback         | Sonner `toast.success` / `toast.error`                    |
 | Destructive or irreversible action | shadcn `AlertDialog` via `ConfirmDialog` / `useConfirm()` |
-| Inline warning on a page | shadcn `Alert` |
+| Inline warning on a page           | shadcn `Alert`                                            |
 
 Rules:
 
@@ -444,14 +455,14 @@ All formatting helpers live in `lib/format.ts`. Components never format inline.
 
 ### Naming
 
-| Item | Convention | Example |
-|---|---|---|
-| Files & folders | kebab-case | `blood-request-form.tsx` |
-| Components | PascalCase | `BloodRequestForm` |
-| Hooks | `use` + PascalCase | `useIssueUnit` |
-| Screens | `...Screen` | `DonorListScreen` |
-| Zod schemas | camelCase + `Schema` | `createDonorSchema` |
-| Routes (URLs) | kebab-case, match API module | `/blood-bank/requests` |
+| Item            | Convention                   | Example                  |
+| --------------- | ---------------------------- | ------------------------ |
+| Files & folders | kebab-case                   | `blood-request-form.tsx` |
+| Components      | PascalCase                   | `BloodRequestForm`       |
+| Hooks           | `use` + PascalCase           | `useIssueUnit`           |
+| Screens         | `...Screen`                  | `DonorListScreen`        |
+| Zod schemas     | camelCase + `Schema`         | `createDonorSchema`      |
+| Routes (URLs)   | kebab-case, match API module | `/blood-bank/requests`   |
 
 ### Environment variables
 
@@ -488,12 +499,18 @@ SENTRY_DSN=
 
 ```ts
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  output: "standalone",
   async rewrites() {
-    if (process.env.NODE_ENV !== 'development') return []
+    if (process.env.NODE_ENV !== "development") return []
     return [
-      { source: '/api/:path*', destination: `${process.env.BACKEND_URL}/api/:path*` },
-      { source: '/sanctum/:path*', destination: `${process.env.BACKEND_URL}/sanctum/:path*` },
+      {
+        source: "/api/:path*",
+        destination: `${process.env.BACKEND_URL}/api/:path*`,
+      },
+      {
+        source: "/sanctum/:path*",
+        destination: `${process.env.BACKEND_URL}/sanctum/:path*`,
+      },
     ]
   },
 }
@@ -507,15 +524,15 @@ pnpm dev            # http://localhost:3000
 
 ### Scripts
 
-| Script | Purpose |
-|---|---|
-| `pnpm dev` | Development server |
-| `pnpm build` / `pnpm start` | Production build / run |
-| `pnpm lint` | ESLint (Next.js 16 no longer ships `next lint`) |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm format` | Prettier |
-| `pnpm test` | Vitest |
-| `pnpm test:e2e` | Playwright |
+| Script                      | Purpose                                         |
+| --------------------------- | ----------------------------------------------- |
+| `pnpm dev`                  | Development server                              |
+| `pnpm build` / `pnpm start` | Production build / run                          |
+| `pnpm lint`                 | ESLint (Next.js 16 no longer ships `next lint`) |
+| `pnpm typecheck`            | `tsc --noEmit`                                  |
+| `pnpm format`               | Prettier                                        |
+| `pnpm test`                 | Vitest                                          |
+| `pnpm test:e2e`             | Playwright                                      |
 
 ### Adding shadcn/ui components
 
@@ -529,12 +546,12 @@ pnpm dlx shadcn@latest add button field input select table dialog alert-dialog s
 
 ### What to test
 
-| Layer | Tool | Focus |
-|---|---|---|
-| Helpers (`format.ts`, `query-string.ts`, `errors.ts`) | Vitest | Pure functions, edge cases |
-| Schemas | Vitest | Valid and invalid inputs |
-| Components & screens | Vitest + Testing Library + MSW | Rendering, interaction, server errors mapped to fields |
-| Critical flows | Playwright | Login, register donor, create request, crossmatch, issue unit |
+| Layer                                                 | Tool                           | Focus                                                         |
+| ----------------------------------------------------- | ------------------------------ | ------------------------------------------------------------- |
+| Helpers (`format.ts`, `query-string.ts`, `errors.ts`) | Vitest                         | Pure functions, edge cases                                    |
+| Schemas                                               | Vitest                         | Valid and invalid inputs                                      |
+| Components & screens                                  | Vitest + Testing Library + MSW | Rendering, interaction, server errors mapped to fields        |
+| Critical flows                                        | Playwright                     | Login, register donor, create request, crossmatch, issue unit |
 
 ### Test rules
 
