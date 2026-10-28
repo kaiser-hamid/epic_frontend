@@ -8,15 +8,14 @@ import {
 } from "@tanstack/react-query"
 
 import {
-  cancelCase,
   createCase,
   getCase,
   listCases,
-  updateCase,
   type CaseListParams,
 } from "@/modules/blood-bank/cases/api"
-import type { CaseUpdateValues } from "@/modules/blood-bank/cases/schemas"
 import type { BloodBankCase } from "@/modules/blood-bank/cases/types"
+import { donorKeys } from "@/modules/blood-bank/donors/queries"
+import { patientKeys } from "@/modules/shared/patient/queries"
 
 export const caseKeys = {
   all: ["blood-bank", "cases"] as const,
@@ -42,35 +41,19 @@ export function useCase(id: number) {
 }
 
 /**
- * After any write, refetch lists and the detail. Invalidate rather than
- * `setQueryData`: write responses may omit the includes the detail view needs.
+ * The create response already has the detail shape, so it seeds the detail cache.
+ * Registration can also add a patient and donors, so their searches are refetched.
  */
-function useSyncCase() {
+export function useCreateCase() {
   const queryClient = useQueryClient()
 
-  return (record: BloodBankCase) => {
-    queryClient.invalidateQueries({ queryKey: caseKeys.lists() })
-    queryClient.invalidateQueries({ queryKey: caseKeys.detail(record.id) })
-  }
-}
-
-export function useCreateCase() {
-  const syncCase = useSyncCase()
-  return useMutation({ mutationFn: createCase, onSuccess: syncCase })
-}
-
-export function useUpdateCase(id: number) {
-  const syncCase = useSyncCase()
   return useMutation({
-    mutationFn: (changes: Partial<CaseUpdateValues>) => updateCase(id, changes),
-    onSuccess: syncCase,
-  })
-}
-
-export function useCancelCase(id: number) {
-  const syncCase = useSyncCase()
-  return useMutation({
-    mutationFn: (reason: string) => cancelCase(id, reason),
-    onSuccess: syncCase,
+    mutationFn: createCase,
+    onSuccess: (record: BloodBankCase) => {
+      queryClient.setQueryData(caseKeys.detail(record.id), record)
+      queryClient.invalidateQueries({ queryKey: caseKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: patientKeys.all })
+      queryClient.invalidateQueries({ queryKey: donorKeys.all })
+    },
   })
 }

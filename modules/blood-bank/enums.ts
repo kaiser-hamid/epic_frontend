@@ -38,6 +38,13 @@ export const CaseDonorStatus = {
 } as const
 export type CaseDonorStatus = ValueOf<typeof CaseDonorStatus>
 
+export const caseDonorStatusLabels: Record<CaseDonorStatus, string> = {
+  registered: "Registered",
+  eligible: "Eligible",
+  deferred: "Deferred",
+  collected: "Collected",
+}
+
 export const SampleStatus = {
   Collected: "collected",
   InTesting: "in_testing",

@@ -173,8 +173,6 @@ The backend repo is checked out at `../backend`; read its routes, Data classes, 
 
 Confirmed from the backend: auth endpoints and `Me` shape (see Auth), error rendering in `bootstrap/app.php` (`UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `CSRF_TOKEN_MISMATCH` 419, `TOO_MANY_ATTEMPTS` 429, `VALIDATION_FAILED` 422, domain exceptions add their `context()` keys), and Shared permissions (`sh.user.*`, `sh.role.*`).
 
-Still assumed (Blood Bank has no routes, Resources or permission enum yet):
+Also confirmed: every paginated collection returns `meta = { page_index (zero-based), page_size, page_count, row_count }` (`SharedServiceProvider::bootPagination`); the request stays one-based `page` + `per_page`. Blood Bank routes are `GET/POST /api/blood-bank/cases`, `GET /cases/{id}`, `GET /donors?filter[search]=` (permissions `bb.case.view`, `bb.case.create`, `bb.donor.view`); case request/response shapes are in `modules/blood-bank/api_reference.md`. Patient search is `GET /api/patients?filter[search]=…` (`sh.patient.view`).
 
-- `abilities` object on Resources with record actions.
-- Blood Bank endpoints (`/api/blood-bank/cases`, `/cases/{id}/cancel`, `/component-types`) and `bb.case.*` permission names.
-- Shared patient search at `GET /api/patients?filter[search]=…`.
+Not in the backend yet: `abilities` on Resources, case update/cancel endpoints, and lookups for test items, doctors, staff and component types (the case form takes raw IDs for these until they exist).

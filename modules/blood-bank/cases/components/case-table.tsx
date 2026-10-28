@@ -9,6 +9,7 @@ import { dataTableColumnHelper } from "@/components/data-table/columns"
 import { DataTable } from "@/components/data-table/data-table"
 import { useListParams } from "@/components/data-table/use-list-params"
 import { DateTime } from "@/components/date-time"
+import { Money } from "@/components/money"
 import {
   InputGroup,
   InputGroupAddon,
@@ -29,6 +30,7 @@ import {
   type BloodBankCase,
 } from "@/modules/blood-bank/cases/types"
 import {
+  CareType,
   careTypeLabels,
   CaseStatus,
   caseStatusLabels,
@@ -43,20 +45,67 @@ const columns = helper.columns([
     header: "Case no",
     cell: (info) => <span className="font-medium">{info.getValue()}</span>,
   }),
-  helper.accessor((row) => row.patient?.name ?? "—", {
+  helper.display({
     id: "patient",
     header: "Patient",
+    cell: ({ row }) => {
+      const patient = row.original.patient
+      if (!patient) {
+        return "—"
+      }
+      return (
+        <div className="flex flex-col">
+          <span>{patient.name}</span>
+          <span className="text-xs text-muted-foreground">
+            {[patient.patient_no, patient.phone].filter(Boolean).join(" · ")}
+          </span>
+        </div>
+      )
+    },
   }),
   helper.accessor("care_type", {
     header: "Care of",
     cell: (info) => careTypeLabels[info.getValue()],
+  }),
+  helper.display({
+    id: "components",
+    header: "Components",
+    cell: ({ row }) =>
+      row.original.components.length === 0
+        ? "—"
+        : row.original.components
+            .map((line) => `${line.code} × ${line.quantity}`)
+            .join(", "),
+  }),
+  helper.accessor("donors_count", {
+    header: "Donors",
+    cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
+  }),
+  helper.display({
+    id: "invoice",
+    header: "Invoice",
+    cell: ({ row }) => {
+      const invoice = row.original.invoice
+      if (!invoice) {
+        return "—"
+      }
+      return (
+        <div className="flex flex-col">
+          <span>{invoice.invoice_no}</span>
+          <Money
+            paisa={invoice.amount}
+            className="text-xs text-muted-foreground"
+          />
+        </div>
+      )
+    },
   }),
   helper.accessor("status", {
     header: "Status",
     cell: (info) => <CaseStatusBadge status={info.getValue()} />,
   }),
   helper.accessor("created_at", {
-    header: "Opened",
+    header: "Registered",
     cell: (info) => <DateTime value={info.getValue()} />,
   }),
 ])
@@ -68,8 +117,9 @@ export function CaseTable() {
   })
   const [filters, setFilters] = useQueryStates(
     {
-      status: parseAsStringLiteral(Object.values(CaseStatus)),
       search: parseAsString,
+      status: parseAsStringLiteral(Object.values(CaseStatus)),
+      care_type: parseAsStringLiteral(Object.values(CareType)),
     },
     { history: "replace" }
   )
@@ -86,7 +136,11 @@ export function CaseTable() {
   }, [debouncedSearch, filters.search, setFilters, resetPage])
 
   const query = useCases({
-    filter: { status: filters.status, search: filters.search },
+    filter: {
+      search: filters.search,
+      status: filters.status,
+      care_type: filters.care_type,
+    },
     sort,
     page,
     per_page: perPage,
@@ -100,7 +154,7 @@ export function CaseTable() {
             <SearchIcon />
           </InputGroupAddon>
           <InputGroupInput
-            placeholder="Case no, patient, invoice"
+            placeholder="Patient name, phone or number"
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
           />
@@ -112,7 +166,7 @@ export function CaseTable() {
             resetPage()
           }}
         >
-          <SelectTrigger className="sm:w-44">
+          <SelectTrigger className="sm:w-40" aria-label="Status">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -120,6 +174,27 @@ export function CaseTable() {
             {Object.values(CaseStatus).map((status) => (
               <SelectItem key={status} value={status}>
                 {caseStatusLabels[status]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={filters.care_type ?? ALL}
+          onValueChange={(value) => {
+            setFilters({
+              care_type: value === ALL ? null : (value as CareType),
+            })
+            resetPage()
+          }}
+        >
+          <SelectTrigger className="sm:w-40" aria-label="Care of">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All care types</SelectItem>
+            {Object.values(CareType).map((careType) => (
+              <SelectItem key={careType} value={careType}>
+                {careTypeLabels[careType]}
               </SelectItem>
             ))}
           </SelectContent>

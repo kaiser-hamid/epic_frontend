@@ -109,7 +109,9 @@ export function PatientCombobox({
                     <span>{patientLabel(patient)}</span>
                     <span className="text-xs text-muted-foreground">
                       {[
-                        patient.age ? `${patient.age}y` : null,
+                        patient.age_years !== null
+                          ? `${patient.age_years}y`
+                          : null,
                         patient.gender,
                         patient.phone,
                       ]

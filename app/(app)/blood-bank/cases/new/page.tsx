@@ -12,7 +12,7 @@ export default function NewCasePage() {
     <RequirePermission permission={BloodBankPermission.CaseCreate}>
       <PageHeader
         title="New case"
-        description="Open a blood request for a patient."
+        description="Register the patient, bill, requested components and donors in one save."
       />
       <CaseCreateForm />
     </RequirePermission>

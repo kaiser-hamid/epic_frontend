@@ -1,68 +1,66 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { PlusIcon, Trash2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import {
-  Controller,
-  FormProvider,
-  useFieldArray,
-  useForm,
-} from "react-hook-form"
+import { FormProvider, useForm } from "react-hook-form"
 import { toast } from "sonner"
 
 import { Form } from "@/components/form"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
 import { errorMessage } from "@/lib/api-error"
 import { applyServerErrors } from "@/lib/form-errors"
+import {
+  CaseReferralFields,
+  CaseTestItemsFields,
+} from "@/modules/blood-bank/cases/components/case-billing-fields"
+import { CaseComponentsFields } from "@/modules/blood-bank/cases/components/case-components-fields"
 import { CaseDetailsFields } from "@/modules/blood-bank/cases/components/case-details-fields"
+import { CaseDonorsFields } from "@/modules/blood-bank/cases/components/case-donors-fields"
+import { CasePatientFields } from "@/modules/blood-bank/cases/components/case-patient-fields"
 import { caseErrorMessages } from "@/modules/blood-bank/cases/error-messages"
 import { useCreateCase } from "@/modules/blood-bank/cases/queries"
 import {
   caseCreateSchema,
+  emptyNewPatient,
+  PatientMode,
   type CaseCreateValues,
 } from "@/modules/blood-bank/cases/schemas"
-import { useActiveComponentTypes } from "@/modules/blood-bank/component-types/queries"
-import { PatientCombobox } from "@/modules/shared/patient/components/patient-combobox"
 
+type TestLine = CaseCreateValues["billing"]["items"][number]
+
+/** One save registers the patient (if new), bill, case, components and donors. */
 export function CaseCreateForm() {
   const router = useRouter()
   const createCase = useCreateCase()
-  const componentTypes = useActiveComponentTypes()
 
   const form = useForm<CaseCreateValues>({
     resolver: zodResolver(caseCreateSchema),
     defaultValues: {
+      patient_mode: PatientMode.New,
+      billing: {
+        patient: emptyNewPatient,
+        items: [{ quantity: 1 } as TestLine],
+        referral: { is_self_referral: false, remark: "" },
+      },
       transfusion_reason: "",
       reference_note: "",
-      components: [{ quantity: 1 } as CaseCreateValues["components"][number]],
+      components: [],
+      donors: [],
     },
-  })
-  const components = useFieldArray({
-    control: form.control,
-    name: "components",
   })
 
   function onSubmit(values: CaseCreateValues) {
     createCase.mutate(values, {
       onSuccess: (record) => {
-        toast.success(`Case ${record.case_no} opened`)
+        toast.success(`Case ${record.case_no} registered`)
         router.push(`/blood-bank/cases/${record.id}`)
       },
       onError: (error) => {
@@ -81,28 +79,40 @@ export function CaseCreateForm() {
       >
         <Card>
           <CardHeader>
-            <CardTitle>Patient and case</CardTitle>
+            <CardTitle>Patient</CardTitle>
           </CardHeader>
           <CardContent>
-            <FieldGroup>
-              <Controller
-                name="patient_master_id"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="patient_master_id">Patient</FieldLabel>
-                    <PatientCombobox
-                      id="patient_master_id"
-                      value={field.value}
-                      onChange={field.onChange}
-                      invalid={fieldState.invalid}
-                    />
-                    <FieldError errors={[fieldState.error]} />
-                  </Field>
-                )}
-              />
-              <CaseDetailsFields />
-            </FieldGroup>
+            <CasePatientFields />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Tests</CardTitle>
+            <CardDescription>
+              Billed on the invoice. The server calculates the total.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CaseTestItemsFields />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Referral</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CaseReferralFields />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Case</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CaseDetailsFields />
           </CardContent>
         </Card>
 
@@ -110,106 +120,17 @@ export function CaseCreateForm() {
           <CardHeader>
             <CardTitle>Requested components</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {components.fields.map((line, index) => (
-              <div key={line.id} className="flex items-start gap-3">
-                <Controller
-                  name={`components.${index}.component_type_id`}
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid} className="flex-1">
-                      <FieldLabel
-                        htmlFor={`component-${index}`}
-                        className="sr-only"
-                      >
-                        Component
-                      </FieldLabel>
-                      <Select
-                        value={field.value ? String(field.value) : ""}
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        disabled={componentTypes.isPending}
-                      >
-                        <SelectTrigger
-                          id={`component-${index}`}
-                          aria-invalid={fieldState.invalid}
-                        >
-                          <SelectValue placeholder="Component" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(componentTypes.data ?? []).map((type) => (
-                            <SelectItem key={type.id} value={String(type.id)}>
-                              {type.code} · {type.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FieldError errors={[fieldState.error]} />
-                    </Field>
-                  )}
-                />
-                <Controller
-                  name={`components.${index}.quantity`}
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid} className="w-28">
-                      <FieldLabel
-                        htmlFor={`quantity-${index}`}
-                        className="sr-only"
-                      >
-                        Quantity
-                      </FieldLabel>
-                      <Input
-                        id={`quantity-${index}`}
-                        type="number"
-                        min={1}
-                        inputMode="numeric"
-                        name={field.name}
-                        ref={field.ref}
-                        onBlur={field.onBlur}
-                        value={
-                          Number.isNaN(field.value) ? "" : (field.value ?? "")
-                        }
-                        onChange={(event) =>
-                          field.onChange(event.target.valueAsNumber)
-                        }
-                        aria-invalid={fieldState.invalid}
-                      />
-                      <FieldError errors={[fieldState.error]} />
-                    </Field>
-                  )}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Remove component"
-                  disabled={components.fields.length === 1}
-                  onClick={() => components.remove(index)}
-                >
-                  <Trash2Icon />
-                </Button>
-              </div>
-            ))}
-            <FieldError
-              errors={[
-                form.formState.errors.components?.root ??
-                  form.formState.errors.components,
-              ]}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="self-start"
-              onClick={() =>
-                components.append({
-                  quantity: 1,
-                } as CaseCreateValues["components"][number])
-              }
-            >
-              <PlusIcon data-icon="inline-start" />
-              Add component
-            </Button>
+          <CardContent>
+            <CaseComponentsFields />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Donors</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CaseDonorsFields />
           </CardContent>
         </Card>
 
@@ -219,7 +140,7 @@ export function CaseCreateForm() {
           </Button>
           <Button type="submit" disabled={createCase.isPending}>
             {createCase.isPending ? <Spinner /> : null}
-            Open case
+            Register case
           </Button>
         </div>
       </Form>

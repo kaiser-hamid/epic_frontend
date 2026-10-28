@@ -3,14 +3,15 @@ export type ResourceResponse<T> = {
   data: T
 }
 
-/** Laravel paginator `meta` block. */
+/**
+ * `meta` of every paginated collection (backend `SharedServiceProvider::bootPagination`).
+ * The response is zero-based (`page_index`); the request `page` param is one-based.
+ */
 export type PaginationMeta = {
-  current_page: number
-  last_page: number
-  per_page: number
-  total: number
-  from: number | null
-  to: number | null
+  page_index: number
+  page_size: number
+  page_count: number
+  row_count: number
 }
 
 /** `{ "data": [...], "meta": {...} }` envelope for a paginated collection. */
