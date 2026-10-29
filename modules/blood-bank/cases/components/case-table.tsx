@@ -1,12 +1,12 @@
 "use client"
 
 import { SearchIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs"
 import { useEffect, useState } from "react"
 
 import { dataTableColumnHelper } from "@/components/data-table/columns"
 import { DataTable } from "@/components/data-table/data-table"
+import { RowActions, ViewRowAction } from "@/components/data-table/row-actions"
 import { useListParams } from "@/components/data-table/use-list-params"
 import { DateTime } from "@/components/date-time"
 import { Money } from "@/components/money"
@@ -108,10 +108,18 @@ const columns = helper.columns([
     header: "Registered",
     cell: (info) => <DateTime value={info.getValue()} />,
   }),
+  helper.display({
+    id: "actions",
+    header: () => <span className="sr-only">Actions</span>,
+    cell: ({ row }) => (
+      <RowActions label={row.original.case_no}>
+        <ViewRowAction href={`/blood-bank/cases/${row.original.id}`} />
+      </RowActions>
+    ),
+  }),
 ])
 
 export function CaseTable() {
-  const router = useRouter()
   const { page, perPage, sort, setPage, setSort, resetPage } = useListParams({
     defaultSort: "-created_at",
   })
@@ -214,7 +222,6 @@ export function CaseTable() {
         sortableColumns={caseSortableColumns}
         onPageChange={setPage}
         getRowId={(row) => String(row.id)}
-        onRowClick={(row) => router.push(`/blood-bank/cases/${row.id}`)}
         emptyTitle="No cases"
       />
     </div>

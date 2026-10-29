@@ -51,7 +51,6 @@ type DataTableProps<TData extends RowData> = {
   sortableColumns?: readonly string[]
   onPageChange?: (page: number) => void
   getRowId?: (row: TData) => string
-  onRowClick?: (row: TData) => void
   emptyTitle?: string
   emptyDescription?: string
 }
@@ -69,7 +68,6 @@ export function DataTable<TData extends RowData>({
   sortableColumns = [],
   onPageChange,
   getRowId,
-  onRowClick,
   emptyTitle = "No records",
   emptyDescription = "Nothing matches the current filters.",
 }: DataTableProps<TData>) {
@@ -146,13 +144,7 @@ export function DataTable<TData extends RowData>({
               </TableRow>
             ) : (
               rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className={cn(onRowClick && "cursor-pointer")}
-                  onClick={
-                    onRowClick ? () => onRowClick(row.original) : undefined
-                  }
-                >
+                <TableRow key={row.id}>
                   {row.getAllCells().map((cell) => (
                     <TableCell key={cell.id}>
                       <table.FlexRender cell={cell} />

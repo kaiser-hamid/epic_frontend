@@ -9,14 +9,36 @@ import { useCallback } from "react"
 
 import {
   findDonorsByPhone,
+  getDonor,
+  listDonors,
   searchDonors,
+  type DonorListParams,
 } from "@/modules/blood-bank/donors/api"
 
 export const donorKeys = {
   all: ["blood-bank", "donors"] as const,
+  lists: () => [...donorKeys.all, "list"] as const,
+  list: (params: DonorListParams) => [...donorKeys.lists(), params] as const,
+  details: () => [...donorKeys.all, "detail"] as const,
+  detail: (id: number) => [...donorKeys.details(), id] as const,
   searches: () => [...donorKeys.all, "search"] as const,
   search: (term: string) => [...donorKeys.searches(), term] as const,
   byPhone: (phone: string) => [...donorKeys.all, "by-phone", phone] as const,
+}
+
+export function useDonors(params: DonorListParams) {
+  return useQuery({
+    queryKey: donorKeys.list(params),
+    queryFn: () => listDonors(params),
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useDonor(id: number) {
+  return useQuery({
+    queryKey: donorKeys.detail(id),
+    queryFn: () => getDonor(id),
+  })
 }
 
 export function useDonorSearch(term: string) {
