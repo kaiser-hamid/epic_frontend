@@ -128,7 +128,9 @@ function fallbackCode(status: number): string {
 
 /**
  * Spatie query-builder format: `filter[status]=open&sort=-created_at&include=patient,components`.
- * Empty values are dropped so cleared filters disappear from the request.
+ * Arrays are comma-joined, except under a `name[]` key, which repeats per value
+ * (`exclude_ids[]=1&exclude_ids[]=2`). Empty values are dropped so cleared filters
+ * disappear from the request.
  */
 export function serializeParams(
   params: ListParams | Record<string, unknown>
@@ -154,7 +156,11 @@ export function serializeParams(
     }
 
     if (Array.isArray(value)) {
-      if (value.length > 0) {
+      if (key.endsWith("[]")) {
+        for (const item of value) {
+          search.append(key, String(item))
+        }
+      } else if (value.length > 0) {
         search.append(key, value.join(","))
       }
       continue

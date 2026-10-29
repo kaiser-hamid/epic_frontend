@@ -12,6 +12,18 @@ export async function searchPatients(search: string): Promise<Patient[]> {
   return response.data.data
 }
 
+/**
+ * Exact phone match across branches, newest first, at most 10. Family members can share a
+ * number, so this can return several. Ages are as of today.
+ */
+export async function findPatientsByPhone(phone: string): Promise<Patient[]> {
+  const response = await apiClient.get<ResourceResponse<Patient[]>>(
+    `${basePath}/lookup`,
+    { params: { phone } }
+  )
+  return response.data.data
+}
+
 export async function getPatient(id: number): Promise<Patient> {
   const response = await apiClient.get<ResourceResponse<Patient>>(
     `${basePath}/${id}`

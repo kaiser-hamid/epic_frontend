@@ -35,6 +35,20 @@ describe("Form Enter key", () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
+  it("skips read-only fields", async () => {
+    const user = userEvent.setup()
+    render(
+      <Form>
+        <input aria-label="code" />
+        <input aria-label="degree" readOnly value="MBBS" />
+        <input aria-label="remark" />
+      </Form>
+    )
+
+    await user.type(screen.getByLabelText("code"), "a{Enter}")
+    expect(screen.getByLabelText("remark")).toHaveFocus()
+  })
+
   it("submits only from the last field", async () => {
     const { onSubmit, user } = renderForm()
 

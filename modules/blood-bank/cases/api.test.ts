@@ -8,9 +8,7 @@ import {
 } from "@/modules/blood-bank/cases/schemas"
 
 const values: CaseCreateValues = {
-  patient_mode: "new",
   billing: {
-    patient_id: 9,
     patient: { ...emptyNewPatient, name: "Rahim Uddin", age_years: 40 },
     items: [{ test_item_id: 12, quantity: 1 }],
     referral: { is_self_referral: false, doctor_id: 3, remark: "" },
@@ -20,8 +18,8 @@ const values: CaseCreateValues = {
   reference_note: "",
   components: [],
   donors: [
-    { kind: "existing", donor_id: 41 },
-    { kind: "new", donor: { ...emptyNewDonor, name: "Karim Mia", age: 28 } },
+    { donor_id: 41, donor: { ...emptyNewDonor, name: "Shown read-only" } },
+    { donor: { ...emptyNewDonor, name: "Karim Mia", age: 28 } },
   ],
 }
 
@@ -31,7 +29,7 @@ function body(input: CaseCreateValues) {
 }
 
 describe("toRegisterCasePayload", () => {
-  it("sends only the new patient in new-patient mode, with empty optionals as null", () => {
+  it("sends only the new patient when none was found, with empty optionals as null", () => {
     const { billing } = body(values)
     expect(billing).not.toHaveProperty("patient_id")
     expect(billing.patient).toMatchObject({
@@ -43,8 +41,11 @@ describe("toRegisterCasePayload", () => {
     expect(billing.patient).not.toHaveProperty("age_months")
   })
 
-  it("sends only patient_id for a returning patient", () => {
-    const { billing } = body({ ...values, patient_mode: "existing" })
+  it("sends only patient_id for a found patient", () => {
+    const { billing } = body({
+      ...values,
+      billing: { ...values.billing, patient_id: 9 },
+    })
     expect(billing.patient_id).toBe(9)
     expect(billing).not.toHaveProperty("patient")
   })
@@ -61,7 +62,7 @@ describe("toRegisterCasePayload", () => {
     expect(billing.referral.is_self_referral).toBe(true)
   })
 
-  it("sends donor_id or donor per donor, without the UI kind", () => {
+  it("sends donor_id for a found donor and donor for a new one", () => {
     const { donors } = body(values)
     expect(donors[0]).toEqual({ donor_id: 41 })
     expect(Object.keys(donors[1])).toEqual(["donor"])

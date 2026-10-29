@@ -16,15 +16,47 @@ const FIELD_SELECTOR = [
 function isFieldStop(element: Element): element is HTMLElement {
   return (
     element instanceof HTMLElement &&
-    !element.matches(":disabled, [aria-disabled=true], [tabindex='-1']") &&
+    !element.matches(
+      ":disabled, [readonly], [aria-disabled=true], [tabindex='-1']"
+    ) &&
     !element.closest("[inert], fieldset:disabled") &&
     (element.checkVisibility?.() ?? true)
   )
 }
 
 /**
+ * Focuses the first field after `from` in DOM order, skipping fields inside `from` (so a
+ * section can be stepped past). Returns false when there is none.
+ */
+export function focusNextField(from: Element): boolean {
+  const form = from.closest("form")
+  if (!form) {
+    return false
+  }
+
+  const next = Array.from(form.querySelectorAll(FIELD_SELECTOR))
+    .filter(isFieldStop)
+    .find((element) => {
+      const position = from.compareDocumentPosition(element)
+      return (
+        (position & Node.DOCUMENT_POSITION_FOLLOWING) !== 0 &&
+        (position & Node.DOCUMENT_POSITION_CONTAINED_BY) === 0
+      )
+    })
+  if (!next) {
+    return false
+  }
+
+  next.focus()
+  if (next instanceof HTMLInputElement) {
+    next.select()
+  }
+  return true
+}
+
+/**
  * Enter moves focus to the next field; on the last field it submits.
- * Left to the browser/component: Enter in a textarea (new line), on a button,
+ * Disabled and read-only fields are skipped. Left to the browser/component: Enter in a textarea (new line), on a button,
  * inside a portal (open select, combobox list, popover), on an expanded
  * combobox, or under `data-enter-key="native"`.
  */
@@ -55,22 +87,13 @@ export function handleEnterKeyNavigation(
     return
   }
 
-  const fields = Array.from(form.querySelectorAll(FIELD_SELECTOR)).filter(
-    isFieldStop
-  )
-  const index = fields.indexOf(target)
-  if (index === -1) {
+  if (!target.matches(FIELD_SELECTOR) || !isFieldStop(target)) {
     return
   }
 
   event.preventDefault()
 
-  const next = fields[index + 1]
-  if (next) {
-    next.focus()
-    if (next instanceof HTMLInputElement) {
-      next.select()
-    }
+  if (focusNextField(target)) {
     return
   }
 

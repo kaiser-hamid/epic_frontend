@@ -8,7 +8,6 @@ import {
 } from "@/modules/blood-bank/cases/schemas"
 
 const valid: CaseCreateValues = {
-  patient_mode: "new",
   billing: {
     patient: { ...emptyNewPatient, name: "Rahim Uddin", age_years: 40 },
     items: [{ test_item_id: 12, quantity: 1 }],
@@ -17,8 +16,8 @@ const valid: CaseCreateValues = {
   care_type: "daycare",
   transfusion_reason: "",
   reference_note: "",
-  components: [{ component_type_id: 2, quantity: 2 }],
-  donors: [],
+  components: [{ component_type_id: 2 }],
+  donors: [{ donor_id: 41, donor: emptyNewDonor }],
 }
 
 function issuePaths(values: unknown) {
@@ -29,6 +28,10 @@ function issuePaths(values: unknown) {
 describe("caseCreateSchema", () => {
   it("accepts a valid registration", () => {
     expect(issuePaths(valid)).toEqual([])
+  })
+
+  it("requires at least one donor", () => {
+    expect(issuePaths({ ...valid, donors: [] })).toEqual([["donors"]])
   })
 
   it("requires the age or date of birth of a new patient", () => {
@@ -46,18 +49,22 @@ describe("caseCreateSchema", () => {
     ).toEqual([])
   })
 
-  it("requires a selected patient in returning-patient mode, ignoring the new-patient fields", () => {
+  it("skips the new-patient rules once the phone lookup found the patient", () => {
     const billing = { ...valid.billing, patient: emptyNewPatient }
-    expect(issuePaths({ ...valid, patient_mode: "existing", billing })).toEqual(
-      [["billing", "patient_id"]]
-    )
+    expect(issuePaths({ ...valid, billing })).toEqual([
+      ["billing", "patient", "name"],
+      ["billing", "patient", "age_years"],
+    ])
     expect(
-      issuePaths({
-        ...valid,
-        patient_mode: "existing",
-        billing: { ...billing, patient_id: 7 },
-      })
+      issuePaths({ ...valid, billing: { ...billing, patient_id: 7 } })
     ).toEqual([])
+  })
+
+  it("accepts digits only in a phone", () => {
+    const patient = { ...valid.billing.patient, phone: "01711-000000" }
+    expect(
+      issuePaths({ ...valid, billing: { ...valid.billing, patient } })
+    ).toEqual([["billing", "patient", "phone"]])
   })
 
   it("requires a doctor unless the patient is self-referred", () => {
@@ -80,14 +87,11 @@ describe("caseCreateSchema", () => {
     expect(
       issuePaths({
         ...valid,
-        components: [
-          { component_type_id: 2, quantity: 2 },
-          { component_type_id: 2, quantity: 1 },
-        ],
+        components: [{ component_type_id: 2 }, { component_type_id: 2 }],
         donors: [
-          { kind: "existing", donor_id: 41 },
-          { kind: "new", donor: { ...emptyNewDonor, name: "Karim", age: 28 } },
-          { kind: "existing", donor_id: 41 },
+          { donor_id: 41, donor: emptyNewDonor },
+          { donor: { ...emptyNewDonor, name: "Karim", age: 28 } },
+          { donor_id: 41, donor: emptyNewDonor },
         ],
       })
     ).toEqual([
@@ -96,12 +100,20 @@ describe("caseCreateSchema", () => {
     ])
   })
 
-  it("requires the age or date of birth of a new donor", () => {
+  it("requires the name and age (or date of birth) of a new donor only", () => {
     expect(
       issuePaths({
         ...valid,
-        donors: [{ kind: "new", donor: { ...emptyNewDonor, name: "Karim" } }],
+        donors: [
+          { donor: { ...emptyNewDonor, name: "Karim" } },
+          { donor: emptyNewDonor },
+          { donor_id: 41, donor: emptyNewDonor },
+        ],
       })
-    ).toEqual([["donors", 0, "donor", "age"]])
+    ).toEqual([
+      ["donors", 0, "donor", "age"],
+      ["donors", 1, "donor", "name"],
+      ["donors", 1, "donor", "age"],
+    ])
   })
 })

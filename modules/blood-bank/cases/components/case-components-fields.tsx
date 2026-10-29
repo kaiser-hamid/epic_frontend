@@ -1,67 +1,86 @@
 "use client"
 
-import { PlusIcon, Trash2Icon } from "lucide-react"
-import { useFieldArray, useFormContext } from "react-hook-form"
+import { Controller, useFormContext } from "react-hook-form"
 
-import { Button } from "@/components/ui/button"
-import { FieldDescription, FieldError } from "@/components/ui/field"
-import { NumberControl } from "@/modules/blood-bank/cases/components/case-form-controls"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useComponentTypes } from "@/modules/blood-bank/component-types/queries"
 import type { CaseCreateValues } from "@/modules/blood-bank/cases/schemas"
 
-type ComponentLine = CaseCreateValues["components"][number]
+const NONE = "none"
+const ID = "components.0.component_type_id"
 
-/** Requested blood components (optional). No component type lookup yet, so lines take the ID. */
-export function CaseComponentsFields() {
+/**
+ * Requested blood component (optional). One for now, sent as a one-line `components`
+ * array; the backend already takes several.
+ */
+export function RequestedComponentControl({
+  className,
+}: {
+  className?: string
+}) {
   const { control, formState } = useFormContext<CaseCreateValues>()
-  const components = useFieldArray({ control, name: "components" })
-  const componentsError = formState.errors.components
+  const componentTypes = useComponentTypes()
+  // Server errors land on the line ("not an active component type").
+  const typeError = formState.errors.components?.[0]?.component_type_id
+
+  function placeholder() {
+    if (componentTypes.isPending) {
+      return "Loading…"
+    }
+    return componentTypes.isError
+      ? "Could not load component types."
+      : "Select component"
+  }
 
   return (
-    <div className="flex flex-col gap-4">
-      {components.fields.length === 0 ? (
-        <FieldDescription>No components requested.</FieldDescription>
-      ) : null}
-      {components.fields.map((line, index) => (
-        <div key={line.id} className="flex items-start gap-3">
-          <NumberControl
-            name={`components.${index}.component_type_id`}
-            label="Component type ID"
-            placeholder="Component type ID"
-            hideLabel
-            min={1}
-            className="flex-1"
-          />
-          <NumberControl
-            name={`components.${index}.quantity`}
-            label="Quantity"
-            placeholder="Qty"
-            hideLabel
-            min={1}
-            max={20}
-            className="w-28"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Remove component"
-            onClick={() => components.remove(index)}
-          >
-            <Trash2Icon />
-          </Button>
-        </div>
-      ))}
-      <FieldError errors={[componentsError?.root ?? componentsError]} />
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="self-start"
-        onClick={() => components.append({ quantity: 1 } as ComponentLine)}
-      >
-        <PlusIcon data-icon="inline-start" />
-        Add component
-      </Button>
-    </div>
+    <Controller
+      name="components"
+      control={control}
+      render={({ field }) => {
+        const line = field.value[0]
+        return (
+          <Field data-invalid={typeError !== undefined} className={className}>
+            <FieldLabel htmlFor={ID}>Requested components</FieldLabel>
+            <Select
+              value={line ? String(line.component_type_id) : ""}
+              onValueChange={(next) =>
+                field.onChange(
+                  next === NONE ? [] : [{ component_type_id: Number(next) }]
+                )
+              }
+              disabled={!componentTypes.isSuccess}
+            >
+              <SelectTrigger
+                id={ID}
+                ref={field.ref}
+                className="w-full"
+                aria-invalid={typeError !== undefined}
+                onBlur={field.onBlur}
+              >
+                <SelectValue placeholder={placeholder()} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE} className="text-muted-foreground">
+                  None
+                </SelectItem>
+                {componentTypes.data?.map((type) => (
+                  <SelectItem key={type.id} value={String(type.id)}>
+                    {type.code} – {type.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FieldError errors={[typeError]} />
+          </Field>
+        )
+      }}
+    />
   )
 }

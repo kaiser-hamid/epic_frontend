@@ -5,12 +5,10 @@ import type {
   ResourceResponse,
 } from "@/lib/api-types"
 import { emptyToNull } from "@/lib/utils"
-import {
-  DonorKind,
-  PatientMode,
-  type CaseCreateValues,
-  type NewDonorValues,
-  type NewPatientValues,
+import type {
+  CaseCreateValues,
+  NewDonorValues,
+  NewPatientValues,
 } from "@/modules/blood-bank/cases/schemas"
 import type {
   BloodBankCase,
@@ -18,6 +16,9 @@ import type {
 } from "@/modules/blood-bank/cases/types"
 
 const basePath = "/api/blood-bank/cases"
+
+/** The form asks only which component; one unit each until it asks how many. */
+const REQUESTED_COMPONENT_QUANTITY = 1
 
 export type CaseListParams = Omit<ListParams, "filter" | "include"> & {
   filter?: CaseFilters
@@ -73,9 +74,10 @@ function newDonorPayload(donor: NewDonorValues) {
 }
 
 /**
- * Form values → request body. Sends exactly one of `patient_id` / `patient`, no
- * `doctor_id` on a self referral, and `donor_id` or `donor` per donor. Empty optional
- * numbers stay `undefined` and are dropped from the JSON.
+ * Form values → request body. Sends exactly one of `patient_id` (found by phone) /
+ * `patient`, test lines without their display-only `item`, no `doctor_id` on a self
+ * referral, and `donor_id` or `donor` per donor. Doctors and staff go by id only.
+ * Empty optional numbers stay `undefined` and are dropped from the JSON.
  */
 export function toRegisterCasePayload(values: CaseCreateValues) {
   const { billing } = values
@@ -83,10 +85,13 @@ export function toRegisterCasePayload(values: CaseCreateValues) {
 
   return {
     billing: {
-      ...(values.patient_mode === PatientMode.Existing
+      ...(billing.patient_id !== undefined
         ? { patient_id: billing.patient_id }
         : { patient: newPatientPayload(billing.patient) }),
-      items: billing.items,
+      items: billing.items.map((line) => ({
+        test_item_id: line.test_item_id,
+        quantity: line.quantity,
+      })),
       referral: {
         is_self_referral: referral.is_self_referral,
         doctor_id: referral.is_self_referral ? undefined : referral.doctor_id,
@@ -98,9 +103,12 @@ export function toRegisterCasePayload(values: CaseCreateValues) {
     care_type: values.care_type,
     transfusion_reason: emptyToNull(values.transfusion_reason),
     reference_note: emptyToNull(values.reference_note),
-    components: values.components,
+    components: values.components.map((line) => ({
+      component_type_id: line.component_type_id,
+      quantity: REQUESTED_COMPONENT_QUANTITY,
+    })),
     donors: values.donors.map((entry) =>
-      entry.kind === DonorKind.Existing
+      entry.donor_id !== undefined
         ? { donor_id: entry.donor_id }
         : { donor: newDonorPayload(entry.donor) }
     ),
