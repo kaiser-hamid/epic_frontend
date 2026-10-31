@@ -51,6 +51,8 @@ type DataTableProps<TData extends RowData> = {
   sortableColumns?: readonly string[]
   onPageChange?: (page: number) => void
   getRowId?: (row: TData) => string
+  /** Makes rows clickable (and focusable: Enter or Space opens them too). */
+  onRowClick?: (row: TData) => void
   emptyTitle?: string
   emptyDescription?: string
 }
@@ -68,6 +70,7 @@ export function DataTable<TData extends RowData>({
   sortableColumns = [],
   onPageChange,
   getRowId,
+  onRowClick,
   emptyTitle = "No records",
   emptyDescription = "Nothing matches the current filters.",
 }: DataTableProps<TData>) {
@@ -144,7 +147,25 @@ export function DataTable<TData extends RowData>({
               </TableRow>
             ) : (
               rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  {...(onRowClick
+                    ? {
+                        tabIndex: 0,
+                        className: "cursor-pointer",
+                        onClick: () => onRowClick(row.original),
+                        onKeyDown: (event: React.KeyboardEvent) => {
+                          if (
+                            event.target === event.currentTarget &&
+                            (event.key === "Enter" || event.key === " ")
+                          ) {
+                            event.preventDefault()
+                            onRowClick(row.original)
+                          }
+                        },
+                      }
+                    : {})}
+                >
                   {row.getAllCells().map((cell) => (
                     <TableCell key={cell.id}>
                       <table.FlexRender cell={cell} />

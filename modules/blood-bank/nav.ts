@@ -13,9 +13,15 @@ export const bloodBankNav: NavItem = {
       permission: BloodBankPermission.CaseView,
     },
     {
+      title: "Sample Collection",
+      href: "/blood-bank/sample-collection",
+      permission: BloodBankPermission.SampleView,
+    },
+    {
       title: "Donors",
       href: "/blood-bank/donors",
       permission: BloodBankPermission.DonorView,
     },
+    
   ],
 }

@@ -8,9 +8,13 @@ export const DEFAULT_PER_PAGE = 20
 /**
  * Page, page size and sort for a server-side list, kept in the URL.
  * Filters are module-specific: keep them in their own `useQueryStates` and call
- * `resetPage()` whenever a filter changes.
+ * `resetPage()` whenever a filter changes. Give each list a `prefix` when one page
+ * shows several (tabs), so their URL keys do not collide (`pending_page`).
  */
-export function useListParams({ defaultSort }: { defaultSort?: string } = {}) {
+export function useListParams({
+  defaultSort,
+  prefix = "",
+}: { defaultSort?: string; prefix?: string } = {}) {
   const [params, setParams] = useQueryStates(
     {
       page: parseAsInteger.withDefault(1),
@@ -19,11 +23,19 @@ export function useListParams({ defaultSort }: { defaultSort?: string } = {}) {
         ? parseAsString.withDefault(defaultSort)
         : parseAsString,
     },
-    { history: "replace" }
+    {
+      history: "replace",
+      urlKeys: {
+        page: `${prefix}page`,
+        per_page: `${prefix}per_page`,
+        sort: `${prefix}sort`,
+      },
+    }
   )
 
+  // Scroll to the top so a page change is visible, not just the pager label.
   const setPage = useCallback(
-    (page: number) => setParams({ page }),
+    (page: number) => setParams({ page }, { scroll: true }),
     [setParams]
   )
   const setSort = useCallback(

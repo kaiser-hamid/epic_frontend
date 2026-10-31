@@ -53,6 +53,25 @@ export const SampleStatus = {
 } as const
 export type SampleStatus = ValueOf<typeof SampleStatus>
 
+export const sampleStatusLabels: Record<SampleStatus, string> = {
+  collected: "Collected",
+  in_testing: "In testing",
+  tested: "Tested",
+  rejected: "Rejected",
+}
+
+/** Who a sample is drawn from. */
+export const SampleSubject = {
+  Patient: "patient",
+  Donor: "donor",
+} as const
+export type SampleSubject = ValueOf<typeof SampleSubject>
+
+export const sampleSubjectLabels: Record<SampleSubject, string> = {
+  patient: "Patient",
+  donor: "Donor",
+}
+
 /** Shared by test results and crossmatches. */
 export const ResultStatus = {
   Entered: "entered",

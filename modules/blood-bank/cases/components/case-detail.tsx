@@ -16,26 +16,17 @@ import {
 } from "@/components/ui/table"
 import { CaseStatusBadge } from "@/modules/blood-bank/cases/components/case-status-badge"
 import { useCase } from "@/modules/blood-bank/cases/queries"
-import type { CasePatient } from "@/modules/blood-bank/cases/types"
 import {
   careTypeLabels,
   caseDonorStatusLabels,
 } from "@/modules/blood-bank/enums"
 import { useBreadcrumbLabel } from "@/modules/shared/layout/breadcrumbs"
+import { formatPatientAge } from "@/modules/shared/patient/format"
 import {
   bloodGroupLabels,
   genderLabels,
   patientTitleLabels,
 } from "@/modules/shared/patient/enums"
-
-function patientAge(patient: CasePatient): string | null {
-  const parts = [
-    patient.age_years ? `${patient.age_years}y` : null,
-    patient.age_months ? `${patient.age_months}m` : null,
-    patient.age_days ? `${patient.age_days}d` : null,
-  ].filter(Boolean)
-  return parts.length > 0 ? parts.join(" ") : null
-}
 
 export function CaseDetail({ caseId }: { caseId: number }) {
   const query = useCase(caseId)
@@ -92,7 +83,7 @@ export function CaseDetail({ caseId }: { caseId: number }) {
               />
               <Detail
                 label="Age"
-                value={patient ? patientAge(patient) : null}
+                value={patient ? formatPatientAge(patient) : null}
               />
               <Detail
                 label="Gender"

@@ -30,6 +30,11 @@ export function formatDate(value: string | Date): string {
   return format(inAppTimezone(value), "dd MMM yyyy")
 }
 
+/** Today in Asia/Dhaka as `YYYY-MM-DD`, for date filters. */
+export function todayIsoDate(): string {
+  return format(inAppTimezone(new Date()), "yyyy-MM-dd")
+}
+
 /** ISO 8601 → "27 Oct 2026, 14:05" in Asia/Dhaka. */
 export function formatDateTime(value: string | Date): string {
   return format(inAppTimezone(value), "dd MMM yyyy, HH:mm")

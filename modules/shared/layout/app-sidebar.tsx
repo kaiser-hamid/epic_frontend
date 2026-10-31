@@ -31,7 +31,7 @@ export function AppSidebar({ navItems }: { navItems: NavItem[] }) {
               <Link href="/" aria-label="Epic Health Care, home">
                 <LogoMark className="hidden shrink-0 group-data-[collapsible=icon]:block" />
                 <div className="grid flex-1 gap-0.5 group-data-[collapsible=icon]:hidden">
-                  <Logo className="h-6" />
+                  <Logo className="h-[1.8rem]" />
                   <span className="truncate text-xs text-muted-foreground">
                     {me?.branch.name ?? "ERP"}
                   </span>

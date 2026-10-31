@@ -6,6 +6,9 @@ export const BloodBankPermission = {
   CaseView: "bb.case.view",
   CaseCreate: "bb.case.create",
   DonorView: "bb.donor.view",
+  SampleView: "bb.sample.view",
+  SampleCollect: "bb.sample.collect",
+  SampleLabelPrint: "bb.sample.print_label",
 } as const
 
 export type BloodBankPermission =
