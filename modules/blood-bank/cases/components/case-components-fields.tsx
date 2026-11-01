@@ -1,24 +1,32 @@
 "use client"
 
+import { ChevronsUpDownIcon } from "lucide-react"
 import { Controller, useFormContext } from "react-hook-form"
 
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { useComponentTypes } from "@/modules/blood-bank/component-types/queries"
 import type { CaseCreateValues } from "@/modules/blood-bank/cases/schemas"
 
-const NONE = "none"
-const ID = "components.0.component_type_id"
+const ID = "requested_components"
 
 /**
- * Requested blood component (optional). One for now, sent as a one-line `components`
- * array; the backend already takes several.
+ * Requested blood components (optional, several allowed). Each pick is a one-line entry in
+ * the `components` array; the list stays open so several can be ticked in a row.
  */
 export function RequestedComponentControl({
   className,
@@ -27,8 +35,8 @@ export function RequestedComponentControl({
 }) {
   const { control, formState } = useFormContext<CaseCreateValues>()
   const componentTypes = useComponentTypes()
-  // Server errors land on the line ("not an active component type").
-  const typeError = formState.errors.components?.[0]?.component_type_id
+  // Server errors land on a line ("not an active component type", "already listed").
+  const lineErrors = formState.errors.components
 
   function placeholder() {
     if (componentTypes.isPending) {
@@ -36,7 +44,7 @@ export function RequestedComponentControl({
     }
     return componentTypes.isError
       ? "Could not load component types."
-      : "Select component"
+      : "Select components"
   }
 
   return (
@@ -44,40 +52,83 @@ export function RequestedComponentControl({
       name="components"
       control={control}
       render={({ field }) => {
-        const line = field.value[0]
+        const messages = field.value.map(
+          (_, index) => lineErrors?.[index]?.component_type_id
+        )
+        const hasError = messages.some((error) => error !== undefined)
+        const selectedIds = field.value.map((line) => line.component_type_id)
+        const selected = (componentTypes.data ?? []).filter((type) =>
+          selectedIds.includes(type.id)
+        )
+
+        function toggle(typeId: number) {
+          field.onChange(
+            selectedIds.includes(typeId)
+              ? field.value.filter((line) => line.component_type_id !== typeId)
+              : [...field.value, { component_type_id: typeId }]
+          )
+        }
+
         return (
-          <Field data-invalid={typeError !== undefined} className={className}>
+          <Field data-invalid={hasError} className={className}>
             <FieldLabel htmlFor={ID}>Requested components</FieldLabel>
-            <Select
-              value={line ? String(line.component_type_id) : ""}
-              onValueChange={(next) =>
-                field.onChange(
-                  next === NONE ? [] : [{ component_type_id: Number(next) }]
-                )
-              }
-              disabled={!componentTypes.isSuccess}
-            >
-              <SelectTrigger
-                id={ID}
-                ref={field.ref}
-                className="w-full"
-                aria-invalid={typeError !== undefined}
-                onBlur={field.onBlur}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id={ID}
+                  ref={field.ref}
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-invalid={hasError}
+                  disabled={!componentTypes.isSuccess}
+                  onBlur={field.onBlur}
+                  className="h-auto min-h-9 w-full justify-between font-normal"
+                >
+                  {selected.length === 0 ? (
+                    <span className="text-muted-foreground">
+                      {placeholder()}
+                    </span>
+                  ) : (
+                    <span className="flex flex-wrap gap-1">
+                      {selected.map((type) => (
+                        <Badge key={type.id} variant="secondary">
+                          {type.code}
+                        </Badge>
+                      ))}
+                    </span>
+                  )}
+                  <ChevronsUpDownIcon
+                    data-icon="inline-end"
+                    className="opacity-50"
+                  />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-(--radix-popover-trigger-width) p-0"
+                align="start"
               >
-                <SelectValue placeholder={placeholder()} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE} className="text-muted-foreground">
-                  None
-                </SelectItem>
-                {componentTypes.data?.map((type) => (
-                  <SelectItem key={type.id} value={String(type.id)}>
-                    {type.code} – {type.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError errors={[typeError]} />
+                <Command>
+                  <CommandInput placeholder="Search component" />
+                  <CommandList>
+                    <CommandEmpty>No component found.</CommandEmpty>
+                    <CommandGroup>
+                      {componentTypes.data?.map((type) => (
+                        <CommandItem
+                          key={type.id}
+                          value={`${type.code} ${type.name}`}
+                          data-checked={selectedIds.includes(type.id)}
+                          onSelect={() => toggle(type.id)}
+                        >
+                          {type.code} – {type.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <FieldError errors={messages} />
           </Field>
         )
       }}
