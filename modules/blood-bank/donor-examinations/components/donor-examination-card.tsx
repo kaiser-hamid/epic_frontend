@@ -101,7 +101,7 @@ export function DonorExaminationCard({
 
   function save(values: ExaminationFormValues) {
     const payload = toExaminationPayload(values)
-    if (payload === null || donor.case_donor_id === null) {
+    if (record.isPending || payload === null || donor.case_donor_id === null) {
       return
     }
     record.mutate(

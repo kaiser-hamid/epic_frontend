@@ -76,11 +76,15 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() =>
+          disabled={logout.isPending}
+          onSelect={() => {
+            if (logout.isPending) {
+              return
+            }
             logout.mutate(undefined, {
               onSettled: () => router.replace("/login"),
             })
-          }
+          }}
         >
           <LogOutIcon />
           Sign out

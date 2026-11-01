@@ -63,6 +63,9 @@ export function ChangePasswordForm() {
   }, [isPending, me, router])
 
   function onSubmit(values: ChangePasswordValues) {
+    if (changePassword.isPending || changePassword.isSuccess) {
+      return
+    }
     changePassword.mutate(values, {
       onSuccess: () => {
         toast.success("Password changed. Your other sessions were signed out.")
@@ -103,7 +106,10 @@ export function ChangePasswordForm() {
             )}
           />
         ))}
-        <Button type="submit" disabled={changePassword.isPending}>
+        <Button
+          type="submit"
+          disabled={changePassword.isPending || changePassword.isSuccess}
+        >
           {changePassword.isPending ? <Spinner /> : null}
           Change password
         </Button>

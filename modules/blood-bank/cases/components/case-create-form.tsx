@@ -69,6 +69,9 @@ function CaseRegistrationForm({ onRegistered }: { onRegistered: () => void }) {
   })
 
   function onSubmit(values: CaseCreateValues) {
+    if (createCase.isPending || createCase.isSuccess) {
+      return
+    }
     createCase.mutate(values, {
       onSuccess: (record) => {
         toast.success(`Case ${record.case_no} registered`)
@@ -147,7 +150,11 @@ function CaseRegistrationForm({ onRegistered }: { onRegistered: () => void }) {
           <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={createCase.isPending}>
+          {/* Stays disabled after success too: the page is on its way to the new case. */}
+          <Button
+            type="submit"
+            disabled={createCase.isPending || createCase.isSuccess}
+          >
             {createCase.isPending ? <Spinner /> : null}
             Register case
           </Button>

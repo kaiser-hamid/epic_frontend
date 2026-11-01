@@ -53,7 +53,7 @@ export function SampleLabelPrinter({
   children: React.ReactNode
 }) {
   const mutation = usePrintSampleLabels()
-  const { mutate } = mutation
+  const { mutate, isPending } = mutation
   const [reasonFor, setReasonFor] = useState<LabelPrintRequest | null>(null)
   const [labels, setLabels] = useState<SampleLabel[] | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -81,6 +81,9 @@ export function SampleLabelPrinter({
 
   const send = useCallback(
     (request: LabelPrintRequest, reprintReason?: string) => {
+      if (isPending) {
+        return
+      }
       mutate(
         {
           caseId: request.caseId,
@@ -103,7 +106,7 @@ export function SampleLabelPrinter({
         }
       )
     },
-    [mutate]
+    [mutate, isPending]
   )
 
   const print = useCallback(

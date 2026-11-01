@@ -73,6 +73,9 @@ export function LoginForm() {
   }, [branchList, form])
 
   function onSubmit(values: LoginValues) {
+    if (loginMutation.isPending || loginMutation.isSuccess) {
+      return
+    }
     loginMutation.mutate(values, {
       onSuccess: (me) => {
         const next = safeNextPath(searchParams.get("next"))
@@ -168,7 +171,10 @@ export function LoginForm() {
             </Field>
           )}
         />
-        <Button type="submit" disabled={loginMutation.isPending}>
+        <Button
+          type="submit"
+          disabled={loginMutation.isPending || loginMutation.isSuccess}
+        >
           {loginMutation.isPending ? <Spinner /> : null}
           Sign in
         </Button>
