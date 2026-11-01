@@ -26,6 +26,7 @@ import {
 import { RequiredMark } from "@/components/required-mark"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
+import { ageFromDob, dobFromAge } from "@/modules/blood-bank/cases/age-dob"
 import type { CaseCreateValues } from "@/modules/blood-bank/cases/schemas"
 
 /**
@@ -95,7 +96,10 @@ export function TextControl({
   )
 }
 
-/** Plain date (`YYYY-MM-DD`): typed `dd/MM/yyyy` or picked from a calendar. */
+/**
+ * Plain date (`YYYY-MM-DD`): typed `dd/MM/yyyy` or picked from a calendar. With `ageNames`,
+ * a complete date also fills those age fields (see `age-dob.ts`).
+ */
 export function DateControl({
   name,
   label,
@@ -103,10 +107,27 @@ export function DateControl({
   description,
   disabled,
   className,
+  ageNames,
 }: Omit<ControlProps, "hideLabel" | "placeholder"> & {
   name: FieldPathByValue<Values, string>
+  ageNames?: { years: NumberPath; months?: NumberPath; days?: NumberPath }
 }) {
-  const { control } = useFormContext<Values>()
+  const { control, setValue } = useFormContext<Values>()
+
+  function fillAge(dob: string) {
+    const age = ageNames ? ageFromDob(dob) : null
+    if (!ageNames || !age) {
+      return
+    }
+    const options = { shouldDirty: true, shouldValidate: true }
+    setValue(ageNames.years, age.years, options)
+    if (ageNames.months) {
+      setValue(ageNames.months, age.months, options)
+    }
+    if (ageNames.days) {
+      setValue(ageNames.days, age.days, options)
+    }
+  }
 
   return (
     <Controller
@@ -123,7 +144,10 @@ export function DateControl({
             name={field.name}
             ref={field.ref}
             value={field.value}
-            onChange={field.onChange}
+            onChange={(next) => {
+              field.onChange(next)
+              fillAge(next)
+            }}
             onBlur={field.onBlur}
             disabled={disabled}
             invalid={fieldState.invalid}
@@ -148,11 +172,14 @@ export function NumberControl({
   disabled,
   className,
   max,
+  dobName,
 }: ControlProps & {
   name: NumberPath
   max?: number
+  /** Years-only age: also sets this date-of-birth field to match (see `age-dob.ts`). */
+  dobName?: FieldPathByValue<Values, string>
 }) {
-  const { control } = useFormContext<Values>()
+  const { control, setValue } = useFormContext<Values>()
 
   return (
     <Controller
@@ -169,7 +196,15 @@ export function NumberControl({
             name={field.name}
             ref={field.ref}
             value={field.value}
-            onChange={field.onChange}
+            onChange={(next) => {
+              field.onChange(next)
+              if (dobName) {
+                setValue(dobName, dobFromAge({ years: next }), {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+            }}
             onBlur={field.onBlur}
             max={max}
             placeholder={placeholder}
@@ -274,30 +309,48 @@ export function PhoneControl({
   )
 }
 
-/** Years, months and days side by side under one label, with one error line. */
+/**
+ * Years, months and days side by side under one label, with one error line. With `dobName`,
+ * typing years, years + months or years + months + days also sets that date of birth.
+ */
 export function AgeControl({
   names,
+  dobName,
   label = "Age",
   required,
   disabled,
   className,
 }: {
   names: { years: NumberPath; months: NumberPath; days: NumberPath }
+  dobName?: FieldPathByValue<Values, string>
   label?: string
   required?: boolean
   disabled?: boolean
   className?: string
 }) {
-  const { control, getFieldState } = useFormContext<Values>()
+  const { control, getFieldState, getValues, setValue } =
+    useFormContext<Values>()
   const formState = useFormState({
     control,
     name: [names.years, names.months, names.days],
   })
   const parts = [
-    { name: names.years, unit: "Y", unitLabel: "years", max: 150 },
-    { name: names.months, unit: "M", unitLabel: "months", max: 11 },
-    { name: names.days, unit: "D", unitLabel: "days", max: 31 },
-  ]
+    {
+      key: "years",
+      name: names.years,
+      unit: "Y",
+      unitLabel: "years",
+      max: 150,
+    },
+    {
+      key: "months",
+      name: names.months,
+      unit: "M",
+      unitLabel: "months",
+      max: 11,
+    },
+    { key: "days", name: names.days, unit: "D", unitLabel: "days", max: 31 },
+  ] as const
   const errors = parts.map((part) => getFieldState(part.name, formState).error)
 
   return (
@@ -323,9 +376,22 @@ export function AgeControl({
                   name={field.name}
                   ref={field.ref}
                   value={field.value ?? ""}
-                  onChange={(event) =>
-                    field.onChange(toWholeNumber(event.target.value))
-                  }
+                  onChange={(event) => {
+                    const next = toWholeNumber(event.target.value)
+                    field.onChange(next)
+                    if (dobName) {
+                      const age = {
+                        years: getValues(names.years),
+                        months: getValues(names.months),
+                        days: getValues(names.days),
+                        [part.key]: next,
+                      }
+                      setValue(dobName, dobFromAge(age), {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  }}
                   onBlur={field.onBlur}
                   disabled={disabled}
                   aria-label={`${label} (${part.unitLabel})`}

@@ -246,11 +246,13 @@ function CaseDonorEntry({
           label="Age (years)"
           required
           max={120}
+          dobName={`donors.${index}.donor.date_of_birth`}
           disabled={isLinked}
         />
         <DateControl
           name={`donors.${index}.donor.date_of_birth`}
           label="Date of birth"
+          ageNames={{ years: `donors.${index}.donor.age` }}
           disabled={isLinked}
         />
         <EnumControl

@@ -192,13 +192,19 @@ export function CasePatientFields() {
           months: "billing.patient.age_months",
           days: "billing.patient.age_days",
         }}
+        dobName="billing.patient.date_of_birth"
         className="sm:col-span-3"
         disabled={isLinked}
       />
       <DateControl
         name="billing.patient.date_of_birth"
         label="Date of birth"
-        description="If given, the age is calculated from it."
+        description="Age and date of birth fill each other."
+        ageNames={{
+          years: "billing.patient.age_years",
+          months: "billing.patient.age_months",
+          days: "billing.patient.age_days",
+        }}
         className="sm:col-span-3"
         disabled={isLinked}
       />
