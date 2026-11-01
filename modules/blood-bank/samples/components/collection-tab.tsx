@@ -1,7 +1,7 @@
 "use client"
 
 import { PrinterIcon, ScanBarcodeIcon, TestTubeIcon } from "lucide-react"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { DateTime } from "@/components/date-time"
@@ -102,6 +102,12 @@ export function CollectionTab({
     scanRef.current?.focus()
     scanRef.current?.select()
   }
+
+  // `autoFocus` alone is unreliable here (the tab mounts behind the permission gate and
+  // Suspense), so focus the invoice input explicitly on mount.
+  useEffect(() => {
+    scanRef.current?.focus()
+  }, [])
 
   return (
     <div className="flex flex-col gap-4">
@@ -212,7 +218,6 @@ function WorkListBox({
                 placeholder="Scan or type, then Enter"
                 autoComplete="off"
                 spellCheck={false}
-                autoFocus
                 maxLength={30}
                 aria-invalid={lookupError !== null}
                 aria-busy={lookup.isPending}
@@ -364,7 +369,6 @@ function CollectionWorkspace({
   const { print, isPrinting } = useSampleLabelPrinter()
   const collect = useCollectSamples(caseId)
   const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set())
-  const [showLabel, setShowLabel] = useState(true)
 
   // Ticks on rows that stopped being collectable (after a refresh) no longer count.
   const collectableKeys = view.subjects
@@ -419,7 +423,7 @@ function CollectionWorkspace({
         toast.success(
           count === 1 ? "1 sample collected." : `${count} samples collected.`
         )
-        if (showLabel && canPrint && count > 0) {
+        if (canPrint && count > 0) {
           print({
             caseId,
             sampleIds: next.collected_sample_ids,
@@ -524,18 +528,6 @@ function CollectionWorkspace({
               <PrinterIcon data-icon="inline-start" />
               Label (All)
             </Button>
-          ) : null}
-          {canCollect && canPrint ? (
-            <Field orientation="horizontal">
-              <Checkbox
-                id="show_label"
-                checked={showLabel}
-                onCheckedChange={(checked) => setShowLabel(checked === true)}
-              />
-              <FieldLabel htmlFor="show_label" className="font-normal">
-                Show Label
-              </FieldLabel>
-            </Field>
           ) : null}
           {!canCollect && !canPrint ? (
             <p className="text-sm text-muted-foreground">
