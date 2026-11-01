@@ -6,6 +6,7 @@ const donationStatus: Record<
   { label: string; variant: React.ComponentProps<typeof Badge>["variant"] }
 > = {
   registered: { label: "Pending assessment", variant: "outline" },
+  fit: { label: "Fit", variant: "secondary" },
   eligible: { label: "Accepted", variant: "secondary" },
   deferred: { label: "Deferred", variant: "destructive" },
   collected: { label: "Donated", variant: "default" },

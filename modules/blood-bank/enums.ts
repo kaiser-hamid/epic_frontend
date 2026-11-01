@@ -32,6 +32,7 @@ export const careTypeLabels: Record<CareType, string> = {
 
 export const CaseDonorStatus = {
   Registered: "registered",
+  Fit: "fit",
   Eligible: "eligible",
   Deferred: "deferred",
   Collected: "collected",
@@ -40,6 +41,7 @@ export type CaseDonorStatus = ValueOf<typeof CaseDonorStatus>
 
 export const caseDonorStatusLabels: Record<CaseDonorStatus, string> = {
   registered: "Registered",
+  fit: "Fit",
   eligible: "Eligible",
   deferred: "Deferred",
   collected: "Collected",
@@ -101,3 +103,15 @@ export const CrossmatchResult = {
   Incompatible: "incompatible",
 } as const
 export type CrossmatchResult = ValueOf<typeof CrossmatchResult>
+
+/** The physician's decision on the physical examination form. */
+export const ExaminationDecision = {
+  Accepted: "accepted",
+  Deferred: "deferred",
+} as const
+export type ExaminationDecision = ValueOf<typeof ExaminationDecision>
+
+export const examinationDecisionLabels: Record<ExaminationDecision, string> = {
+  accepted: "Accept",
+  deferred: "Defer",
+}
