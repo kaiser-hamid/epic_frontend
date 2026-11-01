@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { DateTime } from "@/components/date-time"
-import { Form } from "@/components/form"
 import { QueryError } from "@/components/query-error"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,12 +17,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Field, FieldError, FieldLabel } from "@/components/ui/field"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import {
@@ -34,11 +27,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ErrorCode, errorMessage, hasErrorCode } from "@/lib/api-error"
 import { cn } from "@/lib/utils"
-import { CaseStatusBadge } from "@/modules/blood-bank/cases/components/case-status-badge"
+import { CaseInformationPanel } from "@/modules/blood-bank/cases/components/case-information-panel"
+import { InvoiceScanBox } from "@/modules/blood-bank/cases/components/invoice-scan-box"
 import {
-  careTypeLabels,
   CaseDonorStatus,
   caseDonorStatusLabels,
   SampleStatus,
@@ -46,13 +38,8 @@ import {
 import { BloodBankPermission } from "@/modules/blood-bank/permissions"
 import { useSampleLabelPrinter } from "@/modules/blood-bank/samples/components/sample-label-printer"
 import { SampleStatusBadge } from "@/modules/blood-bank/samples/components/sample-status-badge"
+import { sampleErrorText } from "@/modules/blood-bank/samples/error-messages"
 import {
-  SampleErrorCode,
-  sampleErrorMessages,
-  sampleErrorText,
-} from "@/modules/blood-bank/samples/error-messages"
-import {
-  componentsSummary,
   subjectKey,
   subjectLabel,
   toCollectInput,
@@ -68,12 +55,7 @@ import type {
   SampleCollection,
 } from "@/modules/blood-bank/samples/types"
 import { useCan } from "@/modules/shared/rbac/use-can"
-import {
-  bloodGroupLabels,
-  genderLabels,
-  patientTitleLabels,
-} from "@/modules/shared/patient/enums"
-import { formatPatientAge } from "@/modules/shared/patient/format"
+import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
 
 /** A label can be printed for any drawn sample that was not rejected. */
 function isLabelable(
@@ -96,6 +78,7 @@ export function CollectionTab({
 }) {
   const scanRef = useRef<HTMLInputElement>(null)
   const query = useSampleCollection(caseId)
+  const lookup = useFindSampleCollectionByInvoice()
   const view = caseId === null ? undefined : query.data
 
   function focusScan() {
@@ -112,9 +95,17 @@ export function CollectionTab({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 xl:grid-cols-[20rem_1fr]">
-        <WorkListBox scanRef={scanRef} onCaseChange={onCaseChange} />
-        <PatientInfoPanel
-          view={view}
+        <InvoiceScanBox
+          scanRef={scanRef}
+          title="Work list"
+          lookup={lookup}
+          errorText={sampleErrorText}
+          onCaseChange={onCaseChange}
+        />
+        <CaseInformationPanel
+          record={view?.case}
+          patient={view?.patient}
+          invoice={view?.invoice}
           isLoading={caseId !== null && query.isPending}
         />
       </div>
@@ -147,211 +138,6 @@ export function CollectionTab({
       ) : (
         <Skeleton className="h-48 w-full" />
       )}
-    </div>
-  )
-}
-
-function WorkListBox({
-  scanRef,
-  onCaseChange,
-}: {
-  scanRef: React.RefObject<HTMLInputElement | null>
-  onCaseChange: (caseId: number | null) => void
-}) {
-  const [invoiceNo, setInvoiceNo] = useState("")
-  const [lookupError, setLookupError] = useState<string | null>(null)
-  const lookup = useFindSampleCollectionByInvoice()
-
-  function selectScan() {
-    scanRef.current?.select()
-  }
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const value = invoiceNo.trim()
-    if (value === "" || lookup.isPending) {
-      return
-    }
-
-    lookup.mutate(value, {
-      onSuccess: (view) => {
-        setLookupError(null)
-        onCaseChange(view.case.id)
-        selectScan()
-      },
-      onError: (error) => {
-        if (hasErrorCode(error, SampleErrorCode.CaseNotFound)) {
-          onCaseChange(null)
-          setLookupError(errorMessage(error, sampleErrorMessages))
-        } else if (hasErrorCode(error, ErrorCode.ValidationFailed)) {
-          setLookupError(sampleErrorText(error))
-        } else {
-          toast.error(errorMessage(error, sampleErrorMessages))
-        }
-        selectScan()
-      },
-    })
-  }
-
-  return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>Work list</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <Field data-invalid={lookupError !== null}>
-            <FieldLabel htmlFor="scan_invoice_no">Invoice no</FieldLabel>
-            {/* Enter (typed, or a scanner's suffix) submits; there is no button. */}
-            <InputGroup>
-              <InputGroupAddon>
-                <ScanBarcodeIcon />
-              </InputGroupAddon>
-              <InputGroupInput
-                id="scan_invoice_no"
-                ref={scanRef}
-                value={invoiceNo}
-                onChange={(event) => {
-                  setInvoiceNo(event.target.value)
-                  setLookupError(null)
-                }}
-                placeholder="Scan or type, then Enter"
-                autoComplete="off"
-                spellCheck={false}
-                maxLength={30}
-                aria-invalid={lookupError !== null}
-                aria-busy={lookup.isPending}
-              />
-              {lookup.isPending ? (
-                <InputGroupAddon align="inline-end">
-                  <Spinner />
-                </InputGroupAddon>
-              ) : null}
-            </InputGroup>
-            {lookupError ? <FieldError>{lookupError}</FieldError> : null}
-          </Field>
-
-          {/*
-            The case no replaces the invoice no once the vendor billing system is retired
-            (the backend lookup takes `case_no` then).
-          <Field>
-            <FieldLabel htmlFor="scan_case_no">Case no</FieldLabel>
-            <Input id="scan_case_no" placeholder="Scan or type" autoComplete="off" />
-          </Field>
-          */}
-        </Form>
-      </CardContent>
-    </Card>
-  )
-}
-
-function PatientInfoPanel({
-  view,
-  isLoading,
-}: {
-  view: SampleCollection | undefined
-  isLoading: boolean
-}) {
-  const patient = view?.patient ?? null
-  const invoice = view?.invoice ?? null
-  const record = view?.case ?? null
-
-  return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Patient information
-          {record ? <CaseStatusBadge status={record.status} /> : null}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <Skeleton className="h-32 w-full" />
-        ) : (
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3 2xl:grid-cols-4">
-            <Info label="Patient no" value={patient?.patient_no} />
-            <Info label="Invoice no" value={invoice?.invoice_no} />
-            <Info
-              label="Invoice date"
-              value={
-                invoice ? <DateTime value={invoice.billed_at} /> : undefined
-              }
-            />
-            <Info
-              label="Patient name"
-              value={
-                patient
-                  ? [
-                      patient.title ? patientTitleLabels[patient.title] : null,
-                      patient.name,
-                    ]
-                      .filter(Boolean)
-                      .join(" ")
-                  : undefined
-              }
-            />
-            <Info
-              label="Age"
-              value={patient ? formatPatientAge(patient) : undefined}
-            />
-            <Info
-              label="Gender"
-              value={patient?.gender ? genderLabels[patient.gender] : undefined}
-            />
-            <Info
-              label="Blood group"
-              value={
-                patient?.blood_group
-                  ? bloodGroupLabels[patient.blood_group]
-                  : undefined
-              }
-            />
-            <Info label="Phone mobile" value={patient?.phone} />
-            <Info
-              label="Ref. doc. name"
-              value={
-                invoice
-                  ? invoice.is_self_referral
-                    ? "Self"
-                    : invoice.referred_by
-                  : undefined
-              }
-            />
-            <Info label="Case no" value={record?.case_no} />
-            <Info
-              label="Care of"
-              value={record ? careTypeLabels[record.care_type] : undefined}
-            />
-            <Info
-              label="Cause of transfusion"
-              value={record?.transfusion_reason}
-            />
-            <Info label="Remarks" value={record?.reference_note} />
-            <Info
-              label="Components requested"
-              value={record ? componentsSummary(record.components) : undefined}
-              className="col-span-2"
-            />
-          </dl>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-function Info({
-  label,
-  value,
-  className,
-}: {
-  label: string
-  value: React.ReactNode
-  className?: string
-}) {
-  return (
-    <div className={cn("flex min-w-0 flex-col gap-0.5", className)}>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="truncate font-medium">{value ?? "—"}</dd>
     </div>
   )
 }
