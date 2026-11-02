@@ -13,6 +13,9 @@ export const BloodBankPermission = {
   SampleView: "bb.sample.view",
   SampleCollect: "bb.sample.collect",
   SampleLabelPrint: "bb.sample.print_label",
+  CollectionView: "bb.collection.view",
+  CollectionCollect: "bb.collection.collect",
+  CollectionLabelPrint: "bb.collection.print_label",
 } as const
 
 export type BloodBankPermission =

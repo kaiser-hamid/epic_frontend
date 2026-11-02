@@ -1,5 +1,5 @@
-import { TZDate } from "@date-fns/tz"
-import { format } from "date-fns"
+import { tz, TZDate } from "@date-fns/tz"
+import { format, isValid, parse } from "date-fns"
 
 export const APP_TIMEZONE = "Asia/Dhaka"
 
@@ -38,4 +38,31 @@ export function todayIsoDate(): string {
 /** ISO 8601 → "27 Oct 2026, 14:05" in Asia/Dhaka. */
 export function formatDateTime(value: string | Date): string {
   return format(inAppTimezone(value), "dd MMM yyyy, HH:mm")
+}
+
+/** ISO 8601 → "27/10/2026 14:05" in Asia/Dhaka (printed labels). */
+export function formatShortDateTime(value: string | Date): string {
+  return format(inAppTimezone(value), "dd/MM/yyyy HH:mm")
+}
+
+const LOCAL_DATE_TIME = "yyyy-MM-dd'T'HH:mm"
+
+/** Now in Asia/Dhaka as a `datetime-local` input value (`YYYY-MM-DDTHH:mm`). */
+export function nowLocalDateTime(): string {
+  return format(inAppTimezone(new Date()), LOCAL_DATE_TIME)
+}
+
+/**
+ * A `datetime-local` input value read as Asia/Dhaka wall time → ISO 8601 (UTC), or null
+ * when it is not a full date and time.
+ */
+export function localDateTimeToIso(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+    return null
+  }
+  const date = parse(value, LOCAL_DATE_TIME, new Date(), {
+    in: tz(APP_TIMEZONE),
+  })
+  // A TZDate's own `toISOString` keeps the +06:00 offset; send plain UTC.
+  return isValid(date) ? new Date(date.getTime()).toISOString() : null
 }

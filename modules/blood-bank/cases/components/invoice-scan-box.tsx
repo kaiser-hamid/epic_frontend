@@ -32,8 +32,9 @@ type InvoiceLookup<TView extends ScanView> = {
 }
 
 /**
- * Invoice scan box shared by the Sample Collection, Donor Examination and Donor Serology
- * screens: Enter (typed, or a scanner's suffix) looks the invoice up; there is no button.
+ * Invoice scan box shared by the Sample Collection, Donor Examination, Donor Serology and
+ * Blood Collection screens: Enter (typed, or a scanner's suffix) looks the invoice up; there
+ * is no button.
  * `errorText` turns an API error into the screen's own message. `label` names what can be
  * scanned (the serology screen also takes a sample no). `notFoundCodes` are shown under the
  * input and unload the case; `onCaseChange` also gets the found view and the scanned value.

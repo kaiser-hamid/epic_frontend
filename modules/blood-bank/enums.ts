@@ -88,6 +88,11 @@ export const CollectionStatus = {
 } as const
 export type CollectionStatus = ValueOf<typeof CollectionStatus>
 
+export const collectionStatusLabels: Record<CollectionStatus, string> = {
+  collected: "Collected",
+  cancelled: "Cancelled",
+}
+
 export const UnitStatus = {
   Available: "available",
   Reserved: "reserved",

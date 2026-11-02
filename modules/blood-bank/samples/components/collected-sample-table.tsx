@@ -1,21 +1,15 @@
 "use client"
 
-import { PrinterIcon, ScanBarcodeIcon } from "lucide-react"
+import { PrinterIcon } from "lucide-react"
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs"
-import { useEffect, useState } from "react"
 
 import { dataTableColumnHelper } from "@/components/data-table/columns"
 import { DataTable } from "@/components/data-table/data-table"
 import { useListParams } from "@/components/data-table/use-list-params"
-import { DateInput } from "@/components/date-input"
 import { DateTime } from "@/components/date-time"
+import { DateFilter, ScanFilter } from "@/components/list-filters"
 import { Button } from "@/components/ui/button"
 import { Field, FieldLabel } from "@/components/ui/field"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group"
 import {
   Select,
   SelectContent,
@@ -23,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { todayIsoDate } from "@/lib/format"
 import {
   SampleStatus,
@@ -43,7 +36,6 @@ import {
 import { useCan } from "@/modules/shared/rbac/use-can"
 
 const ALL = "all"
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
 const helper = dataTableColumnHelper<SampleListItem>()
 
@@ -238,105 +230,6 @@ export function CollectedSampleTable() {
         emptyTitle="No samples"
       />
     </div>
-  )
-}
-
-/**
- * Exact-match text filter that also takes barcode scans: applied as typing pauses, or at
- * once on Enter (a scanner's suffix), then selected so the next scan replaces it.
- */
-function ScanFilter({
-  id,
-  label,
-  value,
-  onCommit,
-}: {
-  id: string
-  label: string
-  value: string | null
-  onCommit: (value: string | null) => void
-}) {
-  const [text, setText] = useState(value ?? "")
-  const debounced = useDebouncedValue(text)
-
-  useEffect(() => {
-    const next = debounced.trim() || null
-    if (next !== value) {
-      onCommit(next)
-    }
-    // Only a settled edit commits; `value` changing from the URL must not re-commit.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debounced])
-
-  return (
-    <Field className="w-48">
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <InputGroup>
-        <InputGroupAddon>
-          <ScanBarcodeIcon />
-        </InputGroupAddon>
-        <InputGroupInput
-          id={id}
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault()
-              const next = text.trim() || null
-              if (next !== value) {
-                onCommit(next)
-              }
-              event.currentTarget.select()
-            }
-          }}
-          placeholder="Scan or type"
-          autoComplete="off"
-          spellCheck={false}
-        />
-      </InputGroup>
-    </Field>
-  )
-}
-
-/**
- * Date filter that only reaches the URL once a full date is typed or picked. Leaving it
- * empty or half-typed puts the applied date back.
- */
-function DateFilter({
-  id,
-  label,
-  value,
-  disabled,
-  onCommit,
-}: {
-  id: string
-  label: string
-  value: string
-  disabled: boolean
-  onCommit: (value: string) => void
-}) {
-  const [text, setText] = useState(value)
-
-  return (
-    <Field className="w-44">
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <DateInput
-        id={id}
-        value={text}
-        disabled={disabled}
-        onChange={(next) => {
-          setText(next)
-          if (ISO_DATE.test(next) && next !== value) {
-            onCommit(next)
-          }
-        }}
-        onBlur={() => {
-          if (!ISO_DATE.test(text)) {
-            setText(value)
-          }
-        }}
-      />
-    </Field>
   )
 }
 
