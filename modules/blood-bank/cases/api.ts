@@ -59,7 +59,8 @@ function newPatientPayload(patient: NewPatientValues) {
   }
 }
 
-function newDonorPayload(donor: NewDonorValues) {
+/** A new donor for a request body (case registration, Add donor). */
+export function newDonorPayload(donor: NewDonorValues) {
   return {
     name: donor.name.trim(),
     age: donor.age,

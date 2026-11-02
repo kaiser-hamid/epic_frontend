@@ -52,6 +52,8 @@ export type CaseDonor = {
   sequence_no: number
   status: CaseDonorStatus
   billing_id: number | null
+  /** The donor's own bill (an added donor); null when registered with the case bill. */
+  invoice_no: string | null
   deferral_reason: string | null
   assessed_at: string | null
   donor: Donor

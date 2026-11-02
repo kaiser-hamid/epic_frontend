@@ -1,6 +1,7 @@
 "use client"
 
 import { DateTime } from "@/components/date-time"
+import { Money } from "@/components/money"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
@@ -31,19 +32,22 @@ export type CaseInformation = Pick<
 >
 
 /**
- * The patient information card on top of the Sample Collection and Donor Examination
- * screens. Empty fields show an em dash.
+ * The patient information card on top of the Blood Bank work screens (Sample Collection,
+ * Donor Examination, Donor Serology, Add donor). Empty fields show an em dash. `showAmount`
+ * adds the invoice amount.
  */
 export function CaseInformationPanel({
   record,
   patient,
   invoice,
   isLoading,
+  showAmount = false,
 }: {
   record: CaseInformation | null | undefined
   patient: CasePatient | null | undefined
   invoice: CaseInvoice | null | undefined
   isLoading: boolean
+  showAmount?: boolean
 }) {
   return (
     <Card size="sm">
@@ -66,6 +70,12 @@ export function CaseInformationPanel({
                 invoice ? <DateTime value={invoice.billed_at} /> : undefined
               }
             />
+            {showAmount ? (
+              <Info
+                label="Invoice amount"
+                value={invoice ? <Money paisa={invoice.amount} /> : undefined}
+              />
+            ) : null}
             <Info
               label="Patient name"
               value={

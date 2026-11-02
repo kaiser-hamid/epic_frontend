@@ -22,10 +22,17 @@ const MIN_LOOKUP_DIGITS = 6
 export type PhoneLookupResult<T> =
   { status: "skipped" | "none" | "many" } | { status: "one"; match: T }
 
-/** Runs the lookup once per number; a number edited while a lookup runs discards that result. */
+/**
+ * Runs the lookup once per number; a number edited while a lookup runs discards that result.
+ * A single match is picked automatically unless `canAutoPick` refuses it; it is then offered
+ * in the list like several matches (where it can be shown as not pickable).
+ */
 export function usePhoneLookup<T>(
   find: (phone: string) => Promise<T[]>,
-  { enabled }: { enabled: boolean }
+  {
+    enabled,
+    canAutoPick,
+  }: { enabled: boolean; canAutoPick?: (match: T) => boolean }
 ) {
   const [pending, setPending] = useState(false)
   const [matches, setMatches] = useState<T[]>([])
@@ -50,7 +57,7 @@ export function usePhoneLookup<T>(
         return { status: "skipped" }
       }
       const [first, ...rest] = found
-      if (first && rest.length === 0) {
+      if (first && rest.length === 0 && (canAutoPick?.(first) ?? true)) {
         return { status: "one", match: first }
       }
       // Rendered now, so the caller can focus the first match.
@@ -102,18 +109,25 @@ export function focusPast(section: HTMLElement) {
 }
 
 export function focusFirstMatch(section: HTMLElement) {
-  section.querySelector<HTMLButtonElement>("[data-lookup-match]")?.focus()
+  // A blocked match is not a stop; with none pickable, "New …" is.
+  section
+    .querySelector<HTMLButtonElement>("[data-lookup-match], [data-lookup-new]")
+    ?.focus()
 }
 
 type MatchDescription = { title: string; detail: string }
 
-/** Several records share the number: pick one, or keep a new record. */
+/**
+ * Several records share the number (or the only one can't be picked): pick one, or keep a
+ * new record. `blockedReason` disables a match and says why ("Already on this case").
+ */
 export function LookupMatches<T extends { id: number }>({
   matches,
   noun,
   describe,
   onPick,
   onNew,
+  blockedReason,
   className,
 }: {
   matches: T[]
@@ -122,6 +136,7 @@ export function LookupMatches<T extends { id: number }>({
   describe: (match: T) => MatchDescription
   onPick: (match: T) => void
   onNew: () => void
+  blockedReason?: (match: T) => string | null
   className?: string
 }) {
   return (
@@ -131,25 +146,29 @@ export function LookupMatches<T extends { id: number }>({
       className={cn("flex flex-col gap-1 rounded-lg border p-2", className)}
     >
       <p className="px-2 py-1 text-sm text-muted-foreground">
-        {matches.length} {noun}s use this number. Pick one, or register a new{" "}
-        {noun}.
+        {matches.length === 1
+          ? `1 ${noun} uses this number.`
+          : `${matches.length} ${noun}s use this number.`}{" "}
+        Pick one, or register a new {noun}.
       </p>
       {matches.map((match) => {
         const { title, detail } = describe(match)
+        const blocked = blockedReason?.(match) ?? null
         return (
           <Button
             key={match.id}
             type="button"
             variant="ghost"
-            data-lookup-match
+            data-lookup-match={blocked === null ? true : undefined}
+            disabled={blocked !== null}
             className="h-auto justify-start py-2 text-left"
             onClick={() => onPick(match)}
           >
             <span className="flex flex-col">
               <span>{title}</span>
-              {detail ? (
+              {detail || blocked ? (
                 <span className="text-xs font-normal text-muted-foreground">
-                  {detail}
+                  {[detail, blocked].filter(Boolean).join(" · ")}
                 </span>
               ) : null}
             </span>
@@ -159,6 +178,7 @@ export function LookupMatches<T extends { id: number }>({
       <Button
         type="button"
         variant="ghost"
+        data-lookup-new
         className="justify-start text-muted-foreground"
         onClick={onNew}
       >

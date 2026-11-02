@@ -104,7 +104,8 @@ export const newDonorSchema = z.object({
   phone,
   address: text(1000),
   national_id: text(30),
-  is_regular_volunteer: z.boolean(),
+  /** "Would you like to be a regular voluntary donor?": yes, no, or null (not asked). */
+  is_regular_volunteer: z.boolean().nullable(),
 })
 
 export type NewDonorValues = z.infer<typeof newDonorSchema>
@@ -117,7 +118,7 @@ export const emptyNewDonor: NewDonorValues = {
   phone: "",
   address: "",
   national_id: "",
-  is_regular_volunteer: false,
+  is_regular_volunteer: null,
 }
 
 /** A found donor, shown read-only in the form. */
@@ -131,7 +132,35 @@ export function donorFormValues(donor: Donor): NewDonorValues {
     phone: donor.phone ?? "",
     address: donor.address ?? "",
     national_id: donor.national_id ?? "",
-    is_regular_volunteer: donor.is_regular_volunteer ?? false,
+    is_regular_volunteer: donor.is_regular_volunteer,
+  }
+}
+
+/**
+ * A new donor (no `donor_id`) needs a name and an age or date of birth. Shared by case
+ * registration and Add donor; `path` is the entry's path (`["donors", 0]`).
+ */
+export function checkNewDonor(
+  ctx: z.RefinementCtx,
+  entry: CaseDonorValues,
+  path: (string | number)[]
+) {
+  if (entry.donor_id !== undefined) {
+    return
+  }
+  if (entry.donor.name === "") {
+    ctx.addIssue({
+      code: "custom",
+      path: [...path, "donor", "name"],
+      message: "Enter the donor's name.",
+    })
+  }
+  if (entry.donor.age === undefined && entry.donor.date_of_birth === "") {
+    ctx.addIssue({
+      code: "custom",
+      path: [...path, "donor", "age"],
+      message: "Enter the age or the date of birth.",
+    })
   }
 }
 
@@ -246,25 +275,9 @@ export const caseCreateSchema = z
       })
     }
 
-    values.donors.forEach((entry, index) => {
-      if (entry.donor_id !== undefined) {
-        return
-      }
-      if (entry.donor.name === "") {
-        ctx.addIssue({
-          code: "custom",
-          path: ["donors", index, "donor", "name"],
-          message: "Enter the donor's name.",
-        })
-      }
-      if (entry.donor.age === undefined && entry.donor.date_of_birth === "") {
-        ctx.addIssue({
-          code: "custom",
-          path: ["donors", index, "donor", "age"],
-          message: "Enter the age or the date of birth.",
-        })
-      }
-    })
+    values.donors.forEach((entry, index) =>
+      checkNewDonor(ctx, entry, ["donors", index])
+    )
 
     flagDuplicates(
       ctx,

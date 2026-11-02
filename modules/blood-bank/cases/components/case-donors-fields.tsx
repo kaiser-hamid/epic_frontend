@@ -14,12 +14,12 @@ import { focusNextField } from "@/components/form"
 import { Button } from "@/components/ui/button"
 import { FieldDescription, FieldError } from "@/components/ui/field"
 import {
-  CheckboxControl,
   DateControl,
   EnumControl,
   NumberControl,
   PhoneControl,
   TextControl,
+  YesNoControl,
 } from "@/modules/blood-bank/cases/components/case-form-controls"
 import {
   focusFirstMatch,
@@ -66,9 +66,12 @@ export function CaseDonorsFields() {
         <CaseDonorEntry
           key={entry.id}
           index={index}
+          title={`Donor ${index + 1}`}
           canLookup={canLookup}
-          canRemove={donors.fields.length > 1}
-          onRemove={() => donors.remove(index)}
+          remove={{
+            disabled: donors.fields.length <= 1,
+            onRemove: () => donors.remove(index),
+          }}
         />
       ))}
       <FieldError errors={[donorsError?.root ?? donorsError]} />
@@ -93,27 +96,36 @@ export function CaseDonorsFields() {
 /**
  * Mobile number first: a returning donor found by it fills the entry read-only and is sent
  * as `donor_id`; otherwise the fields register a new donor.
+ *
+ * Works in any form whose values hold `donors: CaseDonorValues[]` at the same paths (case
+ * registration, Add donor). `blockedReason` keeps a found donor from being picked (e.g.
+ * "Already on this case"); without `remove` there is no remove button.
  */
-function CaseDonorEntry({
+export function CaseDonorEntry({
   index,
+  title,
   canLookup,
-  canRemove,
-  onRemove,
+  remove,
+  blockedReason,
 }: {
   index: number
+  title: string
   canLookup: boolean
-  canRemove: boolean
-  onRemove: () => void
+  remove?: { disabled: boolean; onRemove: () => void }
+  blockedReason?: (donor: Donor) => string | null
 }) {
   const { control, getValues, setValue, clearErrors, getFieldState } =
-    useFormContext<CaseCreateValues>()
+    useFormContext<Pick<CaseCreateValues, "donors">>()
   const phonePath = `donors.${index}.donor.phone` as const
   const donorId = useWatch({ control, name: `donors.${index}.donor_id` })
   const formState = useFormState({ control, name: `donors.${index}.donor_id` })
   const [linked, setLinked] = useState<Donor | null>(null)
   const sectionRef = useRef<HTMLDivElement>(null)
   const findDonors = useFindDonorsByPhone()
-  const lookup = usePhoneLookup(findDonors, { enabled: canLookup })
+  const lookup = usePhoneLookup(findDonors, {
+    enabled: canLookup,
+    canAutoPick: (donor) => (blockedReason?.(donor) ?? null) === null,
+  })
   const isLinked = donorId !== undefined
   const donorIdError = getFieldState(
     `donors.${index}.donor_id`,
@@ -178,21 +190,23 @@ function CaseDonorEntry({
     <div ref={sectionRef} className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium">
-          Donor {index + 1}
+          {title}
           <span className="font-normal text-muted-foreground">
             {isLinked ? " · returning" : " · new"}
           </span>
         </p>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label={`Remove donor ${index + 1}`}
-          disabled={!canRemove}
-          onClick={onRemove}
-        >
-          <Trash2Icon />
-        </Button>
+        {remove ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={`Remove ${title.toLowerCase()}`}
+            disabled={remove.disabled}
+            onClick={remove.onRemove}
+          >
+            <Trash2Icon />
+          </Button>
+        ) : null}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -231,6 +245,7 @@ function CaseDonorEntry({
               }
             }}
             onNew={registerNew}
+            blockedReason={blockedReason}
           />
         ) : null}
 
@@ -281,9 +296,9 @@ function CaseDonorEntry({
           className="sm:col-span-2 lg:col-span-4"
           disabled={isLinked}
         />
-        <CheckboxControl
+        <YesNoControl
           name={`donors.${index}.donor.is_regular_volunteer`}
-          label="Regular volunteer"
+          label="Would you like to be a regular voluntary donor?"
           className="sm:col-span-2 lg:col-span-4"
           disabled={isLinked}
         />

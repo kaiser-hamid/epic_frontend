@@ -7,6 +7,7 @@ import {
   type FieldPathByValue,
 } from "react-hook-form"
 
+import { ChoiceGroup } from "@/components/choice-group"
 import { DateInput } from "@/components/date-input"
 import { EnumSelect } from "@/components/enum-select"
 import { NumberInput, toWholeNumber } from "@/components/number-input"
@@ -16,6 +17,7 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
+  FieldTitle,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
@@ -453,6 +455,59 @@ export function EnumControl<T extends string>({
           {description ? (
             <FieldDescription>{description}</FieldDescription>
           ) : null}
+          <FieldError errors={[fieldState.error]} />
+        </Field>
+      )}
+    />
+  )
+}
+
+const NOT_ASKED = "not_asked"
+
+const yesNoOptions = [
+  { value: "yes", label: "Yes" },
+  { value: "no", label: "No" },
+  { value: NOT_ASKED, label: "Not asked" },
+] as const
+
+/** Yes / No / Not asked for a `boolean | null` field (null = not asked). */
+export function YesNoControl({
+  name,
+  label,
+  disabled,
+  className,
+}: Omit<ControlProps, "hideLabel" | "placeholder" | "description"> & {
+  name: FieldPathByValue<Values, boolean | null>
+}) {
+  const { control } = useFormContext<Values>()
+  const labelId = `${name}_label`
+
+  return (
+    <Controller
+      name={name}
+      control={control}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid} className={className}>
+          <FieldTitle id={labelId}>{label}</FieldTitle>
+          <ChoiceGroup
+            id={name}
+            ref={field.ref}
+            value={
+              field.value === true
+                ? "yes"
+                : field.value === false
+                  ? "no"
+                  : NOT_ASKED
+            }
+            onChange={(next) =>
+              field.onChange(next === NOT_ASKED ? null : next === "yes")
+            }
+            onBlur={field.onBlur}
+            options={yesNoOptions}
+            disabled={disabled}
+            invalid={fieldState.invalid}
+            aria-labelledby={labelId}
+          />
           <FieldError errors={[fieldState.error]} />
         </Field>
       )}
