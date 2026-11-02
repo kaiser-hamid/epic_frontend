@@ -8,6 +8,8 @@ export const BloodBankPermission = {
   DonorView: "bb.donor.view",
   DonorExamView: "bb.donor_exam.view",
   DonorExamRecord: "bb.donor_exam.record",
+  SerologyView: "bb.serology.view",
+  SerologyRecord: "bb.serology.record",
   SampleView: "bb.sample.view",
   SampleCollect: "bb.sample.collect",
   SampleLabelPrint: "bb.sample.print_label",

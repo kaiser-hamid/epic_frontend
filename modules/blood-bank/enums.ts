@@ -115,3 +115,27 @@ export const examinationDecisionLabels: Record<ExaminationDecision, string> = {
   accepted: "Accept",
   deferred: "Defer",
 }
+
+/** A serology screening test's result (HBsAg, anti-HCV, anti-HIV, syphilis). */
+export const ScreeningResult = {
+  NonReactive: "non_reactive",
+  Reactive: "reactive",
+} as const
+export type ScreeningResult = ValueOf<typeof ScreeningResult>
+
+export const screeningResultLabels: Record<ScreeningResult, string> = {
+  non_reactive: "Non-Reactive",
+  reactive: "Reactive",
+}
+
+/** The physician's decision on the serology form. Never `accepted` with a reactive result. */
+export const SerologyDecision = {
+  Accepted: "accepted",
+  Deferred: "deferred",
+} as const
+export type SerologyDecision = ValueOf<typeof SerologyDecision>
+
+export const serologyDecisionLabels: Record<SerologyDecision, string> = {
+  accepted: "Accept",
+  deferred: "Defer",
+}

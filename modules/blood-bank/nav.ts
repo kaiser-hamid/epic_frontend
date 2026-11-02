@@ -23,6 +23,11 @@ export const bloodBankNav: NavItem = {
       permission: BloodBankPermission.SampleView,
     },
     {
+      title: "Donor Serology",
+      href: "/blood-bank/donor-serology",
+      permission: BloodBankPermission.SerologyView,
+    },
+    {
       title: "Donors",
       href: "/blood-bank/donors",
       permission: BloodBankPermission.DonorView,

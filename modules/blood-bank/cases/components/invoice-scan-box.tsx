@@ -18,34 +18,45 @@ import { ErrorCode, hasErrorCode } from "@/lib/api-error"
 /** The `CASE_NOT_FOUND` code the invoice lookups answer with when no case matches. */
 const CASE_NOT_FOUND = "CASE_NOT_FOUND"
 
-type InvoiceLookup = {
+type ScanView = { case: { id: number } }
+
+type InvoiceLookup<TView extends ScanView> = {
   isPending: boolean
   mutate: (
     invoiceNo: string,
     options: {
-      onSuccess: (view: { case: { id: number } }) => void
+      onSuccess: (view: TView) => void
       onError: (error: unknown) => void
     }
   ) => void
 }
 
 /**
- * Invoice scan box shared by the Sample Collection and Donor Examination screens: Enter
- * (typed, or a scanner's suffix) looks the invoice up; there is no button. `errorText`
- * turns an API error into the screen's own message.
+ * Invoice scan box shared by the Sample Collection, Donor Examination and Donor Serology
+ * screens: Enter (typed, or a scanner's suffix) looks the invoice up; there is no button.
+ * `errorText` turns an API error into the screen's own message. `label` names what can be
+ * scanned (the serology screen also takes a sample no). `notFoundCodes` are shown under the
+ * input and unload the case; `onCaseChange` also gets the found view and the scanned value.
  */
-export function InvoiceScanBox({
+export function InvoiceScanBox<TView extends ScanView>({
   scanRef,
   title,
   lookup,
   errorText,
   onCaseChange,
+  label = "Invoice no",
+  notFoundCodes = [CASE_NOT_FOUND],
 }: {
   scanRef: React.RefObject<HTMLInputElement | null>
   title: string
-  lookup: InvoiceLookup
+  lookup: InvoiceLookup<TView>
   errorText: (error: unknown) => string
-  onCaseChange: (caseId: number | null) => void
+  onCaseChange: (
+    caseId: number | null,
+    found?: { view: TView; scanned: string }
+  ) => void
+  label?: string
+  notFoundCodes?: readonly string[]
 }) {
   const [invoiceNo, setInvoiceNo] = useState("")
   const [lookupError, setLookupError] = useState<string | null>(null)
@@ -64,11 +75,11 @@ export function InvoiceScanBox({
     lookup.mutate(value, {
       onSuccess: (view) => {
         setLookupError(null)
-        onCaseChange(view.case.id)
+        onCaseChange(view.case.id, { view, scanned: value })
         selectScan()
       },
       onError: (error) => {
-        if (hasErrorCode(error, CASE_NOT_FOUND)) {
+        if (notFoundCodes.some((code) => hasErrorCode(error, code))) {
           onCaseChange(null)
           setLookupError(errorText(error))
         } else if (hasErrorCode(error, ErrorCode.ValidationFailed)) {
@@ -89,7 +100,7 @@ export function InvoiceScanBox({
       <CardContent>
         <Form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <Field data-invalid={lookupError !== null}>
-            <FieldLabel htmlFor="scan_invoice_no">Invoice no</FieldLabel>
+            <FieldLabel htmlFor="scan_invoice_no">{label}</FieldLabel>
             <InputGroup>
               <InputGroupAddon>
                 <ScanBarcodeIcon />
