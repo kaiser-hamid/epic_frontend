@@ -74,19 +74,24 @@ export function ScanFilter({
 
 /**
  * Date filter (`YYYY-MM-DD`) that only reaches the URL once a full date is typed or picked.
- * Leaving it empty or half-typed puts the applied date back.
+ * Leaving it half-typed puts the applied date back; emptying it clears the filter only when
+ * `clearable` ("" then means no date). `max` is the last pickable day (default today).
  */
 export function DateFilter({
   id,
   label,
   value,
-  disabled,
+  disabled = false,
+  clearable = false,
+  max,
   onCommit,
 }: {
   id: string
   label: string
   value: string
-  disabled: boolean
+  disabled?: boolean
+  clearable?: boolean
+  max?: Date
   onCommit: (value: string) => void
 }) {
   const [text, setText] = useState(value)
@@ -98,14 +103,18 @@ export function DateFilter({
         id={id}
         value={text}
         disabled={disabled}
+        max={max}
         onChange={(next) => {
           setText(next)
-          if (ISO_DATE.test(next) && next !== value) {
+          if (
+            (ISO_DATE.test(next) || (clearable && next === "")) &&
+            next !== value
+          ) {
             onCommit(next)
           }
         }}
         onBlur={() => {
-          if (!ISO_DATE.test(text)) {
+          if (!ISO_DATE.test(text) && !(clearable && text === "")) {
             setText(value)
           }
         }}

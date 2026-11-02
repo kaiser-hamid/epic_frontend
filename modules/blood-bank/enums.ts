@@ -103,6 +103,24 @@ export const UnitStatus = {
 } as const
 export type UnitStatus = ValueOf<typeof UnitStatus>
 
+/** "For patient" and "In stock" are how the preparation screen names reserved and available. */
+export const unitStatusLabels: Record<UnitStatus, string> = {
+  available: "In stock",
+  reserved: "For patient",
+  issued: "Issued",
+  quarantined: "Quarantined",
+  discarded: "Discarded",
+  expired: "Expired",
+}
+
+export const StorageLocationType = {
+  Refrigerator: "refrigerator",
+  Freezer: "freezer",
+  PlateletAgitator: "platelet_agitator",
+  Other: "other",
+} as const
+export type StorageLocationType = ValueOf<typeof StorageLocationType>
+
 export const CrossmatchResult = {
   Compatible: "compatible",
   Incompatible: "incompatible",
