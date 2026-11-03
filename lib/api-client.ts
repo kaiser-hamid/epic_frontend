@@ -53,6 +53,11 @@ apiClient.interceptors.response.use(
     const config = error.config as RetriableConfig | undefined
     const status = error.response?.status
 
+    // A file request (`responseType: "blob"`, e.g. a PDF) gets its JSON error body as a Blob.
+    if (error.response && isBlobLike(error.response.data)) {
+      error.response.data = await readBlobErrorBody(error.response.data)
+    }
+
     // CSRF token expired: refresh the cookie and replay the request once.
     if (status === 419 && config && !config._csrfRetried) {
       config._csrfRetried = true
@@ -69,6 +74,36 @@ apiClient.interceptors.response.use(
     throw apiError
   }
 )
+
+/** A Blob, from the browser or another realm (tests): anything with `text()` and `size`. */
+export function isBlobLike(value: unknown): value is Blob {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as Blob).text === "function" &&
+    typeof (value as Blob).size === "number"
+  )
+}
+
+/**
+ * The `{ message, code, errors, ...context }` body of an error that arrived as a Blob. Anything
+ * that is not a JSON object (an HTML error page, an empty body) gives `{}`, so the error falls
+ * back to its status code.
+ */
+export async function readBlobErrorBody(
+  blob: Blob
+): Promise<Record<string, unknown>> {
+  try {
+    const parsed: unknown = JSON.parse(await blob.text())
+    return typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {}
+  } catch {
+    return {}
+  }
+}
 
 /**
  * Session expired, or its branch was deactivated (the backend then ends the session).

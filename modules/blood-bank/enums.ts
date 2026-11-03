@@ -127,6 +127,11 @@ export const CrossmatchResult = {
 } as const
 export type CrossmatchResult = ValueOf<typeof CrossmatchResult>
 
+export const crossmatchResultLabels: Record<CrossmatchResult, string> = {
+  compatible: "Compatible",
+  incompatible: "Incompatible",
+}
+
 /** The physician's decision on the physical examination form. */
 export const ExaminationDecision = {
   Accepted: "accepted",

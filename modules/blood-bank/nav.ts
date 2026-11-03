@@ -38,6 +38,11 @@ export const bloodBankNav: NavItem = {
       permission: BloodBankPermission.UnitView,
     },
     {
+      title: "Compatibility Test Report",
+      href: "/blood-bank/blood-issue",
+      permission: BloodBankPermission.IssueView,
+    },
+    {
       title: "Donors",
       href: "/blood-bank/donors",
       permission: BloodBankPermission.DonorView,

@@ -19,6 +19,9 @@ export const BloodBankPermission = {
   UnitView: "bb.unit.view",
   UnitPrepare: "bb.unit.prepare",
   UnitLabelPrint: "bb.unit.print_label",
+  IssueView: "bb.issue.view",
+  IssueRecord: "bb.issue.record",
+  IssueReportPrint: "bb.issue.print_report",
 } as const
 
 export type BloodBankPermission =
