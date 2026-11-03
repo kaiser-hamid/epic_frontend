@@ -167,9 +167,12 @@ function IssueWorkspace({
   }
 
   function handleReprinted(pdf: PdfFile) {
-    void sendReportToPrinter(pdf)
-    toast.success("Report sent to print")
     setReprint(null)
+    void sendReportToPrinter(pdf).then((printed) => {
+      if (printed) {
+        toast.success("Report sent to the printer")
+      }
+    })
   }
 
   return (
