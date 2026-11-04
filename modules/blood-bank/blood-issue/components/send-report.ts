@@ -3,7 +3,7 @@ import { toast } from "sonner"
 import {
   printCompatibilityReport,
   printServiceErrorText,
-} from "@/modules/blood-bank/blood-issue/print"
+} from "@/lib/print-service"
 import type { PdfFile } from "@/modules/blood-bank/blood-issue/types"
 
 /** How long an opened preview keeps its object URL (long enough to print or save from it). */

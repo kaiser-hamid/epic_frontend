@@ -152,7 +152,7 @@ function CollectionWorkspace({
   const caseId = view.case.id
   const canCollect = useCan(BloodBankPermission.SampleCollect)
   const canPrint = useCan(BloodBankPermission.SampleLabelPrint)
-  const { print, isPrinting } = useSampleLabelPrinter()
+  const { print, printCollected, isPrinting } = useSampleLabelPrinter()
   const collect = useCollectSamples(caseId)
   const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set())
 
@@ -209,13 +209,8 @@ function CollectionWorkspace({
         toast.success(
           count === 1 ? "1 sample collected." : `${count} samples collected.`
         )
-        if (canPrint && count > 0) {
-          print({
-            caseId,
-            sampleIds: next.collected_sample_ids,
-            isReprint: false,
-          })
-        }
+        // The backend logged these labels as printed and returned their printer commands.
+        printCollected(next)
         onCollected()
       },
       onError: (error) => toast.error(sampleErrorText(error)),

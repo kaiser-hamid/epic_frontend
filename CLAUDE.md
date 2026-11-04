@@ -8,20 +8,20 @@ Next.js 16.4 (`cacheComponents` on), React 19.3, TypeScript (strict), Tailwind C
 
 ## Stack
 
-| Concern       | Package                                                                                     |
-| ------------- | ------------------------------------------------------------------------------------------- |
-| UI            | shadcn/ui (`radix-nova`, Radix) in `components/ui`, `lucide-react`, `sonner`; `cn` package  |
-| Server state  | `@tanstack/react-query` v5                                                                  |
-| HTTP          | `axios` (single instance in `lib/api-client.ts`)                                            |
-| Forms         | `react-hook-form` + `zod` v4 + `@hookform/resolvers`; shadcn `Field` components             |
-| Tables        | `@tanstack/react-table` v9 via `components/data-table`                                      |
-| URL state     | `nuqs` (filters, sort, page)                                                                |
-| Dates         | `date-fns` + `@date-fns/tz`                                                                 |
-| Search / scan | `cmdk` (shadcn Command); barcode scanners act as keyboards                                  |
-| Printing      | `react-to-print`, `jsbarcode`                                                               |
-| Charts        | `recharts` via shadcn Chart (not installed yet; add with the first dashboard)               |
-| Lint / format | ESLint (next config) + `eslint-plugin-boundaries`, Prettier + `prettier-plugin-tailwindcss` |
-| Tests         | Vitest + Testing Library + MSW; Playwright for E2E                                          |
+| Concern       | Package                                                                                            |
+| ------------- | -------------------------------------------------------------------------------------------------- |
+| UI            | shadcn/ui (`radix-nova`, Radix) in `components/ui`, `lucide-react`, `sonner`; `cn` package         |
+| Server state  | `@tanstack/react-query` v5                                                                         |
+| HTTP          | `axios` (single instance in `lib/api-client.ts`)                                                   |
+| Forms         | `react-hook-form` + `zod` v4 + `@hookform/resolvers`; shadcn `Field` components                    |
+| Tables        | `@tanstack/react-table` v9 via `components/data-table`                                             |
+| URL state     | `nuqs` (filters, sort, page)                                                                       |
+| Dates         | `date-fns` + `@date-fns/tz`                                                                        |
+| Search / scan | `cmdk` (shadcn Command); barcode scanners act as keyboards                                         |
+| Printing      | Workstation print service (`lib/print-service.ts`); `react-to-print` + `jsbarcode` for HTML labels |
+| Charts        | `recharts` via shadcn Chart (not installed yet; add with the first dashboard)                      |
+| Lint / format | ESLint (next config) + `eslint-plugin-boundaries`, Prettier + `prettier-plugin-tailwindcss`        |
+| Tests         | Vitest + Testing Library + MSW; Playwright for E2E                                                 |
 
 Do not add Redux, Zustand, Formik, NextAuth, moment, lodash or CSS-in-JS. Do not add or change dependencies without approval.
 
@@ -65,11 +65,11 @@ components/
   ui/                                   # shadcn generated; edit sparingly
   data-table/                           # DataTable, pagination, column helper, useListParams
   providers.tsx  form.tsx  logo.tsx  page-loader.tsx  page-header.tsx  confirm-dialog.tsx  reason-dialog.tsx
-  money.tsx  date-time.tsx  forbidden.tsx  query-error.tsx
+  money.tsx  date-time.tsx  forbidden.tsx  query-error.tsx  label-print-flow.tsx
 hooks/                                  # generic hooks (use-debounced-value, use-mobile)
 lib/
   api-client.ts  api-error.ts  api-types.ts  query-client.ts  form-errors.ts
-  dirty-values.ts  format.ts  route-params.ts  env.ts  utils.ts
+  dirty-values.ts  format.ts  route-params.ts  env.ts  utils.ts  print-service.ts
 tests/e2e/
 ```
 
@@ -124,7 +124,9 @@ Page → module component → `queries.ts` hook → `api.ts` → `apiClient` →
 - **Delete**: there are no hard deletes. Use status actions (cancel, deactivate, discard) behind `ConfirmDialog`, or `ReasonDialog` where the backend requires a reason.
 - **State transitions**: one mutation hook and endpoint per backend Action (`useCancelCase` → `POST /api/blood-bank/cases/{id}/cancel`). Show the button only when `abilities` allows it. After success, invalidate every affected key (e.g. unit, case, unit movements).
 - **Versioned records** (test results, crossmatches): no edit. "Amend" opens a dialog requiring `amendment_reason`; show version history.
-- **Printing**: call the print-log endpoint first; on `REPRINT_REASON_REQUIRED` open `ReasonDialog` and retry; print with `react-to-print` only after the log succeeds.
+- **Printing**: call the print-log endpoint first; on `REPRINT_REASON_REQUIRED` open `ReasonDialog` and retry; print only after the log succeeds. `components/label-print-flow.tsx` does this: `useLoggedLabelPrint` (log + reason dialog, then an `onLogged` callback) and `useLabelPrintFlow` (the same, then `react-to-print` for labels laid out in HTML).
+- **Print service**: a Windows service on each workstation (`http://127.0.0.1:9555`, repo `../services/Print service`) prints silently, each endpoint on a printer with a fixed name, so requests carry no printer options. All calls go through `lib/print-service.ts` (plain `fetch`, not `apiClient`): `printCompatibilityReport` (PDF → `report_print`) and `printLabelCommands` (raw GoDEX EZPL text → `label_print`). Label commands come from the backend (`label_command`); send them exactly as received (keep `\r\n`, no trimming), several labels concatenated into one job. The print is already logged when the service is called, so on failure show `printServiceErrorText(error, target)` and let the user reprint (with a reason) rather than retrying silently.
+- **Sample labels**: Collect (`POST /cases/{id}/samples`) logs the new samples' labels itself and returns their `label_command`s; print those in `collected_sample_ids` order and never call `/sample-labels` after Collect (that would be a reprint). The Label buttons call `/sample-labels` and print the returned commands.
 - Query keys come from a per-resource factory prefixed by module: `caseKeys.all = ["blood-bank", "cases"]`, `.lists()`, `.list(params)`, `.detail(id)`.
 - Route ids: `parseRouteId((await params).caseId)` and `notFound()` on null; pass the number to the module component.
 

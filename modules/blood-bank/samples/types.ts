@@ -38,6 +38,11 @@ export type CollectionSample = {
   status: SampleStatus
   collected_at: string
   label_print_count: number
+  /**
+   * Raw label printer command (GoDEX EZPL, `\r\n` line endings) for the samples the Collect
+   * request just drew, whose labels the backend already logged as printed; null otherwise.
+   */
+  label_command: string | null
 }
 
 /** One grid row of the collection screen. */
@@ -92,6 +97,8 @@ export type SampleLabel = Sample & {
     reprint_reason: string | null
     printed_at: string
   }
+  /** Raw label printer command (GoDEX EZPL, `\r\n` line endings), sent to the printer as is. */
+  label_command: string
 }
 
 /** One ticked row sent to `POST /cases/{id}/samples`. */

@@ -5,10 +5,11 @@ import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 
 import {
-  PRINT_SERVICE_URL,
+  PRINT_SERVICE_URLS,
   printCompatibilityReport,
+  printLabelCommands,
   printServiceErrorText,
-} from "@/modules/blood-bank/blood-issue/print"
+} from "@/lib/print-service"
 
 const server = setupServer()
 
@@ -28,7 +29,7 @@ describe("printCompatibilityReport", () => {
   it("posts the raw PDF with the API key and the job name", async () => {
     let seen: { url: URL; headers: Headers; body: string } | undefined
     server.use(
-      http.post(PRINT_SERVICE_URL, async ({ request }) => {
+      http.post(PRINT_SERVICE_URLS.compatibilityReport, async ({ request }) => {
         seen = {
           url: new URL(request.url),
           headers: request.headers,
@@ -62,7 +63,11 @@ describe("printCompatibilityReport", () => {
   })
 
   it("reports a service that is not running", async () => {
-    server.use(http.post(PRINT_SERVICE_URL, () => HttpResponse.error()))
+    server.use(
+      http.post(PRINT_SERVICE_URLS.compatibilityReport, () =>
+        HttpResponse.error()
+      )
+    )
 
     expect(printServiceErrorText(await failure())).toBe(
       "The print service is not running on this computer."
@@ -71,7 +76,7 @@ describe("printCompatibilityReport", () => {
 
   it("maps problem responses to text by status", async () => {
     server.use(
-      http.post(PRINT_SERVICE_URL, () =>
+      http.post(PRINT_SERVICE_URLS.compatibilityReport, () =>
         HttpResponse.json(
           {
             title: "Printer unavailable",
@@ -87,7 +92,7 @@ describe("printCompatibilityReport", () => {
     )
 
     server.use(
-      http.post(PRINT_SERVICE_URL, () =>
+      http.post(PRINT_SERVICE_URLS.compatibilityReport, () =>
         HttpResponse.json(
           { title: "Teapot", status: 418, detail: "Short and stout." },
           { status: 418 }
@@ -95,5 +100,55 @@ describe("printCompatibilityReport", () => {
       )
     )
     expect(printServiceErrorText(await failure())).toBe("Short and stout.")
+  })
+})
+
+describe("printLabelCommands", () => {
+  it("posts the commands concatenated and unchanged as one raw text job", async () => {
+    let seen: { url: URL; headers: Headers; body: string } | undefined
+    server.use(
+      http.post(PRINT_SERVICE_URLS.sampleLabels, async ({ request }) => {
+        seen = {
+          url: new URL(request.url),
+          headers: request.headers,
+          body: await request.text(),
+        }
+        return HttpResponse.json({
+          printer: "label_print",
+          jobName: "Sample labels S1, S2",
+          bytes: 16,
+        })
+      })
+    )
+
+    await printLabelCommands(
+      ["^L\r\nE\r\n", " ^L\r\nE\r\n"],
+      "Sample labels S1, S2"
+    )
+
+    expect(seen?.body).toBe("^L\r\nE\r\n ^L\r\nE\r\n")
+    expect(seen?.headers.get("content-type")).toBe("text/plain; charset=utf-8")
+    expect(seen?.headers.get("x-api-key")).toBe(
+      "epichealthcare@2026printserver"
+    )
+    expect(seen?.url.searchParams.get("jobName")).toBe("Sample labels S1, S2")
+  })
+
+  it("names the label printer when it is unavailable", async () => {
+    server.use(
+      http.post(PRINT_SERVICE_URLS.sampleLabels, () =>
+        HttpResponse.json(
+          { title: "Printer unavailable", status: 503 },
+          { status: 503 }
+        )
+      )
+    )
+    const error = await printLabelCommands(["^L\r\nE\r\n"], "Labels").catch(
+      (caught: unknown) => caught
+    )
+
+    expect(printServiceErrorText(error, "label")).toBe(
+      'The label printer "label_print" is not installed or not available.'
+    )
   })
 })

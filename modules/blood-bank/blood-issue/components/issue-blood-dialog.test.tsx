@@ -17,7 +17,7 @@ import {
 import { makeQueryClient } from "@/lib/query-client"
 import { IssueTab } from "@/modules/blood-bank/blood-issue/components/issue-tab"
 import { ReprintDialog } from "@/modules/blood-bank/blood-issue/components/reprint-dialog"
-import { printCompatibilityReport } from "@/modules/blood-bank/blood-issue/print"
+import { printCompatibilityReport } from "@/lib/print-service"
 import {
   bloodIssueView,
   issueUnit,
@@ -25,7 +25,7 @@ import {
 import type { IssueBloodInput } from "@/modules/blood-bank/blood-issue/types"
 import type { Me } from "@/modules/shared/auth/types"
 
-vi.mock("@/modules/blood-bank/blood-issue/print", () => ({
+vi.mock("@/lib/print-service", () => ({
   printCompatibilityReport: vi.fn(() => Promise.resolve()),
 }))
 
