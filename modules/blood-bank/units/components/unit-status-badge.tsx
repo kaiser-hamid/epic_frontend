@@ -13,10 +13,10 @@ const variants: Record<
   UnitStatus,
   React.ComponentProps<typeof Badge>["variant"]
 > = {
-  available: "secondary",
-  reserved: "default",
-  issued: "outline",
-  quarantined: "outline",
+  available: "success",
+  reserved: "info",
+  issued: "secondary",
+  quarantined: "warning",
   discarded: "destructive",
   expired: "destructive",
 }

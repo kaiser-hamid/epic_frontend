@@ -5,7 +5,7 @@ const variants: Record<
   CaseStatus,
   React.ComponentProps<typeof Badge>["variant"]
 > = {
-  open: "default",
+  open: "success",
   closed: "secondary",
   cancelled: "destructive",
 }

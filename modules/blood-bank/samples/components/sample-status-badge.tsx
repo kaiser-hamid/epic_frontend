@@ -8,9 +8,9 @@ const variants: Record<
   SampleStatus,
   React.ComponentProps<typeof Badge>["variant"]
 > = {
-  collected: "secondary",
-  in_testing: "outline",
-  tested: "default",
+  collected: "success",
+  in_testing: "info",
+  tested: "success",
   rejected: "destructive",
 }
 

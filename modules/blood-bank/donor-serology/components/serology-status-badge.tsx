@@ -5,11 +5,11 @@ const statuses: Record<
   CaseDonorStatus,
   { label: string; variant: React.ComponentProps<typeof Badge>["variant"] }
 > = {
-  registered: { label: "Awaiting exam", variant: "outline" },
+  registered: { label: "Awaiting exam", variant: "warning" },
   fit: { label: "Awaiting serology", variant: "outline" },
   eligible: { label: "Accepted", variant: "default" },
   deferred: { label: "Deferred", variant: "destructive" },
-  collected: { label: "Bag collected", variant: "secondary" },
+  collected: { label: "Bag collected", variant: "success" },
 }
 
 /** A donor's progress as the serology screen sees it. */

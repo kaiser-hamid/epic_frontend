@@ -12,7 +12,7 @@ const variants: Record<
   fit: "secondary",
   eligible: "secondary",
   deferred: "destructive",
-  collected: "default",
+  collected: "success",
 }
 
 export function CaseDonorStatusBadge({ status }: { status: CaseDonorStatus }) {
