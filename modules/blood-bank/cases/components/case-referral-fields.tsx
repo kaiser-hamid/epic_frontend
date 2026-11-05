@@ -69,7 +69,7 @@ export function CaseReferralFields() {
         // Remounting clears the typed code and name when self referral is toggled.
         key={isSelfReferral ? "self" : "doctor"}
         name={DOCTOR}
-        title="Referring doctor"
+        title="Reffered doctor"
         disabled={isSelfReferral}
       >
         <TextControl
@@ -81,7 +81,7 @@ export function CaseReferralFields() {
       {showSecond ? (
         <DoctorFields
           name={SECOND_DOCTOR}
-          title="Second doctor"
+          title="Second Reffered"
           onRemove={removeSecond}
         />
       ) : (
@@ -279,7 +279,7 @@ function StaffFields() {
 
   return (
     <Field data-invalid={fieldState.invalid}>
-      <FieldLabel htmlFor={STAFF}>Referred by staff</FieldLabel>
+      <FieldLabel htmlFor={STAFF}>Reffered by Employee(Marketing)</FieldLabel>
       <div className="flex gap-2">
         <AutocompleteInput
           id={STAFF}
