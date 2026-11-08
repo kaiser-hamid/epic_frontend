@@ -1,6 +1,6 @@
 import { Barcode } from "@/components/barcode"
 import { formatShortDateTime } from "@/lib/format"
-import { screeningResultLabels } from "@/modules/blood-bank/enums"
+import { anyScreeningResultLabels } from "@/modules/blood-bank/enums"
 import type { UnitLabel } from "@/modules/blood-bank/units/types"
 import { bloodGroupLabels } from "@/modules/shared/patient/enums"
 
@@ -108,7 +108,7 @@ export function UnitLabelCard({ label }: { label: UnitLabel }) {
               label={test.name}
               value={
                 <span className="font-semibold">
-                  {test.result ? screeningResultLabels[test.result] : "—"}
+                  {test.result ? anyScreeningResultLabels[test.result] : "—"}
                 </span>
               }
             />

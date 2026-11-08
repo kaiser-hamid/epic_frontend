@@ -44,13 +44,16 @@ import {
   type SerologyFormValues,
 } from "@/modules/blood-bank/donor-serology/schemas"
 import {
+  malarialParasiteLabel,
   screeningTestLabels,
   screeningTests,
   type SerologyDonor,
 } from "@/modules/blood-bank/donor-serology/types"
 import {
+  MalariaResult,
   ScreeningResult,
   SerologyDecision,
+  malariaResultLabels,
   screeningResultLabels,
   serologyDecisionLabels,
   type CaseStatus,
@@ -69,6 +72,18 @@ const screeningOptions: readonly ChoiceOption<ScreeningResult>[] = [
   },
 ]
 
+const malariaOptions: readonly ChoiceOption<MalariaResult>[] = [
+  {
+    value: MalariaResult.NotFound,
+    label: malariaResultLabels.not_found,
+  },
+  {
+    value: MalariaResult.Found,
+    label: malariaResultLabels.found,
+    tone: "destructive",
+  },
+]
+
 /**
  * Changes whenever the saved row does, so right after a save the card restarts from the
  * server's values and shows them read-only, while unsaved input on the other donors is kept.
@@ -78,6 +93,7 @@ export function serologyCardKey(donor: SerologyDonor): string {
     donor.case_donor_id,
     donor.case_donor_status,
     donor.serology?.version,
+    donor.serology?.malarial_parasite,
     donor.serology?.tested_at,
     donor.assessed_at,
     donor.can_record,
@@ -114,14 +130,20 @@ export function DonorSerologyCard({
     anti_hcv: values.anti_hcv ?? "",
     anti_hiv: values.anti_hiv ?? "",
     syphilis: values.syphilis ?? "",
+    malarial_parasite: values.malarial_parasite ?? "",
   })
   const deferring = values.decision === SerologyDecision.Deferred
 
   const lockReason = serologyLockReason(donor, caseStatus)
   const mayRecord = canRecord && donor.can_record
   // A saved serology (or a locked donor) is shown filled and disabled, with no actions.
-  const editable = mayRecord && saved === null
+  // Exception: one saved before the malarial parasite test existed. Only that result (and
+  // the decision it may change) can be filled in; the saved results stay locked, because
+  // changing them would need an amendment reason.
+  const needsMalaria = saved !== null && saved.malarial_parasite === null
+  const editable = mayRecord && (saved === null || needsMalaria)
   const readOnly = !editable
+  const savedLocked = readOnly || needsMalaria
   const id = (name: string) => `serology_${name}_${donor.case_donor_id}`
 
   function save(formValues: SerologyFormValues) {
@@ -243,7 +265,7 @@ export function DonorSerologyCard({
                     labels={bloodGroupLabels}
                     placeholder="Select blood group"
                     invalid={fieldState.invalid}
-                    disabled={readOnly}
+                    disabled={savedLocked}
                   />
                   <FieldDescription>
                     Updates the donor&apos;s blood group.
@@ -285,7 +307,7 @@ export function DonorSerologyCard({
                         }}
                         onBlur={field.onBlur}
                         options={screeningOptions}
-                        disabled={readOnly}
+                        disabled={savedLocked}
                         invalid={fieldState.invalid}
                         aria-labelledby={id(`${test}_label`)}
                       />
@@ -294,6 +316,39 @@ export function DonorSerologyCard({
                   )}
                 />
               ))}
+              <Controller
+                name="malarial_parasite"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldTitle id={id("malarial_parasite_label")}>
+                      {malarialParasiteLabel}
+                      <RequiredMark />
+                    </FieldTitle>
+                    <ChoiceGroup
+                      id={id("malarial_parasite")}
+                      ref={field.ref}
+                      value={field.value}
+                      onChange={(next) => {
+                        field.onChange(next)
+                        // A found parasite counts as reactive: the donor can only be deferred.
+                        if (next === MalariaResult.Found) {
+                          form.setValue("decision", SerologyDecision.Deferred, {
+                            shouldDirty: true,
+                            shouldValidate: form.formState.isSubmitted,
+                          })
+                        }
+                      }}
+                      onBlur={field.onBlur}
+                      options={malariaOptions}
+                      disabled={readOnly}
+                      invalid={fieldState.invalid}
+                      aria-labelledby={id("malarial_parasite_label")}
+                    />
+                    <FieldError errors={[fieldState.error]} />
+                  </Field>
+                )}
+              />
             </div>
 
             <Controller
@@ -387,7 +442,13 @@ export function DonorSerologyCard({
                     type="button"
                     variant="secondary"
                     disabled={record.isPending}
-                    onClick={() => form.reset(emptySerologyValues)}
+                    onClick={() =>
+                      form.reset(
+                        needsMalaria
+                          ? serologyDefaults(donor)
+                          : emptySerologyValues
+                      )
+                    }
                   >
                     <EraserIcon data-icon="inline-start" />
                     Clear

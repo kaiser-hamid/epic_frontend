@@ -22,12 +22,15 @@ import type {
 } from "@/modules/blood-bank/blood-issue/types"
 import { CaseDonorStatusBadge } from "@/modules/blood-bank/case-donors/components/case-donor-status-badge"
 import {
+  malarialParasiteLabel,
   screeningTestLabels,
   screeningTests,
 } from "@/modules/blood-bank/donor-serology/types"
 import {
   CaseDonorStatus,
+  MalariaResult,
   ScreeningResult,
+  malariaResultLabels,
   screeningResultLabels,
 } from "@/modules/blood-bank/enums"
 import { SampleStatusBadge } from "@/modules/blood-bank/samples/components/sample-status-badge"
@@ -360,6 +363,21 @@ function DonorCard({ donor }: { donor: IssueDonor }) {
                   />
                 )
               })}
+              <Info
+                label={malarialParasiteLabel}
+                value={
+                  serology.malarial_parasite ? (
+                    <span
+                      className={cn(
+                        serology.malarial_parasite === MalariaResult.Found &&
+                          "text-destructive"
+                      )}
+                    >
+                      {malariaResultLabels[serology.malarial_parasite]}
+                    </span>
+                  ) : undefined
+                }
+              />
             </dl>
           ) : (
             <p className="text-sm text-muted-foreground">Not tested.</p>

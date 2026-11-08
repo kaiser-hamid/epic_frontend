@@ -1,6 +1,10 @@
 import type { Bag } from "@/modules/blood-bank/blood-collections/types"
 import type { CaseComponent } from "@/modules/blood-bank/cases/types"
-import type { ScreeningResult, UnitStatus } from "@/modules/blood-bank/enums"
+import type {
+  MalariaResult,
+  ScreeningResult,
+  UnitStatus,
+} from "@/modules/blood-bank/enums"
 import type { SampleCollectionCase } from "@/modules/blood-bank/samples/types"
 import type { BloodGroup } from "@/modules/shared/patient/enums"
 
@@ -42,7 +46,9 @@ export type Unit = {
 export type UnitScreening = {
   code: string
   name: string
-  result: ScreeningResult | null
+  /** E.g. "ICT method"; only some tests have one. */
+  method?: string | null
+  result: ScreeningResult | MalariaResult | null
 }
 
 /** One label returned by `POST /cases/{id}/unit-labels`, in the order requested. */

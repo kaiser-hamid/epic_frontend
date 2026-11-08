@@ -8,7 +8,11 @@ import {
   type DonorSerologyInput,
   type SerologyDonor,
 } from "@/modules/blood-bank/donor-serology/types"
-import { ScreeningResult, SerologyDecision } from "@/modules/blood-bank/enums"
+import {
+  MalariaResult,
+  ScreeningResult,
+  SerologyDecision,
+} from "@/modules/blood-bank/enums"
 import { BloodGroup } from "@/modules/shared/patient/enums"
 
 /**
@@ -31,6 +35,10 @@ const serologyFields = z.object({
   anti_hcv: choice(ScreeningResult, "Select the HCV result."),
   anti_hiv: choice(ScreeningResult, "Select the HIV result."),
   syphilis: choice(ScreeningResult, "Select the syphilis result."),
+  malarial_parasite: choice(
+    MalariaResult,
+    "Select the malarial parasite result."
+  ),
   decision: choice(SerologyDecision, "Accept or defer the donor."),
   deferral_reason: z.string().trim(),
 })
@@ -60,11 +68,16 @@ export type SerologyFormValues = z.input<typeof serologyFields>
 /** Field names the server's error keys can land on. */
 const fieldNames = serologyFields.keyof().options
 
+/** Whether any test is reactive, or the malarial parasite is found (counts as reactive). */
 export function hasReactiveResult(
-  values: Pick<SerologyFormValues, (typeof screeningTests)[number]>
+  values: Pick<
+    SerologyFormValues,
+    (typeof screeningTests)[number] | "malarial_parasite"
+  >
 ): boolean {
-  return screeningTests.some(
-    (test) => values[test] === ScreeningResult.Reactive
+  return (
+    values.malarial_parasite === MalariaResult.Found ||
+    screeningTests.some((test) => values[test] === ScreeningResult.Reactive)
   )
 }
 
@@ -75,6 +88,7 @@ export const emptySerologyValues: SerologyFormValues = {
   anti_hcv: "",
   anti_hiv: "",
   syphilis: "",
+  malarial_parasite: "",
   decision: "",
   deferral_reason: "",
 }
@@ -95,6 +109,8 @@ export function serologyDefaults(donor: SerologyDonor): SerologyFormValues {
     anti_hcv: serology.anti_hcv,
     anti_hiv: serology.anti_hiv,
     syphilis: serology.syphilis,
+    // Null: saved before this test existed; the user has to choose a value.
+    malarial_parasite: serology.malarial_parasite ?? "",
     decision: donor.decision ?? "",
     deferral_reason:
       donor.decision === SerologyDecision.Deferred
@@ -110,13 +126,22 @@ export function serologyDefaults(donor: SerologyDonor): SerologyFormValues {
 export function toSerologyPayload(
   values: SerologyFormValues
 ): DonorSerologyInput | null {
-  const { blood_group, hbsag, anti_hcv, anti_hiv, syphilis, decision } = values
+  const {
+    blood_group,
+    hbsag,
+    anti_hcv,
+    anti_hiv,
+    syphilis,
+    malarial_parasite,
+    decision,
+  } = values
   if (
     blood_group === "" ||
     hbsag === "" ||
     anti_hcv === "" ||
     anti_hiv === "" ||
     syphilis === "" ||
+    malarial_parasite === "" ||
     decision === ""
   ) {
     return null
@@ -128,6 +153,7 @@ export function toSerologyPayload(
     anti_hcv,
     anti_hiv,
     syphilis,
+    malarial_parasite,
     decision,
     ...(decision === SerologyDecision.Deferred
       ? { deferral_reason: values.deferral_reason.trim() }

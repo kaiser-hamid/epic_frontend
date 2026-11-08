@@ -2,6 +2,7 @@ import type { CaseInvoice, CasePatient } from "@/modules/blood-bank/cases/types"
 import type { StaffRef } from "@/modules/blood-bank/donor-examinations/types"
 import type {
   CareType,
+  MalariaResult,
   SampleStatus,
   ScreeningResult,
   SerologyDecision,
@@ -20,7 +21,10 @@ export type SerologySample = {
   collected_at: string
 }
 
-/** The four screening tests, by their form and response key. */
+/**
+ * The four reactive / non-reactive screening tests, by their form and response key. The
+ * malarial parasite test has its own values (`MalariaResult`) and is handled separately.
+ */
 export const screeningTests = [
   "hbsag",
   "anti_hcv",
@@ -36,12 +40,16 @@ export const screeningTestLabels: Record<ScreeningTest, string> = {
   syphilis: "Syphilis",
 }
 
+export const malarialParasiteLabel = "Malarial Parasite"
+
 /**
  * The current result of each test. `version` above 1 means a result was amended;
- * `tested_*` is the latest saved result.
+ * `tested_*` is the latest saved result. `malarial_parasite` is null for a serology saved
+ * before that test existed.
  */
 export type SerologyResults = Record<ScreeningTest, ScreeningResult> & {
   blood_group: BloodGroup
+  malarial_parasite: MalariaResult | null
   version: number
   tested_at: string
   tested_by: StaffRef | null
@@ -73,6 +81,7 @@ export type DonorSerology = {
 /** Body of `PUT /cases/{id}/donors/{caseDonorId}/serology`. */
 export type DonorSerologyInput = Record<ScreeningTest, ScreeningResult> & {
   blood_group: BloodGroup
+  malarial_parasite: MalariaResult
   decision: SerologyDecision
   /** Only with a deferral. */
   deferral_reason?: string

@@ -9,6 +9,7 @@ import type {
   CareType,
   CollectionStatus,
   CrossmatchResult,
+  MalariaResult,
   ResultStatus,
   SampleStatus,
   ScreeningResult,
@@ -78,6 +79,7 @@ export type IssueExamination = {
 
 /** The current serology results on the donor sample (a test not entered yet is null). */
 export type IssueSerology = Record<ScreeningTest, ScreeningResult | null> & {
+  malarial_parasite: MalariaResult | null
   sample_no: string
   blood_group: BloodGroup | null
   version: number

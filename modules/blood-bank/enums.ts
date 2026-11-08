@@ -174,6 +174,27 @@ export const screeningResultLabels: Record<ScreeningResult, string> = {
   reactive: "Reactive",
 }
 
+/**
+ * Malarial Parasite (ICT method) result. Its values differ from the other screening tests,
+ * and `found` counts as a reactive result.
+ */
+export const MalariaResult = {
+  NotFound: "not_found",
+  Found: "found",
+} as const
+export type MalariaResult = ValueOf<typeof MalariaResult>
+
+export const malariaResultLabels: Record<MalariaResult, string> = {
+  not_found: "Not Found",
+  found: "Found",
+}
+
+/** Labels for any screening result, for screens that render the tests generically. */
+export const anyScreeningResultLabels: Record<
+  ScreeningResult | MalariaResult,
+  string
+> = { ...screeningResultLabels, ...malariaResultLabels }
+
 /** The physician's decision on the serology form. Never `accepted` with a reactive result. */
 export const SerologyDecision = {
   Accepted: "accepted",

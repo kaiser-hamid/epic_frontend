@@ -20,6 +20,7 @@ const valid: SerologyFormValues = {
   anti_hcv: "non_reactive",
   anti_hiv: "non_reactive",
   syphilis: "non_reactive",
+  malarial_parasite: "not_found",
   decision: "accepted",
   deferral_reason: "",
 }
@@ -30,6 +31,7 @@ const saved: SerologyResults = {
   anti_hcv: "non_reactive",
   anti_hiv: "non_reactive",
   syphilis: "non_reactive",
+  malarial_parasite: "not_found",
   version: 1,
   tested_at: "2026-11-02T10:00:00+06:00",
   tested_by: { id: 1, name: "Lab" },
@@ -80,6 +82,7 @@ describe("serologySchema", () => {
         "anti_hcv",
         "anti_hiv",
         "syphilis",
+        "malarial_parasite",
         "decision",
       ])
     )
@@ -87,6 +90,29 @@ describe("serologySchema", () => {
 
   it("never accepts a reactive donor", () => {
     expect(issuePaths({ ...valid, anti_hiv: "reactive" })).toEqual(["decision"])
+  })
+
+  it("never accepts a donor with the malarial parasite found", () => {
+    expect(issuePaths({ ...valid, malarial_parasite: "found" })).toEqual([
+      "decision",
+    ])
+    expect(
+      issuePaths({
+        ...valid,
+        malarial_parasite: "found",
+        decision: "deferred",
+        deferral_reason: "Malaria",
+      })
+    ).toEqual([])
+  })
+
+  it("does not take reactive / non-reactive for the malarial parasite", () => {
+    expect(
+      issuePaths({
+        ...valid,
+        malarial_parasite: "non_reactive" as unknown as "found",
+      })
+    ).toEqual(["malarial_parasite"])
   })
 
   it("requires a deferral reason only for a deferral", () => {
@@ -107,6 +133,7 @@ describe("toSerologyPayload", () => {
       anti_hcv: "non_reactive",
       anti_hiv: "non_reactive",
       syphilis: "non_reactive",
+      malarial_parasite: "not_found",
       decision: "accepted",
     })
   })
@@ -128,6 +155,16 @@ describe("toSerologyPayload", () => {
 })
 
 describe("serologyDefaults", () => {
+  it("leaves the malarial parasite empty for a serology saved before the test", () => {
+    expect(
+      serologyDefaults({
+        ...donor,
+        serology: { ...saved, malarial_parasite: null },
+        decision: "accepted",
+      }).malarial_parasite
+    ).toBe("")
+  })
+
   it("prefills the deferral reason only for a serology deferral", () => {
     expect(
       serologyDefaults({
