@@ -114,7 +114,7 @@ describe("printLabelCommands", () => {
           body: await request.text(),
         }
         return HttpResponse.json({
-          printer: "label_print",
+          printer: "Barcode_Print",
           jobName: "Sample labels S1, S2",
           bytes: 16,
         })
@@ -148,7 +148,7 @@ describe("printLabelCommands", () => {
     )
 
     expect(printServiceErrorText(error, "label")).toBe(
-      'The label printer "label_print" is not installed or not available.'
+      'The label printer "Barcode_Print" is not installed or not available.'
     )
   })
 })

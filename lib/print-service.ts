@@ -4,7 +4,7 @@
  *
  * - Compatibility Test Report PDFs on "report_print", at exact size (no scaling, no margins,
  *   aligned to the paper edge), paper size taken from the PDF page.
- * - Sample barcode labels on "label_print" (the 38 x 25 mm GoDEX), as raw printer commands
+ * - Sample barcode labels on "Barcode_Print" (the 38 x 25 mm GoDEX), as raw printer commands
  *   (GoDEX EZPL) passed to the printer byte for byte.
  */
 const PRINT_SERVICE_BASE_URL = "http://127.0.0.1:9555/api/v1"
@@ -144,7 +144,7 @@ const printServiceMessages: Record<
   label: {
     400: "The label data is empty or invalid.",
     413: "Too many labels for one print job.",
-    503: 'The label printer "label_print" is not installed or not available.',
+    503: 'The label printer "Barcode_Print" is not installed or not available.',
   },
 }
 
