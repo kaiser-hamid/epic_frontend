@@ -34,11 +34,16 @@ import {
   CaseDonorStatus,
   CollectionStatus,
   careTypeLabels,
+  religionLabels,
 } from "@/modules/blood-bank/enums"
 import { BloodBankPermission } from "@/modules/blood-bank/permissions"
 import { useMe } from "@/modules/shared/auth/queries"
 import { useBreadcrumbLabel } from "@/modules/shared/layout/breadcrumbs"
-import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
+import {
+  bloodGroupLabels,
+  genderLabels,
+  maritalStatusLabels,
+} from "@/modules/shared/patient/enums"
 import { useCan } from "@/modules/shared/rbac/use-can"
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
@@ -145,6 +150,20 @@ export function DonorDetailView({ donorId }: { donorId: number }) {
             />
             <Detail label="Phone" value={donor.phone} />
             <Detail label="National ID" value={donor.national_id} />
+            <Detail label="Father's name" value={donor.father_name} />
+            <Detail
+              label="Marital status"
+              value={
+                donor.marital_status
+                  ? maritalStatusLabels[donor.marital_status]
+                  : null
+              }
+            />
+            <Detail
+              label="Religion"
+              value={donor.religion ? religionLabels[donor.religion] : null}
+            />
+            <Detail label="Occupation" value={donor.occupation} />
             <Detail label="Address" value={donor.address} />
             <Detail
               label="Regular volunteer"

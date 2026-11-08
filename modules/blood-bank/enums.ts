@@ -30,6 +30,24 @@ export const careTypeLabels: Record<CareType, string> = {
   out: "Takeaway",
 }
 
+/** `Religion` of a donor (`bb_donors.religion`). */
+export const Religion = {
+  Islam: "islam",
+  Hinduism: "hinduism",
+  Buddhism: "buddhism",
+  Christianity: "christianity",
+  Other: "other",
+} as const
+export type Religion = ValueOf<typeof Religion>
+
+export const religionLabels: Record<Religion, string> = {
+  islam: "Islam",
+  hinduism: "Hinduism",
+  buddhism: "Buddhism",
+  christianity: "Christianity",
+  other: "Other",
+}
+
 export const CaseDonorStatus = {
   Registered: "registered",
   Fit: "fit",

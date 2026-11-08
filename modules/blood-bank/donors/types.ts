@@ -3,10 +3,12 @@ import type {
   CaseDonorStatus,
   CaseStatus,
   CollectionStatus,
+  Religion,
 } from "@/modules/blood-bank/enums"
 import type {
   BloodGroup,
   Gender,
+  MaritalStatus,
   PatientTitle,
 } from "@/modules/shared/patient/enums"
 
@@ -22,6 +24,10 @@ export type Donor = {
   phone: string | null
   address: string | null
   national_id: string | null
+  father_name: string | null
+  marital_status: MaritalStatus | null
+  religion: Religion | null
+  occupation: string | null
   is_regular_volunteer: boolean | null
   created_at: string
 }

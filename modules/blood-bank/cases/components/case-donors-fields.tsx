@@ -36,8 +36,13 @@ import {
 } from "@/modules/blood-bank/cases/schemas"
 import { useFindDonorsByPhone } from "@/modules/blood-bank/donors/queries"
 import type { Donor } from "@/modules/blood-bank/donors/types"
+import { religionLabels } from "@/modules/blood-bank/enums"
 import { BloodBankPermission } from "@/modules/blood-bank/permissions"
-import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
+import {
+  bloodGroupLabels,
+  genderLabels,
+  maritalStatusLabels,
+} from "@/modules/shared/patient/enums"
 import { useCan } from "@/modules/shared/rbac/use-can"
 
 function describeDonor(donor: Donor) {
@@ -256,6 +261,12 @@ export function CaseDonorEntry({
           className="sm:col-span-2"
           disabled={isLinked}
         />
+        <TextControl
+          name={`donors.${index}.donor.father_name`}
+          label="Father's name"
+          className="sm:col-span-2"
+          disabled={isLinked}
+        />
         <NumberControl
           name={`donors.${index}.donor.age`}
           label="Age (years)"
@@ -278,6 +289,20 @@ export function CaseDonorEntry({
           disabled={isLinked}
         />
         <EnumControl
+          name={`donors.${index}.donor.religion`}
+          label="Religion"
+          labels={religionLabels}
+          optional
+          disabled={isLinked}
+        />
+        <EnumControl
+          name={`donors.${index}.donor.marital_status`}
+          label="Marital status"
+          labels={maritalStatusLabels}
+          optional
+          disabled={isLinked}
+        />
+        <EnumControl
           name={`donors.${index}.donor.blood_group`}
           label="Blood group"
           labels={bloodGroupLabels}
@@ -291,9 +316,15 @@ export function CaseDonorEntry({
           disabled={isLinked}
         />
         <TextControl
+          name={`donors.${index}.donor.occupation`}
+          label="Occupation"
+          className="sm:col-span-2"
+          disabled={isLinked}
+        />
+        <TextControl
           name={`donors.${index}.donor.address`}
           label="Address"
-          className="sm:col-span-2 lg:col-span-4"
+          className="sm:col-span-2"
           disabled={isLinked}
         />
         <YesNoControl

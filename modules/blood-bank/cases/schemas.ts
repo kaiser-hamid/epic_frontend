@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import type { Donor } from "@/modules/blood-bank/donors/types"
-import { CareType } from "@/modules/blood-bank/enums"
+import { CareType, Religion } from "@/modules/blood-bank/enums"
 import {
   BloodGroup,
   Gender,
@@ -104,6 +104,10 @@ export const newDonorSchema = z.object({
   phone,
   address: text(1000),
   national_id: text(30),
+  father_name: text(255),
+  marital_status: optionalEnum(MaritalStatus),
+  religion: optionalEnum(Religion),
+  occupation: text(100),
   /** "Would you like to be a regular voluntary donor?": yes, no, or null (not asked). */
   is_regular_volunteer: z.boolean().nullable(),
 })
@@ -118,6 +122,10 @@ export const emptyNewDonor: NewDonorValues = {
   phone: "",
   address: "",
   national_id: "",
+  father_name: "",
+  marital_status: "",
+  religion: "",
+  occupation: "",
   is_regular_volunteer: null,
 }
 
@@ -132,6 +140,10 @@ export function donorFormValues(donor: Donor): NewDonorValues {
     phone: donor.phone ?? "",
     address: donor.address ?? "",
     national_id: donor.national_id ?? "",
+    father_name: donor.father_name ?? "",
+    marital_status: donor.marital_status ?? "",
+    religion: donor.religion ?? "",
+    occupation: donor.occupation ?? "",
     is_regular_volunteer: donor.is_regular_volunteer,
   }
 }

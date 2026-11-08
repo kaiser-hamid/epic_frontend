@@ -70,6 +70,10 @@ export function newDonorPayload(donor: NewDonorValues) {
     phone: emptyToNull(donor.phone),
     address: emptyToNull(donor.address),
     national_id: emptyToNull(donor.national_id),
+    father_name: emptyToNull(donor.father_name),
+    marital_status: donor.marital_status || null,
+    religion: donor.religion || null,
+    occupation: emptyToNull(donor.occupation),
     is_regular_volunteer: donor.is_regular_volunteer,
   }
 }
