@@ -13,7 +13,7 @@ import {
   useLoggedLabelPrint,
   type LabelPrintJob,
 } from "@/components/label-print-flow"
-import { printLabelCommands, printServiceErrorText } from "@/lib/print-service"
+import { printBarcodeLabels, printServiceErrorText } from "@/lib/print-service"
 import { sampleErrorText } from "@/modules/blood-bank/samples/error-messages"
 import { usePrintSampleLabels } from "@/modules/blood-bank/samples/queries"
 import type {
@@ -75,9 +75,11 @@ export function SampleLabelPrinter({
     }
     setIsSending(true)
     try {
-      await printLabelCommands(
-        labels.map((label) => label.label_command),
-        `Sample labels ${labels.map((label) => label.sample_no).join(", ")}`
+      await printBarcodeLabels(
+        labels.map((label) => label.label_command).join(""),
+        {
+          jobName: `Sample labels ${labels.map((label) => label.sample_no).join(", ")}`,
+        }
       )
     } catch (error) {
       toast.error(

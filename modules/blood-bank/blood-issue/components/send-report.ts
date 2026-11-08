@@ -32,7 +32,7 @@ export async function sendReportToPrinter({
   filename,
 }: PdfFile): Promise<boolean> {
   try {
-    await printCompatibilityReport(blob, filename)
+    await printCompatibilityReport(blob, { jobName: filename })
     return true
   } catch (error) {
     const reason = printServiceErrorText(error)

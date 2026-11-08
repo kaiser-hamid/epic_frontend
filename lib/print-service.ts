@@ -1,25 +1,34 @@
+"use client"
+
+import { publicEnv } from "@/lib/public-env"
+
 /**
- * The Windows print service that runs on each workstation (loopback only). Each endpoint prints
- * on a printer with a fixed name, so requests carry no printer, paper or layout options:
+ * Client for the Windows print service on each workstation (loopback only, so it is called from
+ * the browser, never from server code). The caller names the printer in the `X-Printer-Name`
+ * header:
  *
- * - Compatibility Test Report PDFs on "report_print", at exact size (no scaling, no margins,
- *   aligned to the paper edge), paper size taken from the PDF page.
- * - Sample barcode labels on "Barcode_Print" (the 38 x 25 mm GoDEX), as raw printer commands
- *   (GoDEX EZPL) passed to the printer byte for byte.
+ * - `POST /print/pdf`: a PDF, paper size taken from each page. Compatibility Test Reports go to
+ *   the laser printer with pre-printed letterhead at exact size (no scaling, aligned to the
+ *   paper edge).
+ * - `POST /print/raw`: printer commands (GoDEX EZPL) passed to the printer byte for byte.
+ *   Sample barcode labels go to the label printer. No `copies`: reprints go through the backend.
+ *
+ * The service only allows the request headers `X-Api-Key`, `X-Printer-Name` and `Content-Type`.
  */
-const PRINT_SERVICE_BASE_URL = "http://127.0.0.1:9555/api/v1"
+const PRINT_SERVICE_BASE_URL = `${publicEnv.printServiceUrl}/api/v1`
 
 export const PRINT_SERVICE_URLS = {
-  compatibilityReport: `${PRINT_SERVICE_BASE_URL}/print-compatibility-test`,
-  sampleLabels: `${PRINT_SERVICE_BASE_URL}/print-sample-label`,
+  printers: `${PRINT_SERVICE_BASE_URL}/printers`,
+  printPdf: `${PRINT_SERVICE_BASE_URL}/print/pdf`,
+  printRaw: `${PRINT_SERVICE_BASE_URL}/print/raw`,
 } as const
 
-/** Fixed key the print service expects; it only guards a loopback port, not user data. */
-const PRINT_SERVICE_API_KEY = "epichealthcare@2026printserver"
+export const REPORT_PRINTER = publicEnv.reportPrinter
+export const BARCODE_PRINTER = publicEnv.barcodePrinter
 
 const JOB_NAME_MAX = 128
 
-/** What the service answers once a report is spooled. */
+/** What the service answers once a PDF is spooled. */
 export type PrintJob = {
   printer: string
   jobName: string
@@ -27,131 +36,204 @@ export type PrintJob = {
   copies: number
 }
 
-/** What the service answers once raw label data is spooled. */
+/** What the service answers once raw printer data is spooled. */
 export type RawPrintJob = {
   printer: string
   jobName: string
   bytes: number
 }
 
-/** A failed print. `status` is null when the service could not be reached at all. */
+export type PrinterInfo = {
+  name: string
+  isDefault: boolean
+  status: string
+  isOffline: boolean
+  isNetwork: boolean
+}
+
+export type PrinterList = {
+  defaultPrinter: string | null
+  printers: PrinterInfo[]
+}
+
+/**
+ * A failed print. `status` is null when the service could not be reached at all; `title` and
+ * `detail` come from the `application/problem+json` response. `printer` is the printer the job
+ * was meant for, when there was one.
+ */
 export class PrintServiceError extends Error {
   readonly status: number | null
+  readonly title: string
+  readonly detail: string
+  readonly printer: string | null
 
-  constructor(status: number | null, message: string) {
-    super(message)
+  constructor(
+    status: number | null,
+    title: string,
+    detail: string,
+    printer: string | null = null
+  ) {
+    super(detail || title)
     this.name = "PrintServiceError"
     this.status = status
+    this.title = title
+    this.detail = detail
+    this.printer = printer
   }
 }
 
-/** RFC 7807 `detail` (or `title`) from an error response, if it has one. */
-async function problemDetail(response: Response): Promise<string | null> {
+/** RFC 7807 `title` and `detail` from an error response; empty strings when it has none. */
+async function readProblem(
+  response: Response
+): Promise<{ title: string; detail: string }> {
   try {
     const body: unknown = await response.json()
     if (typeof body === "object" && body !== null) {
-      const { detail, title } = body as Record<string, unknown>
-      if (typeof detail === "string" && detail) return detail
-      if (typeof title === "string" && title) return title
+      const { title, detail } = body as Record<string, unknown>
+      return {
+        title: typeof title === "string" ? title : "",
+        detail: typeof detail === "string" ? detail : "",
+      }
     }
   } catch {
-    // Not JSON: fall back to the status text below.
+    // Not JSON: the caller falls back to the status.
   }
-  return null
+  return { title: "", detail: "" }
 }
 
-/** Posts a raw body to a print endpoint; rejects with `PrintServiceError` on any failure. */
-async function send<T>(
-  url: URL,
-  contentType: string,
-  body: BodyInit
+/** Calls the print service; rejects with `PrintServiceError` on any failure. */
+async function request<T>(
+  url: URL | string,
+  init: RequestInit,
+  printer: string | null
 ): Promise<T> {
   let response: Response
   try {
-    response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": contentType,
-        "X-Api-Key": PRINT_SERVICE_API_KEY,
-      },
-      body,
-    })
+    response = await fetch(url, init)
   } catch {
-    throw new PrintServiceError(null, "The print service is not running.")
+    // fetch rejects with a TypeError ("Failed to fetch") when nothing listens on the port.
+    throw new PrintServiceError(
+      null,
+      "Print service not running",
+      "Print service is not running on this PC",
+      printer
+    )
   }
 
   if (!response.ok) {
+    const { title, detail } = await readProblem(response)
     throw new PrintServiceError(
       response.status,
-      (await problemDetail(response)) ??
-        `Print service answered ${response.status}.`
+      title || response.statusText || "Print failed",
+      detail || `Print service answered ${response.status}.`,
+      printer
     )
   }
   return (await response.json()) as T
 }
 
-function jobUrl(endpoint: string, jobName: string): URL {
+function printUrl(
+  endpoint: string,
+  params: Record<string, string | undefined>
+): URL {
   const url = new URL(endpoint)
-  url.searchParams.set("jobName", jobName.slice(0, JOB_NAME_MAX))
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined) url.searchParams.set(key, value)
+  }
   return url
 }
 
-/**
- * Sends a Compatibility Test Report PDF to the print service as the raw request body. Every
- * report print goes through this one function. Resolves once the job is spooled; rejects with a
- * `PrintServiceError` when the service is not running or refuses the job.
- */
-export async function printCompatibilityReport(
-  blob: Blob,
-  filename: string,
-  { copies = 1 }: { copies?: number } = {}
-): Promise<PrintJob> {
-  const url = jobUrl(PRINT_SERVICE_URLS.compatibilityReport, filename)
-  if (copies !== 1) {
-    url.searchParams.set("copies", String(copies))
-  }
-  return send<PrintJob>(url, "application/pdf", blob)
-}
-
-/**
- * Sends label printer commands (as the backend rendered them, `\r\n` line endings intact) to the
- * label printer as one job. Several labels are simply concatenated. Rejects with a
- * `PrintServiceError` when the service is not running or refuses the job.
- */
-export async function printLabelCommands(
-  commands: string[],
-  jobName: string
-): Promise<RawPrintJob> {
-  return send<RawPrintJob>(
-    jobUrl(PRINT_SERVICE_URLS.sampleLabels, jobName),
-    "text/plain; charset=utf-8",
-    commands.join("")
+/** The printers installed on this PC. */
+export async function listPrinters(): Promise<PrinterList> {
+  return request<PrinterList>(
+    PRINT_SERVICE_URLS.printers,
+    { headers: { "X-Api-Key": publicEnv.printApiKey } },
+    null
   )
 }
 
-/** Which printer a failed job was meant for; it changes what some statuses mean. */
-export type PrintTarget = "report" | "label"
-
-const printServiceMessages: Record<
-  PrintTarget,
-  Partial<Record<number, string>>
-> = {
-  report: {
-    400: "The report PDF is invalid.",
-    413: "The report is too large to print (over 50 MB).",
-    503: 'The printer "report_print" is not installed or not available.',
-  },
-  label: {
-    400: "The label data is empty or invalid.",
-    413: "Too many labels for one print job.",
-    503: 'The label printer "Barcode_Print" is not installed or not available.',
-  },
+/**
+ * Sends a PDF (the raw bytes, not multipart) to the named printer. Resolves once the job is
+ * spooled.
+ */
+export async function printPdf(
+  pdf: Blob,
+  printer: string,
+  {
+    copies = 1,
+    jobName,
+    exactSize,
+  }: { copies?: number; jobName?: string; exactSize?: boolean } = {}
+): Promise<PrintJob> {
+  const url = printUrl(PRINT_SERVICE_URLS.printPdf, {
+    copies: copies !== 1 ? String(copies) : undefined,
+    jobName: jobName?.slice(0, JOB_NAME_MAX),
+    exactSize: exactSize ? "true" : undefined,
+  })
+  return request<PrintJob>(
+    url,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/pdf",
+        "X-Api-Key": publicEnv.printApiKey,
+        "X-Printer-Name": printer,
+      },
+      body: pdf,
+    },
+    printer
+  )
 }
+
+/**
+ * Sends printer commands to the named printer exactly as the backend produced them (`\r\n` kept;
+ * never trim or re-encode). Resolves once the job is spooled.
+ */
+export async function printRaw(
+  data: string,
+  printer: string,
+  { jobName }: { jobName?: string } = {}
+): Promise<RawPrintJob> {
+  const url = printUrl(PRINT_SERVICE_URLS.printRaw, {
+    jobName: jobName?.slice(0, JOB_NAME_MAX),
+  })
+  return request<RawPrintJob>(
+    url,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "X-Api-Key": publicEnv.printApiKey,
+        "X-Printer-Name": printer,
+      },
+      body: data,
+    },
+    printer
+  )
+}
+
+/** A Compatibility Test Report PDF on the letterhead printer, printed 1:1. */
+export function printCompatibilityReport(
+  pdf: Blob,
+  opts: { copies?: number; jobName?: string } = {}
+): Promise<PrintJob> {
+  return printPdf(pdf, REPORT_PRINTER, { ...opts, exactSize: true })
+}
+
+/** Sample label commands (several labels concatenated into one job) on the barcode printer. */
+export function printBarcodeLabels(
+  ezpl: string,
+  opts: { jobName?: string } = {}
+): Promise<RawPrintJob> {
+  return printRaw(ezpl, BARCODE_PRINTER, opts)
+}
+
+/** Which printer a failed job was meant for; it only shapes the fallback text. */
+export type PrintTarget = "report" | "label"
 
 const commonMessages: Partial<Record<number, string>> = {
   401: "The print service rejected the API key.",
   403: "The print service only accepts requests from a page opened on localhost.",
-  415: "The print service did not accept the file type.",
 }
 
 /** UI text for a failed print. */
@@ -160,14 +242,20 @@ export function printServiceErrorText(
   target: PrintTarget = "report"
 ): string {
   if (error instanceof PrintServiceError) {
-    if (error.status === null) {
-      return "The print service is not running on this computer."
+    const { status, title, detail, printer } = error
+    if (status === null) {
+      return "The print service is not running on this PC."
     }
-    return (
-      printServiceMessages[target][error.status] ??
-      commonMessages[error.status] ??
-      error.message
-    )
+    if (status === 400 && title === "Unknown printer") {
+      return `Printer "${printer ?? "(unknown)"}" is not installed on this PC. Ask IT to check the printer name.`
+    }
+    if (status === 503) {
+      return "The printer is offline or unavailable."
+    }
+    if (status === 400 || status === 413 || status === 415) {
+      return detail
+    }
+    return commonMessages[status] ?? detail
   }
   return target === "label"
     ? "The labels could not be printed."

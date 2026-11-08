@@ -211,9 +211,11 @@ describe("Issue Blood dialog", () => {
     await waitFor(() =>
       expect(printCompatibilityReport).toHaveBeenCalledTimes(1)
     )
-    const [blob, filename] = vi.mocked(printCompatibilityReport).mock
-      .calls[0] ?? [new Blob(), ""]
-    expect(filename).toBe("CTR-BB-0001.pdf")
+    const [blob, opts] = vi.mocked(printCompatibilityReport).mock.calls[0] ?? [
+      new Blob(),
+      {},
+    ]
+    expect(opts?.jobName).toBe("CTR-BB-0001.pdf")
     expect(await blob.text()).toBe("%PDF-1.7")
     expect(issued).toEqual({
       technologist_id: 5,
