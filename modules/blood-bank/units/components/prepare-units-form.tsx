@@ -302,18 +302,29 @@ function UnitRow({
   return (
     <div className="grid items-start gap-3 rounded-lg border p-3 sm:grid-cols-[minmax(10rem,1fr)_minmax(10rem,1fr)_7rem_10rem_auto]">
       {isWholeBlood || locked ? (
-        <Field>
-          <FieldLabel htmlFor={id("component")}>Component</FieldLabel>
-          <ReadonlyInput
-            id={id("component")}
-            value={
-              isWholeBlood
-                ? wholeBlood && `${wholeBlood.code} – ${wholeBlood.name}`
-                : lockedComponent &&
-                  `${lockedComponent.code} – ${lockedComponent.name}`
-            }
-          />
-        </Field>
+        // Still a Controller, so a server error on this row's component (e.g. a type with no
+        // unit number prefix) is shown here instead of landing on an unrendered field.
+        <Controller
+          name={`units.${index}.component_type_id`}
+          control={control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={id("component")}>Component</FieldLabel>
+              <ReadonlyInput
+                id={id("component")}
+                ref={field.ref}
+                aria-invalid={fieldState.invalid}
+                value={
+                  isWholeBlood
+                    ? wholeBlood && `${wholeBlood.code} – ${wholeBlood.name}`
+                    : lockedComponent &&
+                      `${lockedComponent.code} – ${lockedComponent.name}`
+                }
+              />
+              <FieldError errors={[fieldState.error]} />
+            </Field>
+          )}
+        />
       ) : (
         <Controller
           name={`units.${index}.component_type_id`}
@@ -461,7 +472,10 @@ function UnitRow({
               <FieldError errors={[fieldState.error]} />
             </Field>
           ) : (
-            <p className="text-sm text-muted-foreground sm:pt-8">Stock</p>
+            <Field data-invalid={fieldState.invalid} className="sm:pt-8">
+              <p className="text-sm text-muted-foreground">Stock</p>
+              <FieldError errors={[fieldState.error]} />
+            </Field>
           )
         }
       />
