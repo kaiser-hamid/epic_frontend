@@ -1,11 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import { useReactToPrint } from "react-to-print"
+import { useCallback, useState } from "react"
 import { toast } from "sonner"
 
 import { ReasonDialog } from "@/components/reason-dialog"
 import { ErrorCode, hasErrorCode } from "@/lib/api-error"
+import { printServiceErrorText } from "@/lib/print-service"
 
 /** A batch of labels to print. */
 export type LabelPrintJob = {
@@ -118,75 +118,71 @@ export function useLoggedLabelPrint<TJob extends LabelPrintJob, TLabel>({
   return { print, element }
 }
 
-type LabelPrintFlowOptions<TJob extends LabelPrintJob, TLabel> = Omit<
-  LoggedLabelPrintOptions<TJob, TLabel>,
-  "onLogged"
-> & {
-  documentTitle: string
-  /** react-to-print `pageStyle`: the label stock's `@page` size. */
-  pageStyle: string
-  renderLabels: (labels: TLabel[]) => React.ReactNode
+/** A logged label the backend rendered as raw printer commands. */
+export type RawLabel = { label_command: string }
+
+type RawLabelPrintFlowOptions<
+  TJob extends LabelPrintJob,
+  TLabel extends RawLabel,
+> = Omit<LoggedLabelPrintOptions<TJob, TLabel>, "onLogged"> & {
+  /** Sends the labels' commands (concatenated) to its printer, e.g. `printBagLabels`. */
+  printCommands: (ezpl: string, opts: { jobName: string }) => Promise<unknown>
+  /** The print job name, e.g. "Bag labels BT2611020003". */
+  jobName: (labels: TLabel[]) => string
 }
 
 /**
- * The label print flow for labels laid out in HTML: `useLoggedLabelPrint`, then the returned
- * label contents are printed with react-to-print. Render `element` once (it holds the reason
- * dialog and the hidden print sheet).
+ * The label print flow for labels the backend renders as printer commands (`label_command`):
+ * `useLoggedLabelPrint`, then the commands go to the workstation print service unchanged, as one
+ * job in the order returned. The print is already logged by then, so a failed print is only
+ * reported; the user reprints (with a reason) from the Label button. `sendToPrinter` prints
+ * labels another call already logged. Render `element` once (it holds the reason dialog).
  */
-export function useLabelPrintFlow<TJob extends LabelPrintJob, TLabel>({
-  documentTitle,
-  pageStyle,
-  renderLabels,
+export function useRawLabelPrintFlow<
+  TJob extends LabelPrintJob,
+  TLabel extends RawLabel,
+>({
+  printCommands,
+  jobName,
   ...logOptions
-}: LabelPrintFlowOptions<TJob, TLabel>) {
-  const [labels, setLabels] = useState<TLabel[] | null>(null)
-  const contentRef = useRef<HTMLDivElement>(null)
+}: RawLabelPrintFlowOptions<TJob, TLabel>) {
+  const [isSending, setIsSending] = useState(false)
 
-  const printSheet = useReactToPrint({
-    contentRef,
-    documentTitle,
-    pageStyle,
-    onAfterPrint: () => setLabels(null),
-    onPrintError: () => {
-      setLabels(null)
-      toast.error("The labels could not be sent to the printer.")
+  const sendToPrinter = useCallback(
+    async (labels: TLabel[]) => {
+      if (labels.length === 0) {
+        return
+      }
+      setIsSending(true)
+      try {
+        await printCommands(
+          labels.map((label) => label.label_command).join(""),
+          { jobName: jobName(labels) }
+        )
+      } catch (error) {
+        toast.error(
+          labels.length === 1 ? "Label not printed" : "Labels not printed",
+          {
+            description: `${printServiceErrorText(error, "label")} Print again with the row's Label button (a reprint reason is needed).`,
+            duration: 15_000,
+          }
+        )
+      } finally {
+        setIsSending(false)
+      }
     },
-  })
-
-  // The sheet (and its barcodes) has rendered by the time this runs. `printSheet` changes
-  // identity on re-render, so the batch it was queued for is tracked to print it once.
-  const queuedRef = useRef<TLabel[] | null>(null)
-  useEffect(() => {
-    if (labels && queuedRef.current === labels) {
-      queuedRef.current = null
-      printSheet()
-    }
-  }, [labels, printSheet])
-
-  const onLogged = useCallback((printed: TLabel[]) => {
-    queuedRef.current = printed
-    setLabels(printed)
-  }, [])
-
-  const { print, element: reasonDialog } = useLoggedLabelPrint({
-    ...logOptions,
-    onLogged,
-  })
-
-  const element = (
-    <>
-      {reasonDialog}
-
-      {/* Only the inner node is copied into the print frame, so it prints while this stays hidden. */}
-      <div className="hidden">
-        <div ref={contentRef}>{labels ? renderLabels(labels) : null}</div>
-      </div>
-    </>
+    [printCommands, jobName]
   )
+
+  const { print, element } = useLoggedLabelPrint({
+    ...logOptions,
+    onLogged: sendToPrinter,
+  })
 
   return {
     print,
-    isPrinting: logOptions.isPending || labels !== null,
+    sendToPrinter,
+    isPrinting: logOptions.isPending || isSending,
     element,
   }
 }

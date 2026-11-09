@@ -135,6 +135,23 @@ describe("issueBloodSchema", () => {
     ])
   })
 
+  it("accepts a donor's vitals left empty", () => {
+    expect(
+      issuePaths(
+        values({
+          post_donation: [
+            vitals({
+              pulse_bpm: undefined,
+              bp_systolic: undefined,
+              bp_diastolic: undefined,
+              temperature_f: " ",
+            }),
+          ],
+        })
+      )
+    ).toEqual([])
+  })
+
   it("needs the diastolic pressure below the systolic", () => {
     expect(
       issuePaths(
@@ -249,6 +266,28 @@ describe("toIssueBloodPayload", () => {
         },
       ],
     })
+  })
+
+  it("sends only the donors whose vitals are filled in", () => {
+    const output = issueBloodSchema(recordedB).parse(
+      values({
+        post_donation: [
+          vitals({
+            case_donor_id: 101,
+            pulse_bpm: undefined,
+            bp_systolic: undefined,
+            bp_diastolic: undefined,
+            temperature_f: "",
+          }),
+          vitals({ case_donor_id: 102 }),
+        ],
+      })
+    )
+    expect(
+      toIssueBloodPayload(output, recordedB)?.post_donation.map(
+        (row) => row.case_donor_id
+      )
+    ).toEqual([102])
   })
 
   it("sends a changed group with its amendment reason", () => {

@@ -14,4 +14,6 @@ export const publicEnv = {
   reportPrinter: process.env.NEXT_PUBLIC_REPORT_PRINTER || "report_printer",
   /** Installed name of the GoDEX barcode label printer. */
   barcodePrinter: process.env.NEXT_PUBLIC_BARCODE_PRINTER || "barcode_printer",
+  /** Installed name of the GoDEX printer for blood bag and component labels. */
+  labelPrinter: process.env.NEXT_PUBLIC_LABEL_PRINTER || "label_printer",
 } as const

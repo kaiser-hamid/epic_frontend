@@ -98,8 +98,8 @@ export type IssueBag = {
 
 /**
  * One case donor, in sequence order (`number` is the donor no). `invoice_no` is an added donor's own bill.
- * `needs_post_vitals`: the Issue form must send this donor's post-donation vitals when one of
- * their units is issued.
+ * `needs_post_vitals`: this donor's post-donation vitals are not recorded yet (the Issue form
+ * may send them; they are not required to issue).
  */
 export type IssueDonor = SampleSubjectInfo & {
   invoice_no: string | null
@@ -173,6 +173,10 @@ export type IssueBloodInput = {
   patient_blood_group: BloodGroup | null
   amendment_reason: string | null
   units: CrossmatchUnitInput[]
+  /**
+   * Optional: complete rows only, for donors with `needs_post_vitals`; `[]` when none were
+   * entered.
+   */
   post_donation: PostDonationInput[]
 }
 

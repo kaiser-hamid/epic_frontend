@@ -12,7 +12,7 @@ import { BloodGroup } from "@/modules/shared/patient/enums"
 
 /**
  * The "Issue Blood" form: one request that records the patient blood group, the crossmatch of
- * every selected unit, the post-donation vitals still missing, and issues the units. Choices
+ * every selected unit, the optional post-donation vitals not yet recorded, and issues the units. Choices
  * start empty ("") so nothing is recorded by accident. The ranges mirror the backend and only
  * catch typos; the backend stays the authority.
  */
@@ -37,18 +37,16 @@ const crossmatchChoice = (message: string) =>
     .or(z.literal(""))
     .refine((value) => value !== "", { message })
 
-/** A required whole number in a range; empty is `undefined` in the form. */
-function wholeNumber(
-  label: string,
-  { min, max }: { min: number; max: number }
-) {
+/** A whole number in a range; empty is `undefined` in the form (checked by the row). */
+function wholeNumber({ min, max }: { min: number; max: number }) {
   return z
     .number()
     .optional()
     .superRefine((value, ctx) => {
       if (value === undefined) {
-        ctx.addIssue({ code: "custom", message: `Enter the ${label}.` })
-      } else if (!Number.isInteger(value)) {
+        return
+      }
+      if (!Number.isInteger(value)) {
         ctx.addIssue({ code: "custom", message: "Enter a whole number." })
       } else if (value < min || value > max) {
         ctx.addIssue({
@@ -69,12 +67,28 @@ const unitRowSchema = z.object({
     .max(REMARKS_MAX, `At most ${REMARKS_MAX} characters.`),
 })
 
+const VITALS_LABELS = {
+  pulse_bpm: "pulse",
+  bp_systolic: "systolic pressure",
+  bp_diastolic: "diastolic pressure",
+  temperature_f: "temperature",
+} as const
+
+/** Whether a vitals field is left empty. */
+function isBlank(value: number | string | undefined): boolean {
+  return value === undefined || value === ""
+}
+
+/**
+ * One donor's post-donation vitals. Optional: a row left empty is skipped. Once one field is
+ * filled, all four are needed (the backend takes complete rows only).
+ */
 const vitalsRowSchema = z
   .object({
     case_donor_id: z.number(),
-    pulse_bpm: wholeNumber("pulse", VITALS.pulse_bpm),
-    bp_systolic: wholeNumber("systolic pressure", VITALS.bp_systolic),
-    bp_diastolic: wholeNumber("diastolic pressure", VITALS.bp_diastolic),
+    pulse_bpm: wholeNumber(VITALS.pulse_bpm),
+    bp_systolic: wholeNumber(VITALS.bp_systolic),
+    bp_diastolic: wholeNumber(VITALS.bp_diastolic),
     // Typed as text so one decimal ("98.4") can be checked as typed.
     temperature_f: z
       .string()
@@ -82,7 +96,6 @@ const vitalsRowSchema = z
       .superRefine((value, ctx) => {
         const { min, max } = VITALS.temperature_f
         if (value === "") {
-          ctx.addIssue({ code: "custom", message: "Enter the temperature." })
           return
         }
         const number = parseDecimal(value, 1)
@@ -100,6 +113,18 @@ const vitalsRowSchema = z
       }),
   })
   .superRefine((row, ctx) => {
+    const names = Object.keys(VITALS_LABELS) as (keyof typeof VITALS_LABELS)[]
+    if (!isEmptyVitalsRow(row)) {
+      for (const name of names) {
+        if (isBlank(row[name])) {
+          ctx.addIssue({
+            code: "custom",
+            path: [name],
+            message: `Enter the ${VITALS_LABELS[name]}, or clear this donor's vitals.`,
+          })
+        }
+      }
+    }
     if (
       row.bp_systolic !== undefined &&
       row.bp_diastolic !== undefined &&
@@ -129,6 +154,21 @@ export type IssueBloodValues = z.input<typeof issueBloodFields>
 export type IssueBloodOutput = z.output<typeof issueBloodFields>
 export type IssueUnitRowValues = IssueBloodValues["units"][number]
 export type VitalsRowValues = IssueBloodValues["post_donation"][number]
+
+/** A vitals row with nothing entered: skipped, not sent. */
+export function isEmptyVitalsRow(
+  row: Pick<
+    VitalsRowValues,
+    "pulse_bpm" | "bp_systolic" | "bp_diastolic" | "temperature_f"
+  >
+): boolean {
+  return (
+    row.pulse_bpm === undefined &&
+    row.bp_systolic === undefined &&
+    row.bp_diastolic === undefined &&
+    row.temperature_f.trim() === ""
+  )
+}
 
 /** What the form needs to know about the saved state to decide what is required. */
 export type IssueBloodContext = {
@@ -244,13 +284,19 @@ export function donorsOfUnits(
   return donors.filter((donor) => matched.has(donor))
 }
 
-/** Donors of the units whose post-donation vitals must be entered with this issue. */
+/**
+ * Donors of the units whose post-donation vitals are not recorded yet: the form offers
+ * (optional) vitals inputs for them.
+ */
 export function donorsNeedingVitals(
   donors: readonly IssueDonor[],
   units: readonly Pick<IssueUnit, "donor_no" | "bag_no">[]
 ): IssueDonor[] {
   return donorsOfUnits(donors, units).filter(
-    (donor) => donor.needs_post_vitals && donor.case_donor_id !== null
+    (donor) =>
+      donor.needs_post_vitals &&
+      !donor.examination?.post &&
+      donor.case_donor_id !== null
   )
 }
 
@@ -259,9 +305,7 @@ export function donorsWithRecordedVitals(
   donors: readonly IssueDonor[],
   units: readonly Pick<IssueUnit, "donor_no" | "bag_no">[]
 ): IssueDonor[] {
-  return donorsOfUnits(donors, units).filter(
-    (donor) => !donor.needs_post_vitals && donor.examination?.post
-  )
+  return donorsOfUnits(donors, units).filter((donor) => donor.examination?.post)
 }
 
 /** Units ticked for issue when the screen loads: every one that can be issued. */
@@ -281,7 +325,7 @@ export function emptyVitalsRow(caseDonorId: number): VitalsRowValues {
 
 /**
  * The form for the selected units: the recorded blood group prefilled, one crossmatch row per
- * unit with nothing chosen, one vitals row per donor that still needs them.
+ * unit with nothing chosen, one empty (optional) vitals row per donor without recorded vitals.
  */
 export function issueBloodDefaults(
   view: BloodIssue,
@@ -328,8 +372,12 @@ export function toIssueBloodPayload(
     remarks: row.remarks === "" ? null : row.remarks,
   }))
 
+  // Only complete rows are sent; an empty row is a donor whose vitals were skipped.
   const postDonation: IssueBloodInput["post_donation"] = []
   for (const row of values.post_donation) {
+    if (isEmptyVitalsRow(row)) {
+      continue
+    }
     const temperature = parseDecimal(row.temperature_f, 1)
     if (
       row.pulse_bpm === undefined ||

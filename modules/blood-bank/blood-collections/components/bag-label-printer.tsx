@@ -3,13 +3,10 @@
 import { createContext, useCallback, useContext, useMemo } from "react"
 
 import {
-  useLabelPrintFlow,
+  useRawLabelPrintFlow,
   type LabelPrintJob,
 } from "@/components/label-print-flow"
-import {
-  BagLabelCard,
-  bagLabelPageStyle,
-} from "@/modules/blood-bank/blood-collections/components/bag-label"
+import { printBagLabels } from "@/lib/print-service"
 import { bloodCollectionErrorText } from "@/modules/blood-bank/blood-collections/error-messages"
 import { usePrintBagLabels } from "@/modules/blood-bank/blood-collections/queries"
 import type { BagLabel } from "@/modules/blood-bank/blood-collections/types"
@@ -29,12 +26,13 @@ const BagLabelPrinterContext = createContext<BagLabelPrinterValue | null>(null)
 const labelCount = (request: BagLabelPrintRequest) =>
   request.collectionIds.length
 
-const renderLabels = (labels: BagLabel[]) =>
-  labels.map((label) => <BagLabelCard key={label.id} label={label} />)
+const jobName = (labels: BagLabel[]) =>
+  `Bag labels ${labels.map((label) => label.bag_no).join(", ")}`
 
 /**
- * Bag label printing for everything inside it (see `useLabelPrintFlow`): logs the print,
- * asks for a reprint reason when needed, then prints.
+ * Bag label printing for everything inside it (see `useRawLabelPrintFlow`): logs the print,
+ * asks for a reprint reason when needed, then sends the backend's label commands (one per bag,
+ * in response order) to the label printer.
  */
 export function BagLabelPrinter({ children }: { children: React.ReactNode }) {
   const { mutate, isPending } = usePrintBagLabels()
@@ -59,14 +57,13 @@ export function BagLabelPrinter({ children }: { children: React.ReactNode }) {
     [mutate]
   )
 
-  const { print, isPrinting, element } = useLabelPrintFlow({
+  const { print, isPrinting, element } = useRawLabelPrintFlow({
     send,
     isPending,
     labelCount,
     errorText: bloodCollectionErrorText,
-    documentTitle: "Bag labels",
-    pageStyle: bagLabelPageStyle,
-    renderLabels,
+    printCommands: printBagLabels,
+    jobName,
   })
 
   const value = useMemo(() => ({ print, isPrinting }), [print, isPrinting])

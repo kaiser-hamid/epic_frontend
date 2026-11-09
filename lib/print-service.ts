@@ -25,6 +25,7 @@ export const PRINT_SERVICE_URLS = {
 
 export const REPORT_PRINTER = publicEnv.reportPrinter
 export const BARCODE_PRINTER = publicEnv.barcodePrinter
+export const LABEL_PRINTER = publicEnv.labelPrinter
 
 const JOB_NAME_MAX = 128
 
@@ -226,6 +227,14 @@ export function printBarcodeLabels(
   opts: { jobName?: string } = {}
 ): Promise<RawPrintJob> {
   return printRaw(ezpl, BARCODE_PRINTER, opts)
+}
+
+/** Blood bag and component label commands (one job, labels concatenated) on the label printer. */
+export function printBagLabels(
+  ezpl: string,
+  opts: { jobName?: string } = {}
+): Promise<RawPrintJob> {
+  return printRaw(ezpl, LABEL_PRINTER, opts)
 }
 
 /** Which printer a failed job was meant for; it only shapes the fallback text. */

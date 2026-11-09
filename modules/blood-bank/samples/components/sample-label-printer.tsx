@@ -1,25 +1,15 @@
 "use client"
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react"
-import { toast } from "sonner"
+import { createContext, useCallback, useContext, useMemo } from "react"
 
 import {
-  useLoggedLabelPrint,
+  useRawLabelPrintFlow,
   type LabelPrintJob,
 } from "@/components/label-print-flow"
-import { printBarcodeLabels, printServiceErrorText } from "@/lib/print-service"
+import { printBarcodeLabels } from "@/lib/print-service"
 import { sampleErrorText } from "@/modules/blood-bank/samples/error-messages"
 import { usePrintSampleLabels } from "@/modules/blood-bank/samples/queries"
-import type {
-  SampleCollection,
-  SampleLabel,
-} from "@/modules/blood-bank/samples/types"
+import type { SampleCollection } from "@/modules/blood-bank/samples/types"
 
 export type LabelPrintRequest = LabelPrintJob & {
   caseId: number
@@ -42,6 +32,9 @@ const SampleLabelPrinterContext = createContext<SampleLabelPrinterValue | null>(
 )
 
 const labelCount = (request: LabelPrintRequest) => request.sampleIds.length
+
+const jobName = (labels: LoggedLabel[]) =>
+  `Sample labels ${labels.map((label) => label.sample_no).join(", ")}`
 
 /** The collected samples' labels, in `collected_sample_ids` order. */
 function collectedLabels(view: SampleCollection): LoggedLabel[] {
@@ -67,39 +60,13 @@ export function SampleLabelPrinter({
   children: React.ReactNode
 }) {
   const { mutate, isPending } = usePrintSampleLabels()
-  const [isSending, setIsSending] = useState(false)
-
-  const sendToPrinter = useCallback(async (labels: LoggedLabel[]) => {
-    if (labels.length === 0) {
-      return
-    }
-    setIsSending(true)
-    try {
-      await printBarcodeLabels(
-        labels.map((label) => label.label_command).join(""),
-        {
-          jobName: `Sample labels ${labels.map((label) => label.sample_no).join(", ")}`,
-        }
-      )
-    } catch (error) {
-      toast.error(
-        labels.length === 1 ? "Label not printed" : "Labels not printed",
-        {
-          description: `${printServiceErrorText(error, "label")} Print again with the row's Label button (a reprint reason is needed).`,
-          duration: 15_000,
-        }
-      )
-    } finally {
-      setIsSending(false)
-    }
-  }, [])
 
   const send = useCallback(
     (
       request: LabelPrintRequest,
       reprintReason: string | undefined,
       callbacks: {
-        onSuccess: (labels: SampleLabel[]) => void
+        onSuccess: (labels: LoggedLabel[]) => void
         onError: (error: unknown) => void
       }
     ) =>
@@ -114,12 +81,13 @@ export function SampleLabelPrinter({
     [mutate]
   )
 
-  const { print, element } = useLoggedLabelPrint({
+  const { print, sendToPrinter, isPrinting, element } = useRawLabelPrintFlow({
     send,
     isPending,
     labelCount,
     errorText: sampleErrorText,
-    onLogged: sendToPrinter,
+    printCommands: printBarcodeLabels,
+    jobName,
   })
 
   const printCollected = useCallback(
@@ -130,8 +98,8 @@ export function SampleLabelPrinter({
   )
 
   const value = useMemo(
-    () => ({ print, printCollected, isPrinting: isPending || isSending }),
-    [print, printCollected, isPending, isSending]
+    () => ({ print, printCollected, isPrinting }),
+    [print, printCollected, isPrinting]
   )
 
   return (

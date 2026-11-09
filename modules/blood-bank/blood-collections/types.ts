@@ -94,6 +94,8 @@ export type BagLabel = Bag & {
     reprint_reason: string | null
     printed_at: string
   }
+  /** Raw label printer command (GoDEX EZPL, `\r\n` line endings), sent to the printer as is. */
+  label_command: string
 }
 
 /** Filters the backend allows on `GET /api/blood-bank/blood-collections`. */

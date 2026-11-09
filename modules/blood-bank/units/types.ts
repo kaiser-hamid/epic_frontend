@@ -59,6 +59,8 @@ export type UnitLabel = Unit & {
     reprint_reason: string | null
     printed_at: string
   }
+  /** Raw label printer command (GoDEX EZPL, `\r\n` line endings), sent to the printer as is. */
+  label_command: string
 }
 
 /** A unit made from the bag. `label_print_count` 0 means its label was never printed. */

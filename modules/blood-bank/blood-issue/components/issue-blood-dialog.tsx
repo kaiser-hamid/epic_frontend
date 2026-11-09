@@ -90,8 +90,9 @@ const visibleErrorKey =
 /**
  * "Issue Blood" for the selected units: one form, one request. The patient blood group
  * (required until recorded; a change needs an amendment reason), the Medical Technologist and
- * Physician who sign the report, each unit's major and minor crossmatch, and the post-donation
- * vitals of donors that still need them. `onIssued` gets the report PDF (201).
+ * Physician who sign the report, each unit's major and minor crossmatch, and (optionally) the
+ * post-donation vitals of donors without recorded ones; recorded vitals are shown read-only.
+ * `onIssued` gets the report PDF (201).
  */
 export function IssueBloodDialog({
   view,
@@ -387,7 +388,10 @@ function IssueBloodForm({
       {vitalsRows.length > 0 || recordedDonors.length > 0 ? (
         <section className="flex flex-col gap-3" aria-labelledby="issue_vitals">
           <h3 id="issue_vitals" className="text-sm font-medium">
-            Post-donation vitals
+            Post-donation vitals{" "}
+            <span className="font-normal text-muted-foreground">
+              (optional)
+            </span>
           </h3>
           {vitalsRows.map((row, index) => {
             const donor = view.donors.find(
@@ -561,10 +565,7 @@ function VitalsBlock({
             control={control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={id(name)}>
-                  {label}
-                  <RequiredMark />
-                </FieldLabel>
+                <FieldLabel htmlFor={id(name)}>{label}</FieldLabel>
                 <NumberInput
                   id={id(name)}
                   name={field.name}
@@ -585,10 +586,7 @@ function VitalsBlock({
           control={control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={id("temperature_f")}>
-                Temp (°F)
-                <RequiredMark />
-              </FieldLabel>
+              <FieldLabel htmlFor={id("temperature_f")}>Temp (°F)</FieldLabel>
               <Input
                 {...field}
                 id={id("temperature_f")}

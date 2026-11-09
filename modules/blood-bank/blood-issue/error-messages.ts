@@ -11,7 +11,6 @@ export const BloodIssueErrorCode = {
   PatientSampleNotCollected: "PATIENT_SAMPLE_NOT_COLLECTED",
   AmendmentReasonRequired: "AMENDMENT_REASON_REQUIRED",
   CaseDonorNotInCase: "CASE_DONOR_NOT_IN_CASE",
-  PostDonationVitalsRequired: "POST_DONATION_VITALS_REQUIRED",
   PostDonationVitalsRecorded: "POST_DONATION_VITALS_RECORDED",
   CrossmatchNotRecorded: "CROSSMATCH_NOT_RECORDED",
 } as const
@@ -28,7 +27,6 @@ const reloadCodes: readonly string[] = [
   BloodIssueErrorCode.UnitExpired,
   BloodIssueErrorCode.PatientSampleNotCollected,
   BloodIssueErrorCode.CaseDonorNotInCase,
-  BloodIssueErrorCode.PostDonationVitalsRequired,
   BloodIssueErrorCode.PostDonationVitalsRecorded,
 ]
 
@@ -59,8 +57,6 @@ export const bloodIssueErrorMessages: Partial<Record<string, string>> = {
     "Enter a reason for changing the blood group.",
   [BloodIssueErrorCode.CaseDonorNotInCase]:
     "A donor does not belong to this case.",
-  [BloodIssueErrorCode.PostDonationVitalsRequired]:
-    "Enter post-donation vitals for every donor whose blood is issued.",
   [BloodIssueErrorCode.PostDonationVitalsRecorded]:
     "Post-donation vitals are already recorded for this donor. Refresh.",
   [BloodIssueErrorCode.CrossmatchNotRecorded]:
