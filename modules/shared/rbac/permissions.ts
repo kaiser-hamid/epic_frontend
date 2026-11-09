@@ -17,6 +17,7 @@ export const SharedPermission = {
   PatientCreate: "sh.patient.create",
   BillingView: "sh.billing.view",
   BillingCreate: "sh.billing.create",
+  BillingPrint: "sh.billing.print",
 } as const
 
 export type SharedPermission =

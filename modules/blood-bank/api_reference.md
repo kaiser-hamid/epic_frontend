@@ -1,13 +1,16 @@
 # Blood Bank API: cases
 
-Frontend reference for registering and listing Blood Bank cases.
+Frontend reference for Blood Bank cases. Cases are opened by saving a Blood Bank bill in Billing; there is no case create endpoint.
 
-| Method | Path                    | Purpose                                                            | Permission       |
-| ------ | ----------------------- | ------------------------------------------------------------------ | ---------------- |
-| POST   | `/api/blood-bank/cases` | Register patient, bill, case, components and donors in one request | `bb.case.create` |
-| GET    | `/api/blood-bank/cases` | List the cases of the branch you logged in to                      | `bb.case.view`   |
+| Method | Path                                  | Purpose                                              | Permission          |
+| ------ | ------------------------------------- | ---------------------------------------------------- | ------------------- |
+| POST   | `/api/billing/invoices`               | Save a bill; a Blood Bank bill also opens its case   | `sh.billing.create` |
+| GET    | `/api/blood-bank/cases`               | List the cases of the branch you logged in to        | `bb.case.view`      |
+| GET    | `/api/blood-bank/cases/{case}`        | Case detail                                          | `bb.case.view`      |
+| PATCH  | `/api/blood-bank/cases/{case}`        | Edit "Care of", cause of transfusion, reference note | `bb.case.update`    |
+| POST   | `/api/blood-bank/cases/{case}/donors` | Add a donor under an existing bill                   | `bb.case.update`    |
 
-Permissions are granted per user per branch. Both calls work only inside the branch chosen at login.
+Permissions are granted per user per branch. All calls work only inside the branch chosen at login.
 
 ## Common
 
@@ -19,229 +22,60 @@ Permissions are granted per user per branch. Both calls work only inside the bra
 
 ---
 
-## POST /api/blood-bank/cases
+## Opening a case: POST /api/billing/invoices
 
-One save creates, in a single transaction: the patient (if new), the invoice with its tests and referral, the case, the requested components and the donors (new donors are registered). If anything fails, nothing is saved.
+There is no case create endpoint. A case is opened when a **Blood Bank bill** is saved on New Bill Entry (`POST /api/billing/invoices`, permission `sh.billing.create`), in the same transaction: if the case can't be opened, the bill isn't saved either.
 
-### Request body
+- A bill is Blood Bank when its items have `category: "blood_bank"` (`GET /api/test-items/lookup?category=blood_bank` lists them). It may not mix Blood Bank and other items: `422 INVOICE_CATEGORY_MIXED`.
+- A Blood Bank bill needs `category_details.care_type` (`daycare` / `out`); a general bill refuses `category_details`.
+- Billed items that are component types (`bb_component_types.test_item_id`) become the case's `components` with the line quantity.
+- `idempotency_key` (uuid, one per form session) makes a resubmit return the saved bill (`200`) without a second case; another user's key → `409 IDEMPOTENCY_KEY_REUSED`.
 
 ```json
 {
-  "billing": {
-    "patient": {
-      "title": "mr",
-      "name": "Rahim Uddin",
-      "age_years": 40,
-      "age_months": 2,
-      "age_days": 10,
-      "date_of_birth": "1986-08-18",
-      "gender": "male",
-      "marital_status": "married",
-      "blood_group": "O_POS",
-      "phone": "01711000000",
-      "address": "Mirpur, Dhaka",
-      "national_id": "1234567890"
-    },
-    "items": [
-      { "test_item_id": 12, "quantity": 1 },
-      { "test_item_id": 15, "quantity": 2 }
-    ],
-    "referral": {
-      "is_self_referral": false,
-      "doctor_id": 3,
-      "second_doctor_id": 7,
-      "remark": "Urgent",
-      "referred_by_staff_id": 4
-    }
-  },
-  "care_type": "daycare",
+  "idempotency_key": "4f1c2a7e-0b8d-4c55-9a3e-2f0d6c1b9e11",
+  "patient_id": 9,
+  "items": [{ "test_item_id": 30, "quantity": 2 }],
+  "referral": { "is_self_referral": false, "doctor_id": 3 },
+  "patient_type_id": 1,
+  "discount_policy_id": 1,
+  "category_details": { "care_type": "daycare" }
+}
+```
+
+Also `invoice_no` (optional vendor number, letters and digits, max 30; else generated), `patient` (a new patient instead of `patient_id`). The response is the bill (`InvoiceResource`, with `category`, `patient_type`, `discount`, `subtotal_amount`, `discount_amount`, `rounding_amount`, `amount` = payable). `POST /api/billing/invoices/quote` (`items`, `patient_type_id`, `discount_policy_id`) returns the same totals without saving; `GET /api/billing/patient-types` lists the patient types and their discount policies.
+
+---
+
+## PATCH /api/blood-bank/cases/{case}
+
+Corrects "Care of" and records the cause of transfusion and the reference note of an **open** case. Send only the changed fields; each is optional. Permission `bb.case.update` in the case's branch. Audited with old and new values.
+
+```json
+{
+  "care_type": "out",
   "transfusion_reason": "Thalassemia",
-  "reference_note": "Ref. by Dr. Karim",
-  "components": [{ "component_type_id": 2, "quantity": 2 }],
-  "donors": [
-    { "donor_id": 41 },
-    {
-      "donor": {
-        "name": "Karim Mia",
-        "age": 28,
-        "date_of_birth": "1998-03-02",
-        "gender": "male",
-        "blood_group": "B_POS",
-        "phone": "01911000000",
-        "address": "Uttara, Dhaka",
-        "national_id": "9876543210",
-        "is_regular_volunteer": true
-      }
-    }
-  ]
+  "reference_note": null
 }
 ```
 
-### Fields
+| Field                | Type           | Rules              |
+| -------------------- | -------------- | ------------------ |
+| `care_type`          | string         | `daycare` or `out` |
+| `transfusion_reason` | string \| null | max 1000           |
+| `reference_note`     | string \| null | max 1000           |
 
-**Top level**
+`200 OK` with the case detail (same shape as `GET /api/blood-bank/cases/{id}` below).
 
-| Field                | Type   | Required | Rules                                             |
-| -------------------- | ------ | -------- | ------------------------------------------------- |
-| `billing`            | object | yes      | See below                                         |
-| `care_type`          | string | yes      | `daycare` or `out`                                |
-| `transfusion_reason` | string | no       | max 1000                                          |
-| `reference_note`     | string | no       | max 1000                                          |
-| `components`         | array  | no       | Requested blood components; omit or `[]` for none |
-| `donors`             | array  | no       | Omit or `[]` for none                             |
+| Status | `code`              | When                                               |
+| ------ | ------------------- | -------------------------------------------------- |
+| 403    | `FORBIDDEN`         | Missing `bb.case.update`, or another branch's case |
+| 422    | `CASE_NOT_OPEN`     | The case is closed or cancelled                    |
+| 422    | `VALIDATION_FAILED` | Invalid value                                      |
 
-**`billing`**
+## POST /api/blood-bank/cases/{case}/donors
 
-| Field        | Type    | Required                        | Rules                                                                               |
-| ------------ | ------- | ------------------------------- | ----------------------------------------------------------------------------------- |
-| `patient_id` | integer | one of `patient_id` / `patient` | Existing patient (returning patient). Cannot be sent together with `patient`        |
-| `patient`    | object  | one of `patient_id` / `patient` | New patient, registered in the same save. Cannot be sent together with `patient_id` |
-| `items`      | array   | yes                             | At least 1 line. No `test_item_id` may repeat                                       |
-| `referral`   | object  | yes                             | See below                                                                           |
-
-Send exactly one of `patient_id` or `patient`.
-
-**`billing.patient`** (new patient)
-
-| Field            | Type    | Required                            | Rules                                                                    |
-| ---------------- | ------- | ----------------------------------- | ------------------------------------------------------------------------ |
-| `name`           | string  | yes                                 | max 255                                                                  |
-| `age_years`      | integer | yes, unless `date_of_birth` is sent | 0 to 150                                                                 |
-| `age_months`     | integer | no                                  | 0 to 11                                                                  |
-| `age_days`       | integer | no                                  | 0 to 31                                                                  |
-| `date_of_birth`  | string  | no                                  | `YYYY-MM-DD`, not in the future                                          |
-| `title`          | string  | no                                  | `mr`, `mrs`, `miss`, `ms`, `master`, `baby`, `dr`                        |
-| `gender`         | string  | no                                  | `male`, `female`, `other`                                                |
-| `marital_status` | string  | no                                  | `single`, `married`, `divorced`, `widowed`                               |
-| `blood_group`    | string  | no                                  | `A_POS`, `A_NEG`, `B_POS`, `B_NEG`, `AB_POS`, `AB_NEG`, `O_POS`, `O_NEG` |
-| `phone`          | string  | no                                  | max 20                                                                   |
-| `address`        | string  | no                                  | max 1000                                                                 |
-| `national_id`    | string  | no                                  | max 30                                                                   |
-
-The server always stores both the age and the date of birth. If `date_of_birth` is sent, the age is calculated from it and any typed age is ignored. If it is not sent, the date of birth is back-calculated from `age_years` / `age_months` / `age_days` (an estimate).
-
-**`billing.items[]`**
-
-| Field          | Type    | Required       | Rules                                                     |
-| -------------- | ------- | -------------- | --------------------------------------------------------- |
-| `test_item_id` | integer | yes            | Existing, active test item. Must be unique within `items` |
-| `quantity`     | integer | no (default 1) | 1 to 999                                                  |
-
-The rate is taken from the test catalog at save time and kept on the invoice line.
-
-**`billing.referral`**
-
-| Field                  | Type    | Required                                       | Rules                                                        |
-| ---------------------- | ------- | ---------------------------------------------- | ------------------------------------------------------------ |
-| `is_self_referral`     | boolean | no (default `false`)                           | If `true`, do not send `doctor_id`                           |
-| `doctor_id`            | integer | required when `is_self_referral` is not `true` | Active doctor. Not allowed when `is_self_referral` is `true` |
-| `second_doctor_id`     | integer | no                                             | Active doctor, different from `doctor_id`                    |
-| `remark`               | string  | no                                             | max 255                                                      |
-| `referred_by_staff_id` | integer | no                                             | Existing user id                                             |
-
-**`components[]`**
-
-| Field               | Type    | Required       | Rules                                                     |
-| ------------------- | ------- | -------------- | --------------------------------------------------------- |
-| `component_type_id` | integer | yes            | Active component type. Must be unique within `components` |
-| `quantity`          | integer | no (default 1) | 1 to 20                                                   |
-
-**`donors[]`**: each entry has either `donor_id` or `donor`, never both.
-
-| Field      | Type    | Required                    | Rules                                                                                                       |
-| ---------- | ------- | --------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `donor_id` | integer | one of `donor_id` / `donor` | Existing donor (find one with `GET /api/blood-bank/donors?filter[search]=`). Must be unique within `donors` |
-| `donor`    | object  | one of `donor_id` / `donor` | New donor, registered in the same save                                                                      |
-
-Donors are numbered `sequence_no` 1, 2, 3... in the order sent.
-
-**`donors[].donor`** (new donor)
-
-| Field                  | Type    | Required                            | Rules                           |
-| ---------------------- | ------- | ----------------------------------- | ------------------------------- |
-| `name`                 | string  | yes                                 | max 255                         |
-| `age`                  | integer | yes, unless `date_of_birth` is sent | 1 to 120                        |
-| `date_of_birth`        | string  | no                                  | `YYYY-MM-DD`, not in the future |
-| `gender`               | string  | no                                  | `male`, `female`, `other`       |
-| `blood_group`          | string  | no                                  | Same values as the patient      |
-| `phone`                | string  | no                                  | max 20                          |
-| `address`              | string  | no                                  | max 1000                        |
-| `national_id`          | string  | no                                  | max 30                          |
-| `is_regular_volunteer` | boolean | no                                  |                                 |
-
-### Success response: `201 Created`
-
-```json
-{
-  "data": {
-    "id": 1,
-    "case_no": "BC2610000001",
-    "branch_id": 1,
-    "status": "open",
-    "care_type": "daycare",
-    "transfusion_reason": "Thalassemia",
-    "reference_note": "Ref. by Dr. Karim",
-    "supplied_at": null,
-    "patient": {
-      "id": 1,
-      "patient_no": "P2610280001",
-      "title": "mr",
-      "name": "Rahim Uddin",
-      "age_years": 40,
-      "age_months": 2,
-      "age_days": 10,
-      "date_of_birth": "1986-08-18",
-      "gender": "male",
-      "blood_group": "O_POS",
-      "phone": "01711000000",
-      "address": "Mirpur, Dhaka"
-    },
-    "invoice": {
-      "id": 1,
-      "invoice_no": "NB2610280001",
-      "amount": 150000,
-      "status": "active",
-      "billed_at": "2026-10-28T10:15:00+06:00",
-      "is_self_referral": false,
-      "referred_by": "Dr. Abdul Karim"
-    },
-    "components": [
-      {
-        "component_type_id": 2,
-        "code": "PCV",
-        "name": "Packed Red Cells",
-        "quantity": 2
-      }
-    ],
-    "donors": [
-      {
-        "id": 1,
-        "sequence_no": 1,
-        "status": "registered",
-        "billing_id": null,
-        "deferral_reason": null,
-        "assessed_at": null,
-        "donor": {
-          "id": 41,
-          "donor_no": "D2610000001",
-          "name": "Karim Mia",
-          "age": 28,
-          "date_of_birth": "1998-03-02",
-          "gender": "male",
-          "blood_group": "B_POS",
-          "phone": "01911000000",
-          "address": "Uttara, Dhaka",
-          "national_id": "9876543210",
-          "is_regular_volunteer": true,
-          "created_at": "2026-10-28T10:15:00+06:00"
-        }
-      }
-    ],
-    "donors_count": 1,
-    "created_at": "2026-10-28T10:15:00+06:00"
-  }
-}
-```
+Adds one donor (`donor_id`, or a new `donor`) under `invoice_no`, a bill **already saved** in Billing for the case's patient (the case bill, or e.g. a general bill for the additional donor charge). Nothing is billed. Permission `bb.case.update`. Bill errors (422): `INVOICE_NOT_FOUND`, `INVOICE_NOT_IN_BRANCH`, `INVOICE_NOT_ACTIVE`, `INVOICE_PATIENT_MISMATCH`, `INVOICE_LINKED_TO_OTHER_CASE`; also `CASE_NOT_OPEN`, `DONOR_ALREADY_IN_CASE`. `201 Created` with the case detail.
 
 Numbers generated by the server:
 
@@ -251,36 +85,6 @@ Numbers generated by the server:
 | `patient_no` | `P{yyMMdd}{4 digits}`                      | `P2610280001`  | Global, resets daily     |
 | `case_no`    | `BC{yyMM}{6 digits}`                       | `BC2610000001` | Global, resets monthly   |
 | `donor_no`   | `D{yyMM}{6 digits}`                        | `D2610000001`  | Global, resets monthly   |
-
-### Error responses
-
-| Status | `code`                     | When                                           |
-| ------ | -------------------------- | ---------------------------------------------- |
-| 401    | `UNAUTHENTICATED`          | Not signed in                                  |
-| 403    | `FORBIDDEN`                | Missing `bb.case.create` in the current branch |
-| 403    | `PASSWORD_CHANGE_REQUIRED` | The user must change the password first        |
-| 419    | `CSRF_TOKEN_MISMATCH`      | Missing or stale CSRF token                    |
-| 422    | `VALIDATION_FAILED`        | Invalid form; nothing is saved                 |
-
-Validation errors use dotted paths, so map them to form fields by path:
-
-```json
-{
-  "message": "The billing.patient_id field is required when billing.patient is not present.",
-  "code": "VALIDATION_FAILED",
-  "errors": {
-    "billing.patient_id": [
-      "The billing.patient_id field is required when billing.patient is not present."
-    ],
-    "donors.0.donor.age": [
-      "The donors.0.donor.age field is required when donors.0.donor.date_of_birth is not present."
-    ],
-    "components.1.component_type_id": [
-      "The components.1.component_type_id field has a duplicate value."
-    ]
-  }
-}
-```
 
 ---
 
@@ -367,7 +171,7 @@ Any other filter or sort returns `400 INVALID_QUERY`.
 
 Differences from the POST response:
 
-- Each row has `donors_count` but **no `donors` array**. Fetch `GET /api/blood-bank/cases/{id}` for the donor details (same shape as the POST response).
+- Each row has `donors_count` but **no `donors` array**. Fetch `GET /api/blood-bank/cases/{id}` for the donor details (each with `invoice_no`, the bill it was added under).
 - `patient` or `invoice` can be `null` if the linked record is missing.
 
 ### Pagination (`meta`)
@@ -414,4 +218,4 @@ There is no `links` object.
 
 ## Not available yet
 
-The form needs ids for `test_item_id`, `doctor_id` and `component_type_id`, but there are no lookup endpoints for them yet. Only the donor search (`GET /api/blood-bank/donors?filter[search]=`) exists.
+Editing or cancelling a bill (and with it its case), and admin screens for patient types and discount policies.

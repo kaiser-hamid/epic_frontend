@@ -12,30 +12,27 @@ import { RequiredMark } from "@/components/required-mark"
 import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { lookupEmptyText, useLookupTerm } from "@/hooks/use-lookup-term"
-import {
-  CheckboxControl,
-  TextControl,
-} from "@/modules/blood-bank/cases/components/case-form-controls"
-import type { CaseCreateValues } from "@/modules/blood-bank/cases/schemas"
+import { CheckboxControl, TextControl } from "@/components/form-controls"
+import type { InvoiceValues } from "@/modules/shared/billing/invoices/schemas"
 import { useDoctorLookup } from "@/modules/shared/doctor/queries"
 import type { Doctor } from "@/modules/shared/doctor/types"
 import { useStaffLookup } from "@/modules/shared/staff/queries"
 import type { Staff } from "@/modules/shared/staff/types"
 
-const DOCTOR = "billing.referral.doctor_id"
-const SECOND_DOCTOR = "billing.referral.second_doctor_id"
-const STAFF = "billing.referral.referred_by_staff_id"
+const DOCTOR = "referral.doctor_id"
+const SECOND_DOCTOR = "referral.second_doctor_id"
+const STAFF = "referral.referred_by_staff_id"
 
 /**
  * Who sent the patient. Doctors and staff are looked up; only their ids are sent, the
  * other details are shown for checking.
  */
-export function CaseReferralFields() {
+export function InvoiceReferralFields() {
   const { control, getValues, setValue, clearErrors } =
-    useFormContext<CaseCreateValues>()
+    useFormContext<InvoiceValues>()
   const isSelfReferral = useWatch({
     control,
-    name: "billing.referral.is_self_referral",
+    name: "referral.is_self_referral",
   })
   const [showSecond, setShowSecond] = useState(
     () => getValues(SECOND_DOCTOR) !== undefined
@@ -55,7 +52,7 @@ export function CaseReferralFields() {
   return (
     <div className="flex flex-col gap-4">
       <CheckboxControl
-        name="billing.referral.is_self_referral"
+        name="referral.is_self_referral"
         label="Self referral"
         onCheckedChange={(checked) => {
           // The backend rejects a doctor on a self referral.
@@ -73,7 +70,7 @@ export function CaseReferralFields() {
         disabled={isSelfReferral}
       >
         <TextControl
-          name="billing.referral.remark"
+          name="referral.remark"
           label="Remarks"
           className="sm:col-span-4"
         />
@@ -129,7 +126,7 @@ function DoctorFields({
   /** Extra fields at the end of the grid. */
   children?: React.ReactNode
 }) {
-  const { control } = useFormContext<CaseCreateValues>()
+  const { control } = useFormContext<InvoiceValues>()
   // The referring doctor is needed unless self referral; the second one is optional.
   const required = !disabled && !onRemove
   const {
@@ -267,7 +264,7 @@ function staffItem(staff: Staff) {
 
 /** Staff member who brought the patient (optional): search by code, the name is filled in. */
 function StaffFields() {
-  const { control } = useFormContext<CaseCreateValues>()
+  const { control } = useFormContext<InvoiceValues>()
   const {
     field: { ref: inputRef, onChange, onBlur },
     fieldState,

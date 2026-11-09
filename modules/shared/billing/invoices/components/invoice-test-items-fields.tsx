@@ -11,54 +11,101 @@ import {
 } from "react-hook-form"
 
 import { AutocompleteInput } from "@/components/autocomplete-input"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 import { focusNextField } from "@/components/form"
 import { Money } from "@/components/money"
 import { NumberInput } from "@/components/number-input"
 import { ReadonlyInput } from "@/components/readonly-input"
 import { RequiredMark } from "@/components/required-mark"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FieldError } from "@/components/ui/field"
 import {
   Table,
   TableBody,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
 import { lookupEmptyText, useLookupTerm } from "@/hooks/use-lookup-term"
 import { formatTaka } from "@/lib/format"
-import type { CaseCreateValues } from "@/modules/blood-bank/cases/schemas"
+import {
+  invoiceCategory,
+  type InvoiceValues,
+  type TestLineValues,
+} from "@/modules/shared/billing/invoices/schemas"
+import { TestItemCategory } from "@/modules/shared/test-catalog/enums"
 import { useTestItemLookup } from "@/modules/shared/test-catalog/queries"
 import type { TestItem } from "@/modules/shared/test-catalog/types"
 
-type TestLine = CaseCreateValues["billing"]["items"][number]
+type TestLine = TestLineValues
 
 /** Catalog rate × quantity, for the preview only. The server bills from its own catalog. */
 function lineAmount(line: Partial<TestLine> | undefined): number | null {
   return line?.item && line.quantity ? line.item.rate * line.quantity : null
 }
 
+/** A Blood Bank item picked while other items are on the bill, waiting for confirmation. */
+type PendingSwitch = { apply: () => void; removeIndexes: number[] }
+
 /**
  * Tests billed on the invoice. Item ID (code) and name search the catalog; the other
- * columns are read-only. Amounts preview the catalog rate; the saved bill is the server's.
+ * columns are read-only. Amounts preview the catalog rate; the totals are the server's.
+ *
+ * A bill is either general or Blood Bank, never both. Picking the first Blood Bank item while
+ * other items are listed asks to remove them; once a Blood Bank item is on the bill, the
+ * search offers Blood Bank items only. Removing the last one makes it a general bill again.
  */
-export function CaseTestItemsFields() {
-  const { control, formState } = useFormContext<CaseCreateValues>()
-  const items = useFieldArray({ control, name: "billing.items" })
-  const lines = useWatch({ control, name: "billing.items" })
-  const itemsError = formState.errors.billing?.items
-  const total = lines.reduce((sum, line) => sum + (lineAmount(line) ?? 0), 0)
+export function InvoiceTestItemsFields() {
+  const { control, formState } = useFormContext<InvoiceValues>()
+  const items = useFieldArray({ control, name: "items" })
+  const lines = useWatch({ control, name: "items" })
+  const itemsError = formState.errors.items
+  const isBloodBank = invoiceCategory(lines) === TestItemCategory.BloodBank
+  const [pendingSwitch, setPendingSwitch] = useState<PendingSwitch | null>(null)
 
   function addTest() {
     items.append({ quantity: 1 } as TestLine, {
-      focusName: `billing.items.${items.fields.length}.test_item_id`,
+      focusName: `items.${items.fields.length}.test_item_id`,
     })
   }
 
+  /** Every row but `index` holding a general item: what a Blood Bank pick would remove. */
+  function generalRowsBesides(index: number): number[] {
+    return lines.flatMap((line, other) =>
+      other !== index &&
+      line.item !== undefined &&
+      line.item.category !== TestItemCategory.BloodBank
+        ? [other]
+        : []
+    )
+  }
+
+  function confirmPick(index: number, option: TestItem, apply: () => void) {
+    const removeIndexes =
+      option.category === TestItemCategory.BloodBank
+        ? generalRowsBesides(index)
+        : []
+    if (removeIndexes.length === 0) {
+      apply()
+      return
+    }
+    setPendingSwitch({ apply, removeIndexes })
+  }
+
+  const removeCount = pendingSwitch?.removeIndexes.length ?? 0
+
   return (
     <div className="flex flex-col gap-4">
+      {isBloodBank ? (
+        <p className="text-sm text-muted-foreground">
+          <Badge variant="secondary" className="mr-2">
+            Blood Bank bill
+          </Badge>
+          Only Blood Bank items can be added. Saving opens the Blood Bank case.
+        </p>
+      ) : null}
       <Table>
         <TableHeader>
           <TableRow>
@@ -89,6 +136,8 @@ export function CaseTestItemsFields() {
               index={index}
               // Tests on the other rows are not offered again; this row's own may stay.
               otherLines={lines.filter((_, other) => other !== index)}
+              category={isBloodBank ? TestItemCategory.BloodBank : undefined}
+              onPick={(option, apply) => confirmPick(index, option, apply)}
               canRemove={items.fields.length > 1}
               isLast={index === items.fields.length - 1}
               onAdd={addTest}
@@ -96,17 +145,6 @@ export function CaseTestItemsFields() {
             />
           ))}
         </TableBody>
-        <TableFooter>
-          <TableRow>
-            <TableCell colSpan={8} className="text-right">
-              Total
-            </TableCell>
-            <TableCell className="text-right tabular-nums">
-              <Money paisa={total} />
-            </TableCell>
-            <TableCell />
-          </TableRow>
-        </TableFooter>
       </Table>
       <FieldError errors={[itemsError?.root ?? itemsError]} />
       <Button
@@ -119,6 +157,29 @@ export function CaseTestItemsFields() {
         <PlusIcon data-icon="inline-start" />
         Add test
       </Button>
+      <ConfirmDialog
+        open={pendingSwitch !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingSwitch(null)
+          }
+        }}
+        title="Make this a Blood Bank bill?"
+        description={`Blood Bank items are billed on their own. ${
+          removeCount === 1
+            ? "The other item on this bill will be removed."
+            : `The ${removeCount} other items on this bill will be removed.`
+        }`}
+        confirmLabel="Remove and continue"
+        destructive
+        onConfirm={() => {
+          if (pendingSwitch) {
+            pendingSwitch.apply()
+            items.remove(pendingSwitch.removeIndexes)
+          }
+          setPendingSwitch(null)
+        }}
+      />
     </div>
   )
 }
@@ -158,6 +219,8 @@ function matchesPicked(lines: Partial<TestLine>[], search: string): boolean {
 function TestLineRow({
   index,
   otherLines,
+  category,
+  onPick,
   canRemove,
   isLast,
   onAdd,
@@ -165,22 +228,26 @@ function TestLineRow({
 }: {
   index: number
   otherLines: Partial<TestLine>[]
+  /** Narrows the search (a Blood Bank bill offers Blood Bank items only). */
+  category: TestItemCategory | undefined
+  /** Runs `apply` (puts the pick on the row) now, or after the user confirms removing others. */
+  onPick: (option: TestItem, apply: () => void) => void
   canRemove: boolean
   isLast: boolean
   /** Appends a row and focuses its Item ID. */
   onAdd: () => void
   onRemove: () => void
 }) {
-  const { control, setValue } = useFormContext<CaseCreateValues>()
-  const itemPath = `billing.items.${index}.item` as const
+  const { control, setValue } = useFormContext<InvoiceValues>()
+  const itemPath = `items.${index}.item` as const
   const {
     field: { ref: inputRef, name: fieldName, onChange, onBlur },
     fieldState,
   } = useController({
     control,
-    name: `billing.items.${index}.test_item_id`,
+    name: `items.${index}.test_item_id`,
   })
-  const line = useWatch({ control, name: `billing.items.${index}` })
+  const line = useWatch({ control, name: `items.${index}` })
   const item = line.item
   const [code, setCode] = useState(item?.code ?? "")
   const [itemName, setItemName] = useState(item?.name ?? "")
@@ -190,9 +257,10 @@ function TestLineRow({
     lookupTerm.search,
     otherLines.flatMap(({ test_item_id }) =>
       test_item_id === undefined ? [] : [test_item_id]
-    )
+    ),
+    category
   )
-  const nameId = `billing.items.${index}.item.name`
+  const nameId = `items.${index}.item.name`
   const amount = lineAmount(line)
   const rowLabel = `Test ${index + 1}`
 
@@ -222,16 +290,18 @@ function TestLineRow({
   }
 
   function pick(option: TestItem) {
-    setCode(option.code)
-    setItemName(option.name)
     lookupTerm.setTerm("")
-    setValue(itemPath, option)
-    onChange(option.id)
-    // On to the quantity.
-    const nameInput = document.getElementById(nameId)
-    if (nameInput) {
-      focusNextField(nameInput)
-    }
+    onPick(option, () => {
+      setCode(option.code)
+      setItemName(option.name)
+      setValue(itemPath, option)
+      onChange(option.id)
+      // On to the quantity.
+      const nameInput = document.getElementById(nameId)
+      if (nameInput) {
+        focusNextField(nameInput)
+      }
+    })
   }
 
   return (
@@ -281,7 +351,7 @@ function TestLineRow({
       </TableCell>
       <TableCell className="w-20 min-w-20">
         <Controller
-          name={`billing.items.${index}.quantity`}
+          name={`items.${index}.quantity`}
           control={control}
           render={({ field: quantity, fieldState: quantityState }) => (
             <>
@@ -311,7 +381,7 @@ function TestLineRow({
                     onAdd()
                   } else {
                     document
-                      .getElementById(`billing.items.${index + 1}.test_item_id`)
+                      .getElementById(`items.${index + 1}.test_item_id`)
                       ?.focus()
                   }
                 }}

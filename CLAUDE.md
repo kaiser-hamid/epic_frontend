@@ -39,15 +39,17 @@ app/
   (auth)/login/  (auth)/change-password/  # centered-card pages, Suspense-wrapped
   (app)/layout.tsx                      # authenticated area, Suspense boundaries
   (app)/_components/app-frame.tsx       # registers module nav items for AppShell (client)
-  (app)/blood-bank/cases/page.tsx                 # list
-  (app)/blood-bank/cases/new/page.tsx             # create
-  (app)/blood-bank/cases/[caseId]/page.tsx        # detail
-  (app)/blood-bank/cases/[caseId]/edit/page.tsx   # edit
+  (app)/billing/invoices/page.tsx                 # Bill List
+  (app)/billing/invoices/new/page.tsx             # New Bill Entry (composes Blood Bank's CareOfField into the form's category slot)
+  (app)/billing/invoices/[invoiceId]/page.tsx     # bill detail + print
+  (app)/blood-bank/cases/page.tsx                 # list (cases are opened by Blood Bank bills, never created here)
+  (app)/blood-bank/cases/[caseId]/page.tsx        # detail, edit details dialog, Add donor link
 proxy.ts                                # optimistic session-cookie redirect only
 modules/
   shared/                               # mirrors backend Shared
     auth/                               # useMe, login, logout, password, sessions, AuthGate, UserMenu
     rbac/                               # useCan, <Can>, <RequirePermission>
+    billing/                            # nav (Billing group), invoices/: bill form, list, detail, print, quote totals
     layout/                             # AppShell (sidebar-07), NavMain, breadcrumbs, NavItem type
     patient/                            # patient lookup, PatientCombobox
   blood-bank/
@@ -66,10 +68,12 @@ components/
   data-table/                           # DataTable, pagination, column helper, useListParams
   providers.tsx  form.tsx  logo.tsx  page-loader.tsx  page-header.tsx  confirm-dialog.tsx  reason-dialog.tsx
   money.tsx  date-time.tsx  forbidden.tsx  query-error.tsx  label-print-flow.tsx
+  form-controls.tsx  phone-lookup.tsx   # labelled RHF controls (any FormProvider), phone-first record lookup
 hooks/                                  # generic hooks (use-debounced-value, use-mobile)
 lib/
   api-client.ts  api-error.ts  api-types.ts  query-client.ts  form-errors.ts
   dirty-values.ts  format.ts  route-params.ts  env.ts  utils.ts  print-service.ts
+  form-schemas.ts  age-dob.ts            # shared zod field helpers, age <-> date of birth
 tests/e2e/
 ```
 
@@ -176,6 +180,6 @@ The backend repo is checked out at `../backend`; read its routes, Data classes, 
 
 Confirmed from the backend: auth endpoints and `Me` shape (see Auth), error rendering in `bootstrap/app.php` (`UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `CSRF_TOKEN_MISMATCH` 419, `TOO_MANY_ATTEMPTS` 429, `VALIDATION_FAILED` 422, domain exceptions add their `context()` keys), and Shared permissions (`sh.user.*`, `sh.role.*`).
 
-Also confirmed: every paginated collection returns `meta = { page_index (zero-based), page_size, page_count, row_count }` (`SharedServiceProvider::bootPagination`); the request stays one-based `page` + `per_page`. Blood Bank routes are `GET/POST /api/blood-bank/cases`, `GET /cases/{id}`, `GET /donors?filter[search]=` (permissions `bb.case.view`, `bb.case.create`, `bb.donor.view`); case request/response shapes are in `modules/blood-bank/api_reference.md`. Patient search is `GET /api/patients?filter[search]=…` (`sh.patient.view`).
+Also confirmed: every paginated collection returns `meta = { page_index (zero-based), page_size, page_count, row_count }` (`SharedServiceProvider::bootPagination`); the request stays one-based `page` + `per_page`. Blood Bank routes are `GET /api/blood-bank/cases`, `GET/PATCH /cases/{id}`, `POST /cases/{id}/donors`, `GET /donors?filter[search]=` (permissions `bb.case.view`, `bb.case.update`, `bb.donor.view`); cases are opened by `POST /api/billing/invoices` with Blood Bank items (`sh.billing.create`); case request/response shapes are in `modules/blood-bank/api_reference.md`. Patient search is `GET /api/patients?filter[search]=…` (`sh.patient.view`).
 
 Not in the backend yet: `abilities` on Resources, case update/cancel endpoints, and lookups for test items, doctors, staff and component types (the case form takes raw IDs for these until they exist).

@@ -11,7 +11,7 @@ import { errorMessage } from "@/lib/api-error"
 import { cn } from "@/lib/utils"
 
 /**
- * "Type the number first" for the case form: the phone field looks up a returning patient
+ * "Type the number first" for the registration forms (bill entry, Add donor): the phone field looks up a returning patient
  * or donor on blur/Enter. One match fills the section read-only; several are offered to
  * pick from; none leaves the section open for a new record.
  */

@@ -12,19 +12,19 @@ import {
   EnumControl,
   PhoneControl,
   TextControl,
-} from "@/modules/blood-bank/cases/components/case-form-controls"
+} from "@/components/form-controls"
 import {
   focusFirstMatch,
   focusPast,
   LinkedRecord,
   LookupMatches,
   usePhoneLookup,
-} from "@/modules/blood-bank/cases/components/phone-lookup"
+} from "@/components/phone-lookup"
 import {
   emptyNewPatient,
   patientFormValues,
-  type CaseCreateValues,
-} from "@/modules/blood-bank/cases/schemas"
+  type InvoiceValues,
+} from "@/modules/shared/billing/invoices/schemas"
 import {
   bloodGroupLabels,
   genderLabels,
@@ -36,7 +36,7 @@ import type { Patient } from "@/modules/shared/patient/types"
 import { SharedPermission } from "@/modules/shared/rbac/permissions"
 import { useCan } from "@/modules/shared/rbac/use-can"
 
-const PHONE = "billing.patient.phone"
+const PHONE = "patient.phone"
 
 function describePatient(patient: Patient) {
   return {
@@ -53,13 +53,13 @@ function describePatient(patient: Patient) {
 
 /**
  * Contact no first: a returning patient found by it fills the section read-only and is
- * sent as `billing.patient_id`; otherwise the fields register a new patient.
+ * sent as `patient_id`; otherwise the fields register a new patient.
  */
-export function CasePatientFields() {
+export function InvoicePatientFields() {
   const { control, getValues, setValue, clearErrors, getFieldState } =
-    useFormContext<CaseCreateValues>()
-  const patientId = useWatch({ control, name: "billing.patient_id" })
-  const formState = useFormState({ control, name: "billing.patient_id" })
+    useFormContext<InvoiceValues>()
+  const patientId = useWatch({ control, name: "patient_id" })
+  const formState = useFormState({ control, name: "patient_id" })
   const [linked, setLinked] = useState<Patient | null>(null)
   const sectionRef = useRef<HTMLDivElement>(null)
   // Finding a returning patient needs the patient search.
@@ -67,20 +67,20 @@ export function CasePatientFields() {
   const findPatients = useFindPatientsByPhone()
   const lookup = usePhoneLookup(findPatients, { enabled: canLookup })
   const isLinked = patientId !== undefined
-  const patientIdError = getFieldState("billing.patient_id", formState).error
+  const patientIdError = getFieldState("patient_id", formState).error
 
   /** Fills (or, with null, empties) the section; rendered before returning so focus can move. */
   function link(patient: Patient | null) {
     flushSync(() => {
       setLinked(patient)
-      setValue("billing.patient_id", patient?.id)
+      setValue("patient_id", patient?.id)
       setValue(
-        "billing.patient",
+        "patient",
         patient
           ? patientFormValues(patient)
           : { ...emptyNewPatient, phone: getValues(PHONE) }
       )
-      clearErrors(["billing.patient_id", "billing.patient"])
+      clearErrors(["patient_id", "patient"])
     })
     lookup.clearMatches()
   }
@@ -165,7 +165,7 @@ export function CasePatientFields() {
       ) : null}
 
       <EnumControl
-        name="billing.patient.title"
+        name="patient.title"
         label="Title"
         labels={patientTitleLabels}
         optional
@@ -173,14 +173,14 @@ export function CasePatientFields() {
         disabled={isLinked}
       />
       <TextControl
-        name="billing.patient.name"
+        name="patient.name"
         label="Name"
         required
         className="sm:col-span-4"
         disabled={isLinked}
       />
       <TextControl
-        name="billing.patient.address"
+        name="patient.address"
         label="Address"
         className="sm:col-span-6"
         disabled={isLinked}
@@ -188,28 +188,28 @@ export function CasePatientFields() {
       <AgeControl
         required
         names={{
-          years: "billing.patient.age_years",
-          months: "billing.patient.age_months",
-          days: "billing.patient.age_days",
+          years: "patient.age_years",
+          months: "patient.age_months",
+          days: "patient.age_days",
         }}
-        dobName="billing.patient.date_of_birth"
+        dobName="patient.date_of_birth"
         className="sm:col-span-3"
         disabled={isLinked}
       />
       <DateControl
-        name="billing.patient.date_of_birth"
+        name="patient.date_of_birth"
         label="Date of birth"
         description="Age and date of birth fill each other."
         ageNames={{
-          years: "billing.patient.age_years",
-          months: "billing.patient.age_months",
-          days: "billing.patient.age_days",
+          years: "patient.age_years",
+          months: "patient.age_months",
+          days: "patient.age_days",
         }}
         className="sm:col-span-3"
         disabled={isLinked}
       />
       <EnumControl
-        name="billing.patient.gender"
+        name="patient.gender"
         label="Gender"
         labels={genderLabels}
         optional
@@ -217,7 +217,7 @@ export function CasePatientFields() {
         disabled={isLinked}
       />
       <EnumControl
-        name="billing.patient.marital_status"
+        name="patient.marital_status"
         label="Marital status"
         labels={maritalStatusLabels}
         optional
@@ -225,7 +225,7 @@ export function CasePatientFields() {
         disabled={isLinked}
       />
       <EnumControl
-        name="billing.patient.blood_group"
+        name="patient.blood_group"
         label="Blood group"
         labels={bloodGroupLabels}
         optional
@@ -233,7 +233,7 @@ export function CasePatientFields() {
         disabled={isLinked}
       />
       <TextControl
-        name="billing.patient.national_id"
+        name="patient.national_id"
         label="National ID"
         className="sm:col-span-3"
         disabled={isLinked}

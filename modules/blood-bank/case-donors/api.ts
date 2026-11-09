@@ -20,7 +20,7 @@ export async function findCaseForAddDonor(
   return response.data.data
 }
 
-/** Form values → body: the new invoice no plus exactly one of `donor_id` / `donor`. */
+/** Form values → body: the bill's invoice no plus exactly one of `donor_id` / `donor`. */
 export function toAddDonorPayload(values: AddDonorValues) {
   const [entry] = values.donors
   return {
@@ -34,8 +34,8 @@ export function toAddDonorPayload(values: AddDonorValues) {
 export type AddCaseDonorInput = { caseId: number; values: AddDonorValues }
 
 /**
- * Adds one donor to an open case, billed on its own vendor invoice. Returns the updated case
- * detail (the new donor last, `registered`).
+ * Adds one donor to an open case under an existing bill of the case's patient. Returns the
+ * updated case detail (the new donor last, `registered`).
  */
 export async function addCaseDonor({
   caseId,

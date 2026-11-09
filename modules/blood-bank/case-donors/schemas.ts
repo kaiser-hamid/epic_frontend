@@ -9,10 +9,10 @@ import {
 } from "@/modules/blood-bank/cases/schemas"
 
 /**
- * The Add donor form: the vendor invoice for the extra donor charge and one donor. The donor
- * sits at `donors.0` so the case registration donor entry (phone lookup, new-donor fields)
- * is reused as is; `api.ts` sends it as `donor_id` or `donor`, and `applyAddDonorErrors`
- * moves the server's `donor_id` / `donor.*` errors onto `donors.0.*`.
+ * The Add donor form: the invoice no of a bill already saved for the case's patient, and one
+ * donor. The donor sits at `donors.0` so the donor entry (phone lookup, new-donor fields) is
+ * reused as is; `api.ts` sends it as `donor_id` or `donor`, and `applyAddDonorErrors` moves the
+ * server's `donor_id` / `donor.*` errors onto `donors.0.*`.
  */
 
 export const ALREADY_ON_CASE_TEXT = "Already on this case"
@@ -23,7 +23,7 @@ export function addDonorSchema(existingDonorIds: ReadonlySet<number>) {
       invoice_no: z
         .string()
         .trim()
-        .min(1, "Enter the new invoice no.")
+        .min(1, "Enter the invoice no.")
         .max(30, "At most 30 characters.")
         .regex(/^[A-Za-z0-9]*$/, "Letters and digits only."),
       donors: z.tuple([caseDonorSchema]),

@@ -9,10 +9,10 @@ export const metadata: Metadata = { title: "Add donor" }
 
 export default function AddDonorPage() {
   return (
-    <RequirePermission permission={BloodBankPermission.CaseCreate}>
+    <RequirePermission permission={BloodBankPermission.CaseUpdate}>
       <PageHeader
         title="Add donor"
-        description="Add a replacement or one more donor to an open case, billed on its own invoice."
+        description="Add a donor to an open case under a bill already saved for the patient (the case bill, or e.g. an additional donor charge bill)."
       />
       <AddDonorScreen />
     </RequirePermission>

@@ -3,6 +3,7 @@
 import { LayoutDashboardIcon } from "lucide-react"
 
 import { bloodBankNav } from "@/modules/blood-bank/nav"
+import { billingNav } from "@/modules/shared/billing/nav"
 import { AppShell } from "@/modules/shared/layout/app-shell"
 import type { NavItem } from "@/modules/shared/layout/nav"
 
@@ -12,6 +13,7 @@ import type { NavItem } from "@/modules/shared/layout/nav"
  */
 const navItems: NavItem[] = [
   { title: "Dashboard", href: "/", icon: LayoutDashboardIcon },
+  billingNav,
   bloodBankNav,
 ]
 

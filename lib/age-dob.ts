@@ -3,7 +3,7 @@ import { format, intervalToDuration, isValid, parse, sub } from "date-fns"
 import { todayIsoDate } from "@/lib/format"
 
 /**
- * Age and date of birth stand in for each other on the case form: typing an age fills the
+ * Age and date of birth stand in for each other on the registration forms: typing an age fills the
  * date of birth, picking a date of birth fills the age. Both use calendar arithmetic against
  * today (Asia/Dhaka); the backend still owns the final values.
  */

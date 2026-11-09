@@ -18,11 +18,12 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
-import { hasErrorCode } from "@/lib/api-error"
+import { hasErrorCode, isApiError } from "@/lib/api-error"
 import {
   AddDonorErrorCode,
   addDonorErrorMessages,
   addDonorErrorText,
+  addDonorInvoiceErrorCodes,
 } from "@/modules/blood-bank/case-donors/error-messages"
 import { useAddCaseDonor } from "@/modules/blood-bank/case-donors/queries"
 import {
@@ -37,12 +38,11 @@ import type { BloodBankCase } from "@/modules/blood-bank/cases/types"
 import { BloodBankPermission } from "@/modules/blood-bank/permissions"
 import { useCan } from "@/modules/shared/rbac/use-can"
 
-/** Shown as a hint; the backend bills the fixed additional-donor charge item. */
-const ADDITIONAL_DONOR_CHARGE_HINT = "Additional donor charge: Tk 1,000"
-
 /**
- * One extra donor for an open case, billed on a new vendor invoice. The parent remounts the
- * form after a save (its key follows the donor count), which clears it for the next donor.
+ * One donor for an open case, under a bill already saved in Billing for the case's patient (the
+ * case bill, or e.g. an additional donor charge bill). Nothing is billed here. The parent
+ * remounts the form after a save (its key follows the donor count), which clears it for the
+ * next donor.
  */
 export function AddDonorForm({
   record,
@@ -80,7 +80,10 @@ export function AddDonorForm({
           toast.success("Donor added")
         },
         onError: (error) => {
-          if (hasErrorCode(error, AddDonorErrorCode.InvoiceNoTaken)) {
+          if (
+            isApiError(error) &&
+            addDonorInvoiceErrorCodes.includes(error.code)
+          ) {
             form.setError(
               "invoice_no",
               { type: "server", message: addDonorErrorMessages[error.code] },
@@ -123,7 +126,7 @@ export function AddDonorForm({
                   className="sm:max-w-xs"
                 >
                   <FieldLabel htmlFor="add_donor_invoice_no">
-                    New invoice no
+                    Invoice no
                     <RequiredMark />
                   </FieldLabel>
                   <Input
@@ -139,7 +142,7 @@ export function AddDonorForm({
                     aria-invalid={fieldState.invalid}
                   />
                   <FieldDescription>
-                    {ADDITIONAL_DONOR_CHARGE_HINT}
+                    A bill saved in Billing for this patient.
                   </FieldDescription>
                   <FieldError errors={[fieldState.error]} />
                 </Field>

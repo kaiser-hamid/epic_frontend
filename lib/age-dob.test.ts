@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { ageFromDob, dobFromAge } from "@/modules/blood-bank/cases/age-dob"
+import { ageFromDob, dobFromAge } from "@/lib/age-dob"
 
 const today = "2026-11-01"
 

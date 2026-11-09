@@ -1,14 +1,9 @@
 "use client"
 
-import { Trash2Icon, UserPlusIcon } from "lucide-react"
+import { Trash2Icon } from "lucide-react"
 import { useRef, useState } from "react"
 import { flushSync } from "react-dom"
-import {
-  useFieldArray,
-  useFormContext,
-  useFormState,
-  useWatch,
-} from "react-hook-form"
+import { useFormContext, useFormState, useWatch } from "react-hook-form"
 
 import { focusNextField } from "@/components/form"
 import { Button } from "@/components/ui/button"
@@ -20,30 +15,27 @@ import {
   PhoneControl,
   TextControl,
   YesNoControl,
-} from "@/modules/blood-bank/cases/components/case-form-controls"
+} from "@/components/form-controls"
 import {
   focusFirstMatch,
   focusPast,
   LinkedRecord,
   LookupMatches,
   usePhoneLookup,
-} from "@/modules/blood-bank/cases/components/phone-lookup"
+} from "@/components/phone-lookup"
 import {
   donorFormValues,
-  emptyCaseDonor,
   emptyNewDonor,
-  type CaseCreateValues,
+  type DonorsFormValues,
 } from "@/modules/blood-bank/cases/schemas"
 import { useFindDonorsByPhone } from "@/modules/blood-bank/donors/queries"
 import type { Donor } from "@/modules/blood-bank/donors/types"
 import { religionLabels } from "@/modules/blood-bank/enums"
-import { BloodBankPermission } from "@/modules/blood-bank/permissions"
 import {
   bloodGroupLabels,
   genderLabels,
   maritalStatusLabels,
 } from "@/modules/shared/patient/enums"
-import { useCan } from "@/modules/shared/rbac/use-can"
 
 function describeDonor(donor: Donor) {
   return {
@@ -58,52 +50,12 @@ function describeDonor(donor: Donor) {
   }
 }
 
-/** Donors the patient brought (at least one), numbered in this order. New donors are registered with the case. */
-export function CaseDonorsFields() {
-  const { control, formState } = useFormContext<CaseCreateValues>()
-  const donors = useFieldArray({ control, name: "donors" })
-  const donorsError = formState.errors.donors
-  const canLookup = useCan(BloodBankPermission.DonorView)
-
-  return (
-    <div className="flex flex-col gap-4">
-      {donors.fields.map((entry, index) => (
-        <CaseDonorEntry
-          key={entry.id}
-          index={index}
-          title={`Donor ${index + 1}`}
-          canLookup={canLookup}
-          remove={{
-            disabled: donors.fields.length <= 1,
-            onRemove: () => donors.remove(index),
-          }}
-        />
-      ))}
-      <FieldError errors={[donorsError?.root ?? donorsError]} />
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="self-start"
-        onClick={() =>
-          donors.append(emptyCaseDonor, {
-            focusName: `donors.${donors.fields.length}.donor.phone`,
-          })
-        }
-      >
-        <UserPlusIcon data-icon="inline-start" />
-        Add donor
-      </Button>
-    </div>
-  )
-}
-
 /**
  * Mobile number first: a returning donor found by it fills the entry read-only and is sent
  * as `donor_id`; otherwise the fields register a new donor.
  *
- * Works in any form whose values hold `donors: CaseDonorValues[]` at the same paths (case
- * registration, Add donor). `blockedReason` keeps a found donor from being picked (e.g.
+ * Works in any form whose values hold `donors: CaseDonorValues[]` at the same paths (Add
+ * donor). `blockedReason` keeps a found donor from being picked (e.g.
  * "Already on this case"); without `remove` there is no remove button.
  */
 export function CaseDonorEntry({
@@ -120,7 +72,7 @@ export function CaseDonorEntry({
   blockedReason?: (donor: Donor) => string | null
 }) {
   const { control, getValues, setValue, clearErrors, getFieldState } =
-    useFormContext<Pick<CaseCreateValues, "donors">>()
+    useFormContext<DonorsFormValues>()
   const phonePath = `donors.${index}.donor.phone` as const
   const donorId = useWatch({ control, name: `donors.${index}.donor_id` })
   const formState = useFormState({ control, name: `donors.${index}.donor_id` })

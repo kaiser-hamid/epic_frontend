@@ -1,9 +1,14 @@
 "use client"
 
+import { PencilIcon, UserPlusIcon } from "lucide-react"
+import Link from "next/link"
+import { useState } from "react"
+
 import { DateTime } from "@/components/date-time"
 import { Money } from "@/components/money"
 import { PageHeader } from "@/components/page-header"
 import { QueryError } from "@/components/query-error"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -14,12 +19,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { CaseDetailsDialog } from "@/modules/blood-bank/cases/components/case-details-dialog"
 import { CaseStatusBadge } from "@/modules/blood-bank/cases/components/case-status-badge"
 import { useCase } from "@/modules/blood-bank/cases/queries"
 import {
   careTypeLabels,
   caseDonorStatusLabels,
+  CaseStatus,
 } from "@/modules/blood-bank/enums"
+import { BloodBankPermission } from "@/modules/blood-bank/permissions"
+import { Can } from "@/modules/shared/rbac/can"
 import { useBreadcrumbLabel } from "@/modules/shared/layout/breadcrumbs"
 import { formatPatientAge } from "@/modules/shared/patient/format"
 import {
@@ -31,6 +40,7 @@ import {
 export function CaseDetail({ caseId }: { caseId: number }) {
   const query = useCase(caseId)
   useBreadcrumbLabel(String(caseId), query.data?.case_no)
+  const [editing, setEditing] = useState(false)
 
   if (query.isPending) {
     return <Skeleton className="h-96 w-full" />
@@ -41,6 +51,7 @@ export function CaseDetail({ caseId }: { caseId: number }) {
 
   const record = query.data
   const { patient, invoice } = record
+  const isOpen = record.status === CaseStatus.Open
 
   return (
     <div className="flex flex-col gap-6">
@@ -56,6 +67,31 @@ export function CaseDetail({ caseId }: { caseId: number }) {
             Registered <DateTime value={record.created_at} />
           </>
         }
+        actions={
+          isOpen ? (
+            <Can permission={BloodBankPermission.CaseUpdate}>
+              <Button variant="outline" onClick={() => setEditing(true)}>
+                <PencilIcon data-icon="inline-start" />
+                Edit details
+              </Button>
+              {invoice ? (
+                <Button asChild>
+                  <Link
+                    href={`/blood-bank/cases/add-donor?invoice_no=${encodeURIComponent(invoice.invoice_no)}`}
+                  >
+                    <UserPlusIcon data-icon="inline-start" />
+                    Add donor
+                  </Link>
+                </Button>
+              ) : null}
+            </Can>
+          ) : null
+        }
+      />
+      <CaseDetailsDialog
+        record={record}
+        open={editing}
+        onOpenChange={setEditing}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -196,12 +232,16 @@ export function CaseDetail({ caseId }: { caseId: number }) {
                 <TableHead>Donor</TableHead>
                 <TableHead>Blood group</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead>Invoice no</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(record.donors ?? []).length === 0 ? (
-                <EmptyRow colSpan={5} text="No donors." />
+                <EmptyRow
+                  colSpan={6}
+                  text="No donors yet. Add them with Add donor."
+                />
               ) : (
                 (record.donors ?? []).map((entry) => (
                   <TableRow key={entry.id}>
@@ -222,6 +262,7 @@ export function CaseDetail({ caseId }: { caseId: number }) {
                         : "—"}
                     </TableCell>
                     <TableCell>{entry.donor.phone ?? "—"}</TableCell>
+                    <TableCell>{entry.invoice_no ?? "—"}</TableCell>
                     <TableCell>{caseDonorStatusLabels[entry.status]}</TableCell>
                   </TableRow>
                 ))

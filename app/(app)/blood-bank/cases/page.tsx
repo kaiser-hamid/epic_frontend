@@ -1,4 +1,4 @@
-import { PlusIcon, UserPlusIcon } from "lucide-react"
+import { UserPlusIcon } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
@@ -16,19 +16,13 @@ export default function CasesPage() {
     <RequirePermission permission={BloodBankPermission.CaseView}>
       <PageHeader
         title="Cases"
-        description="Patient blood requests for this branch."
+        description="Patient blood requests for this branch. A case opens when a Blood Bank bill is saved in Billing."
         actions={
-          <Can permission={BloodBankPermission.CaseCreate}>
+          <Can permission={BloodBankPermission.CaseUpdate}>
             <Button asChild variant="outline">
               <Link href="/blood-bank/cases/add-donor">
                 <UserPlusIcon data-icon="inline-start" />
                 Add donor
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/blood-bank/cases/new">
-                <PlusIcon data-icon="inline-start" />
-                New case
               </Link>
             </Button>
           </Can>

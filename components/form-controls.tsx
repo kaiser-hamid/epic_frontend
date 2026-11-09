@@ -5,6 +5,7 @@ import {
   useFormContext,
   useFormState,
   type FieldPathByValue,
+  type FieldValues,
 } from "react-hook-form"
 
 import { ChoiceGroup } from "@/components/choice-group"
@@ -28,16 +29,15 @@ import {
 import { RequiredMark } from "@/components/required-mark"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
-import { ageFromDob, dobFromAge } from "@/modules/blood-bank/cases/age-dob"
-import type { CaseCreateValues } from "@/modules/blood-bank/cases/schemas"
+import { ageFromDob, dobFromAge } from "@/lib/age-dob"
 
 /**
- * Labelled `Field` + `Controller` pairs for the case registration form. Must render
- * inside its `FormProvider`. The input id is the field path, so labels stay unique
- * across repeated rows.
+ * Labelled `Field` + `Controller` pairs for the registration forms (bill entry, Add donor).
+ * Must render inside a `FormProvider`; field paths are not checked against its values type.
+ * The input id is the field path, so labels stay unique across repeated rows.
  */
 
-type Values = CaseCreateValues
+type Values = FieldValues
 
 type NumberPath = FieldPathByValue<Values, number | undefined>
 

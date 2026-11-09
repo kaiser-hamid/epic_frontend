@@ -4,7 +4,7 @@
  */
 export const BloodBankPermission = {
   CaseView: "bb.case.view",
-  CaseCreate: "bb.case.create",
+  CaseUpdate: "bb.case.update",
   DonorView: "bb.donor.view",
   DonorExamView: "bb.donor_exam.view",
   DonorExamRecord: "bb.donor_exam.record",

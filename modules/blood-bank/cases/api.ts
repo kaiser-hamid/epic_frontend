@@ -6,9 +6,8 @@ import type {
 } from "@/lib/api-types"
 import { emptyToNull } from "@/lib/utils"
 import type {
-  CaseCreateValues,
+  CaseDetailsValues,
   NewDonorValues,
-  NewPatientValues,
 } from "@/modules/blood-bank/cases/schemas"
 import type {
   BloodBankCase,
@@ -16,9 +15,6 @@ import type {
 } from "@/modules/blood-bank/cases/types"
 
 const basePath = "/api/blood-bank/cases"
-
-/** The form asks only which component; one unit each until it asks how many. */
-const REQUESTED_COMPONENT_QUANTITY = 1
 
 export type CaseListParams = Omit<ListParams, "filter" | "include"> & {
   filter?: CaseFilters
@@ -42,24 +38,7 @@ export async function getCase(id: number): Promise<BloodBankCase> {
   return response.data.data
 }
 
-function newPatientPayload(patient: NewPatientValues) {
-  return {
-    title: patient.title || null,
-    name: patient.name.trim(),
-    age_years: patient.age_years,
-    age_months: patient.age_months,
-    age_days: patient.age_days,
-    date_of_birth: patient.date_of_birth || null,
-    gender: patient.gender || null,
-    marital_status: patient.marital_status || null,
-    blood_group: patient.blood_group || null,
-    phone: emptyToNull(patient.phone),
-    address: emptyToNull(patient.address),
-    national_id: emptyToNull(patient.national_id),
-  }
-}
-
-/** A new donor for a request body (case registration, Add donor). */
+/** A new donor for a request body (Add donor). */
 export function newDonorPayload(donor: NewDonorValues) {
   return {
     name: donor.name.trim(),
@@ -78,55 +57,34 @@ export function newDonorPayload(donor: NewDonorValues) {
   }
 }
 
-/**
- * Form values → request body. Sends exactly one of `patient_id` (found by phone) /
- * `patient`, test lines without their display-only `item`, no `doctor_id` on a self
- * referral, and `donor_id` or `donor` per donor. Doctors and staff go by id only.
- * Empty optional numbers stay `undefined` and are dropped from the JSON.
- */
-export function toRegisterCasePayload(values: CaseCreateValues) {
-  const { billing } = values
-  const { referral } = billing
-
+/** Changed details → body: only the fields sent, empty texts as null. */
+export function toUpdateCasePayload(changes: Partial<CaseDetailsValues>) {
   return {
-    billing: {
-      ...(billing.patient_id !== undefined
-        ? { patient_id: billing.patient_id }
-        : { patient: newPatientPayload(billing.patient) }),
-      items: billing.items.map((line) => ({
-        test_item_id: line.test_item_id,
-        quantity: line.quantity,
-      })),
-      referral: {
-        is_self_referral: referral.is_self_referral,
-        doctor_id: referral.is_self_referral ? undefined : referral.doctor_id,
-        second_doctor_id: referral.second_doctor_id,
-        remark: emptyToNull(referral.remark),
-        referred_by_staff_id: referral.referred_by_staff_id,
-      },
-    },
-    care_type: values.care_type,
-    transfusion_reason: emptyToNull(values.transfusion_reason),
-    reference_note: emptyToNull(values.reference_note),
-    components: values.components.map((line) => ({
-      component_type_id: line.component_type_id,
-      quantity: REQUESTED_COMPONENT_QUANTITY,
-    })),
-    donors: values.donors.map((entry) =>
-      entry.donor_id !== undefined
-        ? { donor_id: entry.donor_id }
-        : { donor: newDonorPayload(entry.donor) }
-    ),
+    care_type: changes.care_type,
+    transfusion_reason:
+      changes.transfusion_reason === undefined
+        ? undefined
+        : emptyToNull(changes.transfusion_reason),
+    reference_note:
+      changes.reference_note === undefined
+        ? undefined
+        : emptyToNull(changes.reference_note),
   }
 }
 
-/** Registers patient (if new), invoice, case, components and donors in one transaction. */
-export async function createCase(
-  values: CaseCreateValues
-): Promise<BloodBankCase> {
-  const response = await apiClient.post<ResourceResponse<BloodBankCase>>(
-    basePath,
-    toRegisterCasePayload(values)
+export type UpdateCaseInput = {
+  id: number
+  changes: Partial<CaseDetailsValues>
+}
+
+/** Corrects "Care of" and records the cause of transfusion / reference note of an open case. */
+export async function updateCase({
+  id,
+  changes,
+}: UpdateCaseInput): Promise<BloodBankCase> {
+  const response = await apiClient.patch<ResourceResponse<BloodBankCase>>(
+    `${basePath}/${id}`,
+    toUpdateCasePayload(changes)
   )
   return response.data.data
 }

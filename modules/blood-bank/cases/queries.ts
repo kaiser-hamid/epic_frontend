@@ -8,14 +8,12 @@ import {
 } from "@tanstack/react-query"
 
 import {
-  createCase,
   getCase,
   listCases,
+  updateCase,
   type CaseListParams,
 } from "@/modules/blood-bank/cases/api"
 import type { BloodBankCase } from "@/modules/blood-bank/cases/types"
-import { donorKeys } from "@/modules/blood-bank/donors/queries"
-import { patientKeys } from "@/modules/shared/patient/queries"
 
 export const caseKeys = {
   all: ["blood-bank", "cases"] as const,
@@ -41,19 +39,17 @@ export function useCase(id: number) {
 }
 
 /**
- * The create response already has the detail shape, so it seeds the detail cache.
- * Registration can also add a patient and donors, so their searches are refetched.
+ * The response is the case detail, so it replaces the cached one. Work screens that show
+ * "Care of" read the case afresh, so every case query is refetched.
  */
-export function useCreateCase() {
+export function useUpdateCase() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: createCase,
+    mutationFn: updateCase,
     onSuccess: (record: BloodBankCase) => {
       queryClient.setQueryData(caseKeys.detail(record.id), record)
       queryClient.invalidateQueries({ queryKey: caseKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: patientKeys.all })
-      queryClient.invalidateQueries({ queryKey: donorKeys.all })
     },
   })
 }
