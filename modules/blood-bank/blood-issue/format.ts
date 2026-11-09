@@ -9,14 +9,11 @@ export function vitalsText(vitals: Vitals): string {
 
 /** "32y · Male", or undefined when neither is known. */
 export function ageGenderText(person: {
-  age: number | null
+  age_label: string | null
   gender: Gender | null
 }): string | undefined {
   return (
-    [
-      person.age === null ? null : `${person.age}y`,
-      person.gender ? genderLabels[person.gender] : null,
-    ]
+    [person.age_label, person.gender ? genderLabels[person.gender] : null]
       .filter(Boolean)
       .join(" · ") || undefined
   )

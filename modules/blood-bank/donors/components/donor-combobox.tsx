@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils"
 import { useDonorSearch } from "@/modules/blood-bank/donors/queries"
 import type { Donor } from "@/modules/blood-bank/donors/types"
 import { bloodGroupLabels } from "@/modules/shared/patient/enums"
+import { formatAge } from "@/modules/shared/patient/format"
 
 function donorLabel(donor: Donor): string {
   return `${donor.donor_no} · ${donor.name}`
@@ -112,7 +113,7 @@ export function DonorCombobox({
                         donor.blood_group
                           ? bloodGroupLabels[donor.blood_group]
                           : null,
-                        donor.age !== null ? `${donor.age}y` : null,
+                        formatAge(donor.age),
                         donor.phone,
                       ]
                         .filter(Boolean)

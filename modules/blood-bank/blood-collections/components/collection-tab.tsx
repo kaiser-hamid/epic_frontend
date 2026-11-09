@@ -48,6 +48,7 @@ import { CaseDonorStatus } from "@/modules/blood-bank/enums"
 import { BloodBankPermission } from "@/modules/blood-bank/permissions"
 import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
 import { useCan } from "@/modules/shared/rbac/use-can"
+import { formatAge } from "@/modules/shared/patient/format"
 
 /**
  * Tab 1: scan an invoice no or a donor no, see the patient panel and one row per donor,
@@ -312,7 +313,7 @@ function DonorRow({
       <TableCell className="font-medium">{donor.number ?? "—"}</TableCell>
       <TableCell>{donor.name ?? "—"}</TableCell>
       <TableCell className="tabular-nums">
-        {donor.age === null ? "—" : `${donor.age}y`}
+        {formatAge(donor.age) ?? "—"}
       </TableCell>
       <TableCell>{donor.gender ? genderLabels[donor.gender] : "—"}</TableCell>
       <TableCell>

@@ -356,7 +356,7 @@ function SubjectRow({
       </TableCell>
       <TableCell className="font-medium">{subject.number ?? "—"}</TableCell>
       <TableCell>{subject.name ?? "—"}</TableCell>
-      <TableCell className="tabular-nums">{subject.age ?? "—"}</TableCell>
+      <TableCell className="tabular-nums">{subject.age_label ?? "—"}</TableCell>
       <TableCell>
         {subject.gender ? genderLabels[subject.gender] : "—"}
       </TableCell>

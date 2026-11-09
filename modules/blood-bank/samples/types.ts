@@ -14,7 +14,7 @@ import type { BloodGroup, Gender } from "@/modules/shared/patient/enums"
 
 /**
  * Who a sample is drawn from (`SubjectResource`), in one shape for the patient and donors.
- * `number` is the patient no or donor no; `age` is in years. The `case_donor_*` and
+ * `number` is the patient no or donor no; `age` is in years, `age_label` as shown. The `case_donor_*` and
  * `sequence_no` fields are null for the patient.
  */
 export type SampleSubjectInfo = {
@@ -26,6 +26,8 @@ export type SampleSubjectInfo = {
   number: string | null
   name: string | null
   age: number | null
+  /** The age as shown ("78Y", "5M", "22D"). */
+  age_label: string | null
   gender: Gender | null
   blood_group: BloodGroup | null
   phone: string | null

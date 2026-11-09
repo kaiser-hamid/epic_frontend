@@ -22,6 +22,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { cn } from "@/lib/utils"
 import { usePatient, usePatientSearch } from "@/modules/shared/patient/queries"
 import type { Patient } from "@/modules/shared/patient/types"
+import { formatPatientAge } from "@/modules/shared/patient/format"
 
 function patientLabel(patient: Patient): string {
   return `${patient.patient_no} · ${patient.name}`
@@ -109,9 +110,7 @@ export function PatientCombobox({
                     <span>{patientLabel(patient)}</span>
                     <span className="text-xs text-muted-foreground">
                       {[
-                        patient.age_years !== null
-                          ? `${patient.age_years}y`
-                          : null,
+                        formatPatientAge(patient),
                         patient.gender,
                         patient.phone,
                       ]

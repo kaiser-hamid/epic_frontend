@@ -15,6 +15,7 @@ function donor(caseDonorId: number): SerologyDonor {
     number: null,
     name: null,
     age: null,
+    age_label: null,
     gender: null,
     blood_group: null,
     phone: null,

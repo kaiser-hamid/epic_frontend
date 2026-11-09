@@ -58,7 +58,7 @@ export type CollectBloodInput = {
 
 /**
  * `BagResource`: a bag with its donor, case and patient; a row of the Collected tab and the
- * content of a bag label. Ages are in years.
+ * content of a bag label. `age` is in years; `age_label` is as shown ("78Y").
  */
 export type Bag = {
   id: number
@@ -74,6 +74,7 @@ export type Bag = {
     donor_no: string
     name: string
     age: number | null
+    age_label: string | null
     gender: Gender | null
     blood_group: BloodGroup | null
   }
@@ -82,6 +83,7 @@ export type Bag = {
     patient_no: string
     name: string
     age: number | null
+    age_label: string | null
     gender: Gender | null
     blood_group: BloodGroup | null
   } | null

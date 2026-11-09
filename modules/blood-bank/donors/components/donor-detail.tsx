@@ -45,6 +45,7 @@ import {
   maritalStatusLabels,
 } from "@/modules/shared/patient/enums"
 import { useCan } from "@/modules/shared/rbac/use-can"
+import { formatAge } from "@/modules/shared/patient/format"
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -129,7 +130,7 @@ export function DonorDetailView({ donorId }: { donorId: number }) {
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm md:grid-cols-[auto_1fr_auto_1fr]">
-            <Detail label="Age" value={donor.age} />
+            <Detail label="Age" value={formatAge(donor.age)} />
             <Detail
               label="Date of birth"
               value={

@@ -11,6 +11,7 @@ import { CaseDonorStatusBadge } from "@/modules/blood-bank/case-donors/component
 import type { CaseDonor } from "@/modules/blood-bank/cases/types"
 import { CaseDonorStatus } from "@/modules/blood-bank/enums"
 import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
+import { formatAge } from "@/modules/shared/patient/format"
 
 /** The donors already on the case, in sequence order, with the bill each one is on. */
 export function CaseDonorsTable({ donors }: { donors: CaseDonor[] }) {
@@ -53,7 +54,7 @@ export function CaseDonorsTable({ donors }: { donors: CaseDonor[] }) {
                   <TableCell>{entry.donor.donor_no}</TableCell>
                   <TableCell>{entry.donor.name}</TableCell>
                   <TableCell className="tabular-nums">
-                    {entry.donor.age !== null ? `${entry.donor.age}y` : "—"}
+                    {formatAge(entry.donor.age) ?? "—"}
                   </TableCell>
                   <TableCell>
                     {entry.donor.gender

@@ -59,6 +59,7 @@ import {
   type CaseStatus,
 } from "@/modules/blood-bank/enums"
 import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
+import { formatAge } from "@/modules/shared/patient/format"
 
 const screeningOptions: readonly ChoiceOption<ScreeningResult>[] = [
   {
@@ -208,7 +209,7 @@ export function DonorSerologyCard({
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           {[
-            donor.age !== null ? `${donor.age}y` : null,
+            formatAge(donor.age),
             donor.gender ? genderLabels[donor.gender] : null,
             donor.blood_group ? bloodGroupLabels[donor.blood_group] : null,
             donor.phone,

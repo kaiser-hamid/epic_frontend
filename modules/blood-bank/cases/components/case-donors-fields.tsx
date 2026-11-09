@@ -36,13 +36,14 @@ import {
   genderLabels,
   maritalStatusLabels,
 } from "@/modules/shared/patient/enums"
+import { formatAge } from "@/modules/shared/patient/format"
 
 function describeDonor(donor: Donor) {
   return {
     title: `${donor.donor_no} · ${donor.name}`,
     detail: [
       donor.blood_group ? bloodGroupLabels[donor.blood_group] : null,
-      donor.age !== null ? `${donor.age}y` : null,
+      formatAge(donor.age),
       donor.gender ? genderLabels[donor.gender] : null,
     ]
       .filter(Boolean)

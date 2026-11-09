@@ -53,6 +53,7 @@ import {
 import type { ExaminationDonor } from "@/modules/blood-bank/donor-examinations/types"
 import { CaseDonorStatus } from "@/modules/blood-bank/enums"
 import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
+import { formatAge } from "@/modules/shared/patient/format"
 
 type TextFieldName = FieldPathByValue<ExaminationFormValues, string>
 
@@ -144,7 +145,7 @@ export function DonorExaminationCard({
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           {[
-            donor.age !== null ? `${donor.age}y` : null,
+            formatAge(donor.age),
             donor.gender ? genderLabels[donor.gender] : null,
             donor.blood_group ? bloodGroupLabels[donor.blood_group] : null,
             donor.phone,

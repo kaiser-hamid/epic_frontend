@@ -20,6 +20,7 @@ export function issueDonor(
     number: `D000${sequence}`,
     name: `Donor ${sequence}`,
     age: 30,
+    age_label: "30Y",
     gender: "male",
     blood_group: "B_POS",
     phone: null,

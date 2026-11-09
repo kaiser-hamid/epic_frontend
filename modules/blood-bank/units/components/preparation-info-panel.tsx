@@ -14,14 +14,11 @@ import {
 } from "@/modules/shared/patient/enums"
 
 function ageGender(person: {
-  age: number | null
+  age_label: string | null
   gender: Gender | null
 }): string | undefined {
   return (
-    [
-      person.age === null ? null : `${person.age}y`,
-      person.gender ? genderLabels[person.gender] : null,
-    ]
+    [person.age_label, person.gender ? genderLabels[person.gender] : null]
       .filter(Boolean)
       .join(" · ") || undefined
   )

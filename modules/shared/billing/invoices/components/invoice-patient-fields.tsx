@@ -35,6 +35,7 @@ import { useFindPatientsByPhone } from "@/modules/shared/patient/queries"
 import type { Patient } from "@/modules/shared/patient/types"
 import { SharedPermission } from "@/modules/shared/rbac/permissions"
 import { useCan } from "@/modules/shared/rbac/use-can"
+import { formatPatientAge } from "@/modules/shared/patient/format"
 
 const PHONE = "patient.phone"
 
@@ -42,7 +43,7 @@ function describePatient(patient: Patient) {
   return {
     title: `${patient.patient_no} · ${patient.name}`,
     detail: [
-      patient.age_years !== null ? `${patient.age_years}y` : null,
+      formatPatientAge(patient),
       patient.gender ? genderLabels[patient.gender] : null,
       patient.blood_group ? bloodGroupLabels[patient.blood_group] : null,
     ]

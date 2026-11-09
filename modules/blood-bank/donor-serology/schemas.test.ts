@@ -45,6 +45,7 @@ const donor: SerologyDonor = {
   number: "D-1",
   name: "Donor",
   age: 30,
+  age_label: "30Y",
   gender: "male",
   blood_group: null,
   phone: null,

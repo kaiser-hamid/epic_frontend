@@ -39,8 +39,8 @@ app/
   (auth)/login/  (auth)/change-password/  # centered-card pages, Suspense-wrapped
   (app)/layout.tsx                      # authenticated area, Suspense boundaries
   (app)/_components/app-frame.tsx       # registers module nav items for AppShell (client)
-  (app)/billing/invoices/page.tsx                 # Bill List
-  (app)/billing/invoices/new/page.tsx             # New Bill Entry (composes Blood Bank's CareOfField into the form's category slot)
+  (app)/billing/invoices/page.tsx                 # Invoice list
+  (app)/billing/invoices/new/page.tsx             # New Invoice Entry (composes Blood Bank's CareOfField into the form's category slot)
   (app)/billing/invoices/[invoiceId]/page.tsx     # bill detail + print
   (app)/blood-bank/cases/page.tsx                 # list (cases are opened by Blood Bank bills, never created here)
   (app)/blood-bank/cases/[caseId]/page.tsx        # detail, edit details dialog, Add donor link
@@ -144,6 +144,7 @@ Page → module component → `queries.ts` hook → `api.ts` → `apiClient` →
 - Components never call `axios`/`fetch`; always go through the module's `queries.ts`.
 - Enums: `as const` object + derived union type, values copied exactly from the backend PHP enum, plus a `Record<Enum, string>` label map. No TS `enum`, no magic strings for statuses, types or permissions.
 - Money: integer paisa everywhere in state and payloads. Display with `<Money paisa>` / `formatTaka`. Never compute totals in the UI; show the server's.
+- Age: show only its largest unit, everywhere: `78Y`; under a year `5M`; under a month `22D`. Use the server's `age_label` when the response has one, otherwise `formatPatientAge(patient)` / `formatAge(years)` from `@/modules/shared/patient/format`. Never build an age string by hand (no `${age}y`).
 - Dates: API sends ISO 8601; display in `Asia/Dhaka` via `<DateTime>` / `lib/format.ts`. Send ISO strings back.
 - Human-facing numbers (`case_no`, `unit_no`, `invoice_no`) come from the API; never generate them in the UI.
 - Styling: Tailwind utilities and shadcn tokens (`bg-background`, `text-muted-foreground`); merge classes with `cn()` from `@/lib/utils`. Icons in buttons use `data-icon="inline-start|inline-end"`. No inline styles, no hardcoded colors.
