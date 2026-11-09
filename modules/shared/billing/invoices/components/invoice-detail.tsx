@@ -32,7 +32,7 @@ import {
   testItemCategoryLabels,
 } from "@/modules/shared/test-catalog/enums"
 
-/** A saved bill, read-only (no edit or cancel yet), with its print action. */
+/** A saved invoice, read-only (no edit or cancel yet), with its print action. */
 export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
   const query = useInvoice(invoiceId)
   useBreadcrumbLabel(String(invoiceId), query.data?.invoice_no)
@@ -52,7 +52,7 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
       <PageHeader
         title={
           <span className="flex items-center gap-2">
-            Bill {record.invoice_no}
+            Invoice {record.invoice_no}
             {record.category === TestItemCategory.BloodBank ? (
               <Badge variant="secondary">
                 {testItemCategoryLabels.blood_bank}
@@ -67,7 +67,7 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
         }
         description={
           <>
-            Billed <DateTime value={record.billed_at} />
+            Invoiced <DateTime value={record.billed_at} />
             {record.created_by ? ` by ${record.created_by.name}` : ""}
           </>
         }
@@ -105,7 +105,7 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Bill</CardTitle>
+            <CardTitle>Invoice</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">

@@ -9,20 +9,20 @@ import { Can } from "@/modules/shared/rbac/can"
 import { SharedPermission } from "@/modules/shared/rbac/permissions"
 import { RequirePermission } from "@/modules/shared/rbac/require-permission"
 
-export const metadata: Metadata = { title: "Bill list" }
+export const metadata: Metadata = { title: "Invoice list" }
 
 export default function InvoicesPage() {
   return (
     <RequirePermission permission={SharedPermission.BillingView}>
       <PageHeader
-        title="Bill List"
-        description="Bills of this branch."
+        title="Invoice list"
+        description="Invoices of this branch."
         actions={
           <Can permission={SharedPermission.BillingCreate}>
             <Button asChild>
               <Link href="/billing/invoices/new">
                 <PlusIcon data-icon="inline-start" />
-                New bill
+                New invoice
               </Link>
             </Button>
           </Can>

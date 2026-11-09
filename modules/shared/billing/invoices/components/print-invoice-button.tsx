@@ -46,7 +46,7 @@ export function PrintInvoiceButton({
         onSuccess: (blob) => {
           setAskReason(false)
           if (!openPdf(blob)) {
-            toast.warning(`Bill ${invoiceNo} is ready`, {
+            toast.warning(`Invoice ${invoiceNo} is ready`, {
               description: "The browser blocked the new tab.",
               action: { label: "Open PDF", onClick: () => openPdf(blob) },
               duration: 15_000,
@@ -78,8 +78,8 @@ export function PrintInvoiceButton({
       <ReasonDialog
         open={askReason}
         onOpenChange={setAskReason}
-        title="Reprint bill"
-        description="This bill was printed before. Enter why it is being reprinted."
+        title="Reprint invoice"
+        description="This invoice was printed before. Enter why it is being reprinted."
         label="Reprint reason"
         confirmLabel="Print"
         pending={printInvoice.isPending}

@@ -8,12 +8,12 @@ export const billingNav: NavItem = {
   icon: ReceiptIcon,
   items: [
     {
-      title: "New Bill Entry",
+      title: "New Invoice Entry",
       href: "/billing/invoices/new",
       permission: SharedPermission.BillingCreate,
     },
     {
-      title: "Bill List",
+      title: "Invoice list",
       href: "/billing/invoices",
       permission: SharedPermission.BillingView,
     },

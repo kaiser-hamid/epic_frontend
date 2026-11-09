@@ -7,7 +7,7 @@ import { SharedPermission } from "@/modules/shared/rbac/permissions"
 import { RequirePermission } from "@/modules/shared/rbac/require-permission"
 import { TestItemCategory } from "@/modules/shared/test-catalog/enums"
 
-export const metadata: Metadata = { title: "New bill" }
+export const metadata: Metadata = { title: "New invoice" }
 
 /** Each kind of bill's own fields, from the module that owns it (composed here, in `app/`). */
 const categoryDetails = {
@@ -20,8 +20,8 @@ export default function NewInvoicePage() {
   return (
     <RequirePermission permission={SharedPermission.BillingCreate}>
       <PageHeader
-        title="New Bill Entry"
-        description="Register the patient and bill the tests. A Blood Bank bill also opens its Blood Bank case."
+        title="New Invoice Entry"
+        description="Register the patient and invoice the tests. A Blood Bank invoice also opens its Blood Bank case."
       />
       <InvoiceForm categoryDetails={categoryDetails} />
     </RequirePermission>
