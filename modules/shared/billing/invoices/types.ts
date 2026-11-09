@@ -56,7 +56,13 @@ export type Invoice = {
   /** Signed. */
   rounding_amount: number
   amount: number
+  /** Paid at the counter when billed. */
+  paid_amount: number
+  /** `amount` − `paid_amount`. */
+  due_amount: number
   billed_at: string
+  /** When the reports will be ready; null only on bills saved before it was asked. */
+  delivery_at: string | null
   patient?: Patient
   referral?: InvoiceReferral | null
   items?: InvoiceItem[]

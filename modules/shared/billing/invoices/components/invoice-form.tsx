@@ -18,12 +18,18 @@ import {
 } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
 import { errorMessage, hasErrorCode } from "@/lib/api-error"
+import { todayIsoDate } from "@/lib/format"
 import { applyServerErrors } from "@/lib/form-errors"
 import { InvoiceDiscountFields } from "@/modules/shared/billing/invoices/components/invoice-discount-fields"
 import { InvoicePatientFields } from "@/modules/shared/billing/invoices/components/invoice-patient-fields"
+import {
+  InvoiceDeliveryField,
+  InvoicePaymentFields,
+} from "@/modules/shared/billing/invoices/components/invoice-payment-fields"
 import { InvoiceReferralFields } from "@/modules/shared/billing/invoices/components/invoice-referral-fields"
 import { InvoiceTestItemsFields } from "@/modules/shared/billing/invoices/components/invoice-test-items-fields"
 import { InvoiceTotals } from "@/modules/shared/billing/invoices/components/invoice-totals"
+import { printSavedInvoice } from "@/modules/shared/billing/invoices/components/send-invoice"
 import {
   InvoiceErrorCode,
   invoiceErrorMessages,
@@ -35,6 +41,8 @@ import {
   invoiceSchema,
   type InvoiceValues,
 } from "@/modules/shared/billing/invoices/schemas"
+import { SharedPermission } from "@/modules/shared/rbac/permissions"
+import { useCan } from "@/modules/shared/rbac/use-can"
 import {
   TestItemCategory,
   testItemCategoryLabels,
@@ -51,7 +59,8 @@ export type CategoryDetailsFields = Partial<
 
 /**
  * New Bill Entry. One save registers the patient (if new) and the bill; a Blood Bank bill also
- * opens its case. The page stays mounted when the user navigates away and back, so after a save
+ * opens its case. The saved bill is printed straight away (Customer Copy + Non Lab Copies) for
+ * staff who may print, while the page moves on to the bill. The page stays mounted when the user navigates away and back, so after a save
  * the form is remounted (new key), which drops every value and starts a new idempotency key.
  */
 export function InvoiceForm({
@@ -78,12 +87,14 @@ function InvoiceEntryForm({
 }) {
   const router = useRouter()
   const createInvoice = useCreateInvoice()
+  const canPrint = useCan(SharedPermission.BillingPrint)
   // One per form session: a double click or a retry after a lost response returns the same bill.
   const [idempotencyKey] = useState(() => crypto.randomUUID())
 
   const form = useForm<InvoiceValues>({
     resolver: zodResolver(invoiceSchema),
-    defaultValues: emptyInvoiceValues,
+    // Delivery starts on today; only the time is left to pick.
+    defaultValues: { ...emptyInvoiceValues, delivery_at: `${todayIsoDate()}T` },
   })
   const lines = useWatch({ control: form.control, name: "items" })
   const category = invoiceCategory(lines)
@@ -105,6 +116,10 @@ function InvoiceEntryForm({
       {
         onSuccess: (record) => {
           toast.success(`Bill ${record.invoice_no} saved`)
+          if (canPrint) {
+            // Keeps running on the bill page; reports through toasts.
+            void printSavedInvoice(record.id, record.invoice_no)
+          }
           router.push(`/billing/invoices/${record.id}`)
           onSaved()
         },
@@ -112,10 +127,18 @@ function InvoiceEntryForm({
           if (applyServerErrors(error, form.setError)) {
             return
           }
-          if (hasErrorCode(error, InvoiceErrorCode.InvoiceNoTaken)) {
+          const field = hasErrorCode(error, InvoiceErrorCode.InvoiceNoTaken)
+            ? "invoice_no"
+            : hasErrorCode(error, InvoiceErrorCode.PaidAmountExceedsPayable)
+              ? "paid_amount"
+              : null
+          if (field !== null) {
             form.setError(
-              "invoice_no",
-              { type: "server", message: invoiceErrorMessages[error.code] },
+              field,
+              {
+                type: "server",
+                message: errorMessage(error, invoiceErrorMessages),
+              },
               { shouldFocus: true }
             )
             return
@@ -182,6 +205,7 @@ function InvoiceEntryForm({
           <CardContent className="grid gap-6 lg:grid-cols-[2fr_1fr] lg:items-start">
             <div className="flex flex-col gap-4">
               <InvoiceDiscountFields />
+              <InvoiceDeliveryField />
               <TextControl
                 name="invoice_no"
                 label="Invoice no"
@@ -189,7 +213,10 @@ function InvoiceEntryForm({
                 className="sm:max-w-xs"
               />
             </div>
-            <InvoiceTotals />
+            <div className="flex flex-col gap-6">
+              <InvoiceTotals />
+              <InvoicePaymentFields />
+            </div>
           </CardContent>
         </Card>
 

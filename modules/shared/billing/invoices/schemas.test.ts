@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 
+import { todayIsoDate } from "@/lib/format"
 import {
   emptyNewPatient,
   invoiceCategory,
@@ -14,6 +15,8 @@ const valid: InvoiceValues = {
   items: [{ test_item_id: 12, quantity: 1 }],
   referral: { is_self_referral: false, doctor_id: 3, remark: "" },
   patient_type_id: 1,
+  delivery_at: `${todayIsoDate()}T19:00`,
+  paid_amount: 500,
   category_details: {},
 }
 
@@ -92,6 +95,15 @@ describe("invoiceSchema", () => {
         ],
       })
     ).toEqual([["items", 1, "test_item_id"]])
+  })
+
+  it("requires a delivery date and time from today on, and the paid amount", () => {
+    expect(
+      issuePaths({ ...valid, delivery_at: "", paid_amount: undefined })
+    ).toEqual([["delivery_at"], ["paid_amount"]])
+    expect(issuePaths({ ...valid, delivery_at: "2020-01-01T19:00" })).toEqual([
+      ["delivery_at"],
+    ])
   })
 
   it("takes only letters and digits in a typed invoice no", () => {

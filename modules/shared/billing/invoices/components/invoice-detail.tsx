@@ -1,6 +1,5 @@
 "use client"
 
-import { Can } from "@/modules/shared/rbac/can"
 import { DateTime } from "@/components/date-time"
 import { Money } from "@/components/money"
 import { PageHeader } from "@/components/page-header"
@@ -21,18 +20,17 @@ import {
   BillingStatus,
   billingStatusLabels,
 } from "@/modules/shared/billing/enums"
-import { PrintInvoiceButton } from "@/modules/shared/billing/invoices/components/print-invoice-button"
+import { InvoicePrintButtons } from "@/modules/shared/billing/invoices/components/invoice-print-actions"
 import { useInvoice } from "@/modules/shared/billing/invoices/queries"
 import { useBreadcrumbLabel } from "@/modules/shared/layout/breadcrumbs"
 import { genderLabels } from "@/modules/shared/patient/enums"
 import { formatPatientAge } from "@/modules/shared/patient/format"
-import { SharedPermission } from "@/modules/shared/rbac/permissions"
 import {
   TestItemCategory,
   testItemCategoryLabels,
 } from "@/modules/shared/test-catalog/enums"
 
-/** A saved invoice, read-only (no edit or cancel yet), with its print action. */
+/** A saved invoice, read-only (no edit or cancel yet), with its preview and print actions. */
 export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
   const query = useInvoice(invoiceId)
   useBreadcrumbLabel(String(invoiceId), query.data?.invoice_no)
@@ -72,12 +70,10 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
           </>
         }
         actions={
-          <Can permission={SharedPermission.BillingPrint}>
-            <PrintInvoiceButton
-              invoiceId={record.id}
-              invoiceNo={record.invoice_no}
-            />
-          </Can>
+          <InvoicePrintButtons
+            invoiceId={record.id}
+            invoiceNo={record.invoice_no}
+          />
         }
       />
 
@@ -121,6 +117,27 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
                 }
               />
               <Detail label="Remark" value={referral?.remark} />
+              <Detail
+                label="Delivery"
+                value={
+                  record.delivery_at ? (
+                    <DateTime value={record.delivery_at} />
+                  ) : null
+                }
+              />
+              <Detail
+                label="Payment"
+                value={
+                  record.due_amount === 0 ? (
+                    <Badge variant="secondary">Paid</Badge>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Badge variant="outline">Due</Badge>
+                      <Money paisa={record.due_amount} />
+                    </span>
+                  )
+                }
+              />
             </dl>
           </CardContent>
         </Card>
@@ -188,6 +205,8 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
                 negative={record.rounding_amount < 0}
               />
               <TotalRow label="Payable" paisa={record.amount} strong />
+              <TotalRow label="Paid" paisa={record.paid_amount} />
+              <TotalRow label="Due" paisa={record.due_amount} strong />
             </TableFooter>
           </Table>
         </CardContent>

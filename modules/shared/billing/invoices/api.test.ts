@@ -24,6 +24,9 @@ const values: InvoiceValues = {
   items: [{ test_item_id: 12, quantity: 1 }],
   referral: { is_self_referral: false, doctor_id: 3, remark: "" },
   patient_type_id: 1,
+  delivery_at: "2026-11-09T19:00",
+  paid_amount: 7120,
+  given_amount: 7500,
   category_details: { care_type: "daycare" },
 }
 
@@ -44,6 +47,13 @@ describe("toCreateInvoicePayload", () => {
     })
     expect(sent.idempotency_key).toBe("key-1")
     expect(sent).not.toHaveProperty("invoice_no")
+  })
+
+  it("sends the paid taka as paisa and the Dhaka delivery time as UTC, never the given cash", () => {
+    const sent = body(values)
+    expect(sent.paid_amount).toBe(712000)
+    expect(sent.delivery_at).toBe("2026-11-09T13:00:00.000Z")
+    expect(sent).not.toHaveProperty("given_amount")
   })
 
   it("sends only patient_id for a found patient and drops the doctor on a self referral", () => {

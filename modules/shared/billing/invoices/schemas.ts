@@ -9,6 +9,7 @@ import {
   text,
   wholeNumber,
 } from "@/lib/form-schemas"
+import { localDateTimeToIso, todayIsoDate } from "@/lib/format"
 import {
   BloodGroup,
   Gender,
@@ -83,6 +84,24 @@ export const testLineSchema = z.object({
 
 export type TestLineValues = z.infer<typeof testLineSchema>
 
+/** Counter amounts are typed in whole taka: the payable always is (it is rounded to 10 taka). */
+export const MAX_TAKA = 100_000_000
+
+/**
+ * `datetime-local` value read as Asia/Dhaka time; required, today or later (the server checks
+ * the same).
+ */
+export const deliveryAt = z.string().superRefine((value, ctx) => {
+  if (localDateTimeToIso(value) === null) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Enter the delivery date and time.",
+    })
+  } else if (value.slice(0, 10) < todayIsoDate()) {
+    ctx.addIssue({ code: "custom", message: "Can't be before today." })
+  }
+})
+
 export const invoiceSchema = z
   .object({
     /** A vendor invoice no typed by staff; "" lets the server number the bill. */
@@ -100,6 +119,11 @@ export const invoiceSchema = z
     }),
     patient_type_id: id("Select the patient type."),
     discount_policy_id: id("Select a discount.").optional(),
+    delivery_at: deliveryAt,
+    /** Taka the patient pays now; follows the payable until edited. Sent in paisa. */
+    paid_amount: wholeNumber(0, MAX_TAKA),
+    /** Taka handed over, only to show the change; never sent. */
+    given_amount: wholeNumber(0, MAX_TAKA).optional(),
     /**
      * Fields the bill's category asks for (Blood Bank: `care_type`), rendered by that module.
      * Validated by the server, which answers on `category_details.*`.
@@ -164,6 +188,8 @@ export const emptyInvoiceValues: InvoiceValues = {
   items: [{ quantity: 1 } as TestLineValues],
   referral: { is_self_referral: false, remark: "" },
   patient_type_id: undefined as unknown as number,
+  delivery_at: "",
+  paid_amount: undefined as unknown as number,
   category_details: {},
 }
 

@@ -12,6 +12,7 @@ import {
   getInvoice,
   listInvoices,
   listPatientTypes,
+  previewInvoice,
   printInvoice,
   quoteInvoice,
   type InvoiceListParams,
@@ -86,4 +87,9 @@ export function useCreateInvoice() {
 
 export function usePrintInvoice() {
   return useMutation({ mutationFn: printInvoice })
+}
+
+/** Fetched on click and never cached: the preview shows the bill as it is now. */
+export function usePreviewInvoice() {
+  return useMutation({ mutationFn: previewInvoice })
 }

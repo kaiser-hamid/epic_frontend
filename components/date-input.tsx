@@ -1,6 +1,6 @@
 "use client"
 
-import { format, isValid, parse } from "date-fns"
+import { format, isValid, parse, startOfDay } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 import { useRef, useState } from "react"
 
@@ -68,6 +68,8 @@ type DateInputProps = {
   invalid?: boolean
   /** Last pickable day; defaults to today (dates of birth). */
   max?: Date
+  /** First pickable day; none by default. Typed dates are still checked by validation. */
+  min?: Date
 }
 
 /**
@@ -86,11 +88,13 @@ export function DateInput({
   disabled,
   invalid,
   max,
+  min,
 }: DateInputProps) {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState(() => toDisplay(value))
   const [syncedValue, setSyncedValue] = useState(value)
   const last = max ?? new Date()
+  const first = min === undefined ? undefined : startOfDay(min)
   const selected = toDate(value) ?? undefined
   const [month, setMonth] = useState(() => selected ?? last)
   const anchorRef = useRef<HTMLDivElement>(null)
@@ -196,9 +200,13 @@ export function DateInput({
           selected={selected}
           month={month}
           onMonthChange={setMonth}
-          startMonth={new Date(MIN_YEAR, 0)}
+          startMonth={first ?? new Date(MIN_YEAR, 0)}
           endMonth={last}
-          disabled={{ after: last }}
+          disabled={
+            first === undefined
+              ? { after: last }
+              : [{ before: first }, { after: last }]
+          }
           onSelect={(date) => {
             if (!date) {
               return

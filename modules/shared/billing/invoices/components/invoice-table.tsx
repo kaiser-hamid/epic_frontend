@@ -6,7 +6,6 @@ import { useEffect, useState } from "react"
 
 import { dataTableColumnHelper } from "@/components/data-table/columns"
 import { DataTable } from "@/components/data-table/data-table"
-import { RowActions, ViewRowAction } from "@/components/data-table/row-actions"
 import { useListParams } from "@/components/data-table/use-list-params"
 import { DateTime } from "@/components/date-time"
 import { Money } from "@/components/money"
@@ -28,6 +27,7 @@ import {
   BillingStatus,
   billingStatusLabels,
 } from "@/modules/shared/billing/enums"
+import { InvoiceRowActions } from "@/modules/shared/billing/invoices/components/invoice-print-actions"
 import { useInvoices } from "@/modules/shared/billing/invoices/queries"
 import {
   invoiceSortableColumns,
@@ -85,6 +85,15 @@ const columns = helper.columns([
       <Money paisa={info.getValue()} className="block text-right" />
     ),
   }),
+  helper.accessor("due_amount", {
+    header: () => <span className="block text-right">Due</span>,
+    cell: (info) =>
+      info.getValue() === 0 ? (
+        <span className="block text-right text-muted-foreground">Paid</span>
+      ) : (
+        <Money paisa={info.getValue()} className="block text-right" />
+      ),
+  }),
   helper.accessor("status", {
     header: "Status",
     cell: (info) =>
@@ -102,14 +111,15 @@ const columns = helper.columns([
     id: "actions",
     header: () => <span className="sr-only">Actions</span>,
     cell: ({ row }) => (
-      <RowActions label={row.original.invoice_no}>
-        <ViewRowAction href={`/billing/invoices/${row.original.id}`} />
-      </RowActions>
+      <InvoiceRowActions
+        invoiceId={row.original.id}
+        invoiceNo={row.original.invoice_no}
+      />
     ),
   }),
 ])
 
-/** Bill List: the session branch's bills, newest first. View and print only. */
+/** Bill List: the session branch's bills, newest first. View, preview and print duplicate. */
 export function InvoiceTable() {
   const { page, perPage, sort, setPage, setSort, resetPage } = useListParams({
     defaultSort: "-billed_at",

@@ -6,6 +6,7 @@ export const InvoiceErrorCode = {
   DiscountPolicyNotAllowed: "DISCOUNT_POLICY_NOT_ALLOWED",
   IdempotencyKeyReused: "IDEMPOTENCY_KEY_REUSED",
   InvoiceNoTaken: "INVOICE_NO_TAKEN",
+  PaidAmountExceedsPayable: "PAID_AMOUNT_EXCEEDS_PAYABLE",
 } as const
 
 export const invoiceErrorMessages: Partial<Record<string, string>> = {
@@ -16,6 +17,8 @@ export const invoiceErrorMessages: Partial<Record<string, string>> = {
   [InvoiceErrorCode.IdempotencyKeyReused]:
     "This form was already submitted by another user. Reload the page to start a new bill.",
   [InvoiceErrorCode.InvoiceNoTaken]: "This invoice number is already used.",
+  [InvoiceErrorCode.PaidAmountExceedsPayable]:
+    "The paid amount can't be more than the payable.",
   INVALID_QUERY: "This list filter is not supported.",
   [ErrorCode.Forbidden]: "You don't have access to this bill.",
 }

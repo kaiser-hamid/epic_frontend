@@ -4,6 +4,7 @@ import type {
   PaginatedResponse,
   ResourceResponse,
 } from "@/lib/api-types"
+import { localDateTimeToIso } from "@/lib/format"
 import { emptyToNull } from "@/lib/utils"
 import {
   invoiceCategory,
@@ -97,7 +98,8 @@ export function billedLines(lines: readonly Partial<TestLineValues>[]) {
  * test lines without their display-only `item`, no `doctor_id` on a self referral, the typed
  * invoice no only when given, and `category_details` only on a Blood Bank bill (empty values
  * dropped, so the server reports what is missing). Empty optional numbers stay `undefined` and
- * are dropped from the JSON.
+ * are dropped from the JSON. The paid taka go as paisa and the delivery time as UTC ISO 8601;
+ * "Given" is never sent.
  */
 export function toCreateInvoicePayload(
   values: InvoiceValues,
@@ -123,6 +125,8 @@ export function toCreateInvoicePayload(
     },
     patient_type_id: values.patient_type_id,
     discount_policy_id: values.discount_policy_id,
+    delivery_at: localDateTimeToIso(values.delivery_at),
+    paid_amount: values.paid_amount * 100,
     category_details: isBloodBank
       ? Object.fromEntries(
           Object.entries(values.category_details).filter(
@@ -156,7 +160,11 @@ export async function createInvoice({
 
 export type PrintInvoiceInput = { id: number; reprintReason?: string }
 
-/** Logs the print and returns the bill PDF. `REPRINT_REASON_REQUIRED` once printed before. */
+/**
+ * Logs the print and returns the bill PDF: the Customer Copy, then a Non Lab Copy per
+ * department. The first print is the "Original Copy"; later ones are "Duplicate Copy" and
+ * answer `REPRINT_REASON_REQUIRED` without a reason.
+ */
 export async function printInvoice({
   id,
   reprintReason,
@@ -164,6 +172,15 @@ export async function printInvoice({
   const response = await apiClient.post<Blob>(
     `${basePath}/invoices/${id}/print`,
     { reprint_reason: reprintReason?.trim() || null },
+    { responseType: "blob" }
+  )
+  return response.data
+}
+
+/** The bill PDF marked "Preview", to look at on screen. Not a print: nothing is logged. */
+export async function previewInvoice(id: number): Promise<Blob> {
+  const response = await apiClient.get<Blob>(
+    `${basePath}/invoices/${id}/preview`,
     { responseType: "blob" }
   )
   return response.data

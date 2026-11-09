@@ -7,9 +7,9 @@ import { publicEnv } from "@/lib/public-env"
  * the browser, never from server code). The caller names the printer in the `X-Printer-Name`
  * header:
  *
- * - `POST /print/pdf`: a PDF, paper size taken from each page. Compatibility Test Reports go to
- *   the laser printer with pre-printed letterhead at exact size (no scaling, aligned to the
- *   paper edge).
+ * - `POST /print/pdf`: a PDF, paper size taken from each page. Compatibility Test Reports
+ *   (letterhead, 215 × 292 mm) and bills (pre-printed pad, A5 148 × 210 mm) go to the report
+ *   printer at exact size (no scaling, aligned to the paper edge).
  * - `POST /print/raw`: printer commands (GoDEX EZPL) passed to the printer byte for byte.
  *   Sample barcode labels go to the label printer. No `copies`: reprints go through the backend.
  *
@@ -217,6 +217,14 @@ export async function printRaw(
 export function printCompatibilityReport(
   pdf: Blob,
   opts: { copies?: number; jobName?: string } = {}
+): Promise<PrintJob> {
+  return printPdf(pdf, REPORT_PRINTER, { ...opts, exactSize: true })
+}
+
+/** A bill PDF (Customer Copy + Non Lab Copies) on the report printer's pad, printed 1:1. */
+export function printInvoiceCopies(
+  pdf: Blob,
+  opts: { jobName?: string } = {}
 ): Promise<PrintJob> {
   return printPdf(pdf, REPORT_PRINTER, { ...opts, exactSize: true })
 }

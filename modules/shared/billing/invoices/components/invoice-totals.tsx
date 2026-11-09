@@ -6,6 +6,7 @@ import { useFormContext, useWatch } from "react-hook-form"
 import { Money } from "@/components/money"
 import { Spinner } from "@/components/ui/spinner"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { cn } from "@/lib/utils"
 import {
   billedLines,
   type QuoteInput,
@@ -15,10 +16,11 @@ import type { InvoiceValues } from "@/modules/shared/billing/invoices/schemas"
 import type { InvoiceQuote } from "@/modules/shared/billing/invoices/types"
 
 /**
- * Subtotal, discount, rounding and payable as the server would bill them (`/invoices/quote`),
- * refreshed shortly after the tests, patient type or discount change. Never computed here.
+ * The server's totals for the bill being filled in (`/invoices/quote`), refreshed shortly after
+ * the tests, patient type or discount change. `shown` is undefined while there is nothing to
+ * quote. Every caller shares one cached query.
  */
-export function InvoiceTotals() {
+export function useInvoiceFormQuote() {
   const { control } = useFormContext<InvoiceValues>()
   const [items, patientTypeId, discountPolicyId] = useWatch({
     control,
@@ -44,6 +46,24 @@ export function InvoiceTotals() {
   const shown: InvoiceQuote | undefined =
     input === null ? undefined : quote.data
 
+  return { quote, shown }
+}
+
+/**
+ * Subtotal, discount and payable as the server would bill them, plus what stays due after the
+ * paid amount typed below. The totals are never computed here.
+ */
+export function InvoiceTotals() {
+  const { control } = useFormContext<InvoiceValues>()
+  const paid = useWatch({ control, name: "paid_amount" })
+  const { quote, shown } = useInvoiceFormQuote()
+  const due =
+    shown === undefined || paid === undefined
+      ? undefined
+      : shown.amount - paid * 100
+  // Red while the patient still owes something; overpaying is flagged on Paid amount itself.
+  const isOwed = due !== undefined && due > 0
+
   return (
     <dl className="ml-auto grid w-full max-w-xs grid-cols-[1fr_auto] gap-x-6 gap-y-1.5 text-sm">
       <dt className="text-muted-foreground">Subtotal</dt>
@@ -57,17 +77,28 @@ export function InvoiceTotals() {
       <dd className="text-right">
         − <Money paisa={shown?.discount_amount ?? 0} />
       </dd>
-      <dt className="text-muted-foreground">Rounding</dt>
-      <dd className="text-right">
-        {(shown?.rounding_amount ?? 0) < 0 ? "− " : ""}
-        <Money paisa={Math.abs(shown?.rounding_amount ?? 0)} />
-      </dd>
       <dt className="flex items-center gap-2 border-t pt-1.5 font-medium">
         Payable
         {quote.isFetching ? <Spinner className="size-3" /> : null}
       </dt>
       <dd className="border-t pt-1.5 text-right text-base font-semibold">
         <Money paisa={shown?.amount ?? 0} />
+      </dd>
+      <dt
+        className={cn(
+          "border-t pt-1.5 font-medium",
+          isOwed && "text-destructive"
+        )}
+      >
+        Due
+      </dt>
+      <dd
+        className={cn(
+          "border-t pt-1.5 text-right font-semibold",
+          isOwed && "text-destructive"
+        )}
+      >
+        <Money paisa={due ?? 0} />
       </dd>
       {quote.isError ? (
         <dd className="col-span-2 text-xs text-destructive">
