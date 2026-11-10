@@ -1,8 +1,8 @@
 "use client"
 
-import { SearchIcon } from "lucide-react"
+import { ReceiptTextIcon, SearchIcon } from "lucide-react"
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { dataTableColumnHelper } from "@/components/data-table/columns"
 import { DataTable } from "@/components/data-table/data-table"
@@ -125,12 +125,27 @@ export function CaseTable() {
   })
   const [filters, setFilters] = useQueryStates(
     {
+      invoice_no: parseAsString,
       search: parseAsString,
       status: parseAsStringLiteral(Object.values(CaseStatus)),
       care_type: parseAsStringLiteral(Object.values(CareType)),
     },
     { history: "replace" }
   )
+
+  const invoiceRef = useRef<HTMLInputElement>(null)
+  const [invoiceInput, setInvoiceInput] = useState(filters.invoice_no ?? "")
+
+  // `autoFocus` alone is unreliable here (the page mounts behind the permission gate and
+  // Suspense), so focus the invoice input explicitly on mount.
+  useEffect(() => {
+    invoiceRef.current?.focus()
+  }, [])
+
+  function applyInvoiceFilter() {
+    setFilters({ invoice_no: invoiceInput.trim() || null })
+    resetPage()
+  }
 
   const [searchInput, setSearchInput] = useState(filters.search ?? "")
   const debouncedSearch = useDebouncedValue(searchInput)
@@ -145,6 +160,7 @@ export function CaseTable() {
 
   const query = useCases({
     filter: {
+      invoice_no: filters.invoice_no,
       search: filters.search,
       status: filters.status,
       care_type: filters.care_type,
@@ -157,6 +173,24 @@ export function CaseTable() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row">
+        <InputGroup className="sm:max-w-48">
+          <InputGroupAddon>
+            <ReceiptTextIcon />
+          </InputGroupAddon>
+          <InputGroupInput
+            ref={invoiceRef}
+            placeholder="Invoice no"
+            aria-label="Invoice no"
+            value={invoiceInput}
+            onChange={(event) => setInvoiceInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault()
+                applyInvoiceFilter()
+              }
+            }}
+          />
+        </InputGroup>
         <InputGroup className="sm:max-w-xs">
           <InputGroupAddon>
             <SearchIcon />
