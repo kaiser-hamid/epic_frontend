@@ -27,17 +27,9 @@ import {
 } from "@/modules/shared/auth/schemas"
 
 const fields = [
-  {
-    name: "current_password",
-    label: "Current password",
-    autoComplete: "current-password",
-  },
-  { name: "password", label: "New password", autoComplete: "new-password" },
-  {
-    name: "password_confirmation",
-    label: "Repeat new password",
-    autoComplete: "new-password",
-  },
+  { name: "current_password", label: "Current password" },
+  { name: "password", label: "New password" },
+  { name: "password_confirmation", label: "Repeat new password" },
 ] as const
 
 /** Required before anything else when an admin set the password (`must_change_password`). */
@@ -86,7 +78,7 @@ export function ChangePasswordForm() {
   return (
     <Form onSubmit={form.handleSubmit(onSubmit)}>
       <FieldGroup>
-        {fields.map(({ name, label, autoComplete }) => (
+        {fields.map(({ name, label }) => (
           <Controller
             key={name}
             name={name}
@@ -98,7 +90,6 @@ export function ChangePasswordForm() {
                   {...field}
                   id={name}
                   type="password"
-                  autoComplete={autoComplete}
                   aria-invalid={fieldState.invalid}
                 />
                 <FieldError errors={[fieldState.error]} />

@@ -56,7 +56,8 @@ export function focusNextField(from: Element): boolean {
 
 /**
  * Enter moves focus to the next field; on the last field it submits.
- * Disabled and read-only fields are skipped. Left to the browser/component: Enter in a textarea (new line), on a button,
+ * Disabled and read-only fields are skipped. Checkboxes, radios and switches are fields
+ * too (Space toggles them). Left to the browser/component: Enter in a textarea (new line), on a button,
  * inside a portal (open select, combobox list, popover), on an expanded
  * combobox, or under `data-enter-key="native"`.
  */
@@ -80,7 +81,8 @@ export function handleEnterKeyNavigation(
     !(target instanceof HTMLElement) ||
     !form.contains(target) ||
     target instanceof HTMLTextAreaElement ||
-    (target instanceof HTMLButtonElement && target.role !== "combobox") ||
+    // Checkbox, radio and switch buttons are fields: Enter moves on, Space toggles.
+    (target instanceof HTMLButtonElement && !target.matches(FIELD_SELECTOR)) ||
     target.getAttribute("aria-expanded") === "true" ||
     target.closest("[data-enter-key=native]")
   ) {
@@ -109,11 +111,15 @@ export function handleEnterKeyNavigation(
   form.requestSubmit(submitter)
 }
 
-/** Use instead of `<form>` so every form gets Enter-to-next-field behavior. */
+/**
+ * Use instead of `<form>` so every form gets Enter-to-next-field behavior and no browser
+ * autofill.
+ */
 export function Form({ onKeyDownCapture, ...props }: ComponentProps<"form">) {
   return (
     <form
       noValidate
+      autoComplete="off"
       onKeyDownCapture={(event) => {
         onKeyDownCapture?.(event)
         handleEnterKeyNavigation(event)

@@ -105,7 +105,7 @@ export function LoginForm() {
               <Input
                 {...field}
                 id="username"
-                autoComplete="username"
+                autoComplete="off"
                 autoFocus
                 aria-invalid={fieldState.invalid}
                 onBlur={() => {
@@ -127,7 +127,7 @@ export function LoginForm() {
                 {...field}
                 id="password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete="off"
                 aria-invalid={fieldState.invalid}
               />
               <FieldError errors={[fieldState.error]} />

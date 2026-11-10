@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
+import { useState } from "react"
+
 import { Form } from "@/components/form"
 
 function renderForm({ submitDisabled = false } = {}) {
@@ -61,5 +63,36 @@ describe("Form Enter key", () => {
 
     await user.type(screen.getByLabelText("last"), "x{Enter}")
     expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it("moves on from a checkbox with Enter; Space toggles it", async () => {
+    const user = userEvent.setup()
+    function Toggle() {
+      const [checked, setChecked] = useState(false)
+      return (
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={checked}
+          aria-label="self referral"
+          onClick={() => setChecked(!checked)}
+        />
+      )
+    }
+    render(
+      <Form>
+        <Toggle />
+        <input aria-label="doctor" />
+      </Form>
+    )
+    const checkbox = screen.getByRole("checkbox", { name: "self referral" })
+
+    checkbox.focus()
+    await user.keyboard(" ")
+    expect(checkbox).toBeChecked()
+
+    await user.keyboard("{Enter}")
+    expect(checkbox).toBeChecked()
+    expect(screen.getByLabelText("doctor")).toHaveFocus()
   })
 })

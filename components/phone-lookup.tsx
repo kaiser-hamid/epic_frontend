@@ -1,19 +1,27 @@
 "use client"
 
-import { BadgeCheckIcon, UserPlusIcon } from "lucide-react"
+import { BadgeCheckIcon } from "lucide-react"
 import { useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { toast } from "sonner"
 
 import { focusNextField } from "@/components/form"
 import { Button } from "@/components/ui/button"
+import { Field, FieldLabel } from "@/components/ui/field"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { errorMessage } from "@/lib/api-error"
-import { cn } from "@/lib/utils"
 
 /**
- * "Type the number first" for the registration forms (bill entry, Add donor): the phone field looks up a returning patient
- * or donor on blur/Enter. One match fills the section read-only; several are offered to
- * pick from; none leaves the section open for a new record.
+ * "Type the number first" for the registration forms (bill entry, Add donor): the phone
+ * field looks up returning patients or donors on blur/Enter. Matches are offered in a
+ * select next to the number, "New …" selected by default (a form may auto-pick a single
+ * match); a picked record fills the section read-only; none leaves it open for a new record.
  */
 
 /** Shorter numbers are still being typed or cannot be a phone. */
@@ -25,7 +33,7 @@ export type PhoneLookupResult<T> =
 /**
  * Runs the lookup once per number; a number edited while a lookup runs discards that result.
  * A single match is picked automatically unless `canAutoPick` refuses it; it is then offered
- * in the list like several matches (where it can be shown as not pickable).
+ * in the select like several matches (where it can be shown as not pickable).
  */
 export function usePhoneLookup<T>(
   find: (phone: string) => Promise<T[]>,
@@ -60,7 +68,7 @@ export function usePhoneLookup<T>(
       if (first && rest.length === 0 && (canAutoPick?.(first) ?? true)) {
         return { status: "one", match: first }
       }
-      // Rendered now, so the caller can focus the first match.
+      // Rendered now, so the caller can move focus on to the match select.
       flushSync(() => setMatches(found))
       return { status: found.length > 0 ? "many" : "none" }
     } catch (error) {
@@ -84,11 +92,7 @@ export function usePhoneLookup<T>(
     setMatches((current) => (current.length > 0 ? [] : current))
   }
 
-  function clearMatches() {
-    setMatches([])
-  }
-
-  return { pending, matches, lookup, forget, clearMatches }
+  return { pending, matches, lookup, forget }
 }
 
 /** Moves focus past a section whose fields were just locked (to the next field, else the next button). */
@@ -108,84 +112,73 @@ export function focusPast(section: HTMLElement) {
   button?.focus()
 }
 
-export function focusFirstMatch(section: HTMLElement) {
-  // A blocked match is not a stop; with none pickable, "New …" is.
-  section
-    .querySelector<HTMLButtonElement>("[data-lookup-match], [data-lookup-new]")
-    ?.focus()
-}
-
 type MatchDescription = { title: string; detail: string }
 
+const NEW = "new"
+
 /**
- * Several records share the number (or the only one can't be picked): pick one, or keep a
- * new record. `blockedReason` disables a match and says why ("Already on this case").
+ * Records registered with the number: "New …" (the default) or one of them. `value` is the
+ * picked record's id; `onChange` gets the picked record, or null for "New …".
+ * `blockedReason` disables a match and says why ("Already on this case").
  */
-export function LookupMatches<T extends { id: number }>({
+export function LookupMatchSelect<T extends { id: number }>({
+  id,
   matches,
   noun,
   describe,
-  onPick,
-  onNew,
+  value,
+  onChange,
   blockedReason,
   className,
 }: {
+  id: string
   matches: T[]
   /** "patient", "donor". */
   noun: string
   describe: (match: T) => MatchDescription
-  onPick: (match: T) => void
-  onNew: () => void
+  value: number | undefined
+  onChange: (picked: T | null) => void
   blockedReason?: (match: T) => string | null
   className?: string
 }) {
   return (
-    <div
-      role="group"
-      aria-label={`Matching ${noun}s`}
-      className={cn("flex flex-col gap-1 rounded-lg border p-2", className)}
-    >
-      <p className="px-2 py-1 text-sm text-muted-foreground">
+    <Field className={className}>
+      <FieldLabel htmlFor={id}>
         {matches.length === 1
-          ? `1 ${noun} uses this number.`
-          : `${matches.length} ${noun}s use this number.`}{" "}
-        Pick one, or register a new {noun}.
-      </p>
-      {matches.map((match) => {
-        const { title, detail } = describe(match)
-        const blocked = blockedReason?.(match) ?? null
-        return (
-          <Button
-            key={match.id}
-            type="button"
-            variant="ghost"
-            data-lookup-match={blocked === null ? true : undefined}
-            disabled={blocked !== null}
-            className="h-auto justify-start py-2 text-left"
-            onClick={() => onPick(match)}
-          >
-            <span className="flex flex-col">
-              <span>{title}</span>
-              {detail || blocked ? (
-                <span className="text-xs font-normal text-muted-foreground">
-                  {[detail, blocked].filter(Boolean).join(" · ")}
-                </span>
-              ) : null}
-            </span>
-          </Button>
-        )
-      })}
-      <Button
-        type="button"
-        variant="ghost"
-        data-lookup-new
-        className="justify-start text-muted-foreground"
-        onClick={onNew}
+          ? `1 ${noun} with this number`
+          : `${matches.length} ${noun}s with this number`}
+      </FieldLabel>
+      <Select
+        value={value === undefined ? NEW : String(value)}
+        onValueChange={(next) =>
+          onChange(matches.find((match) => String(match.id) === next) ?? null)
+        }
       >
-        <UserPlusIcon data-icon="inline-start" />
-        New {noun} with this number
-      </Button>
-    </div>
+        <SelectTrigger id={id} className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper">
+          <SelectItem value={NEW}>New {noun}</SelectItem>
+          {matches.map((match) => {
+            const { title, detail } = describe(match)
+            const blocked = blockedReason?.(match) ?? null
+            const extra = [detail, blocked].filter(Boolean).join(" · ")
+            return (
+              <SelectItem
+                key={match.id}
+                value={String(match.id)}
+                disabled={blocked !== null}
+              >
+                {title}
+                {extra ? (
+                  <span className="text-muted-foreground">{extra}</span>
+                ) : null}
+              </SelectItem>
+            )
+          })}
+        </SelectContent>
+      </Select>
+    </Field>
   )
 }
 

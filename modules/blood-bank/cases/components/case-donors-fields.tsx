@@ -17,10 +17,9 @@ import {
   YesNoControl,
 } from "@/components/form-controls"
 import {
-  focusFirstMatch,
   focusPast,
   LinkedRecord,
-  LookupMatches,
+  LookupMatchSelect,
   usePhoneLookup,
 } from "@/components/phone-lookup"
 import {
@@ -103,7 +102,6 @@ export function CaseDonorEntry({
       )
       clearErrors([`donors.${index}.donor_id`, `donors.${index}.donor`])
     })
-    lookup.clearMatches()
   }
 
   async function onPhoneCommit(
@@ -123,25 +121,14 @@ export function CaseDonorEntry({
         focusPast(section)
       }
     } else if (enterFrom) {
-      if (result.status === "many") {
-        focusFirstMatch(section)
-      } else {
-        focusNextField(enterFrom)
-      }
+      // On to the match select when there are matches, else the new donor's fields.
+      focusNextField(enterFrom)
     }
   }
 
   function unlink() {
     link(null)
     document.getElementById(phonePath)?.focus()
-  }
-
-  function registerNew() {
-    lookup.clearMatches()
-    const phone = document.getElementById(phonePath)
-    if (phone) {
-      focusNextField(phone)
-    }
   }
 
   return (
@@ -176,8 +163,18 @@ export function CaseDonorEntry({
           onCommit={onPhoneCommit}
           onEdit={lookup.forget}
         />
-        <div className="flex flex-col justify-end gap-1 lg:col-span-3 lg:pb-px">
-          {isLinked ? (
+        <div className="flex flex-col justify-end gap-1 lg:col-span-3">
+          {lookup.matches.length > 0 ? (
+            <LookupMatchSelect
+              id={`donors.${index}.donor_match`}
+              matches={lookup.matches}
+              noun="donor"
+              describe={describeDonor}
+              value={donorId}
+              onChange={link}
+              blockedReason={blockedReason}
+            />
+          ) : isLinked ? (
             <LinkedRecord
               recordNo={linked?.donor_no ?? `#${donorId}`}
               kind="Returning donor"
@@ -190,22 +187,6 @@ export function CaseDonorEntry({
           ) : null}
           <FieldError errors={[donorIdError]} />
         </div>
-        {lookup.matches.length > 0 ? (
-          <LookupMatches
-            className="sm:col-span-2 lg:col-span-4"
-            matches={lookup.matches}
-            noun="donor"
-            describe={describeDonor}
-            onPick={(donor) => {
-              link(donor)
-              if (sectionRef.current) {
-                focusPast(sectionRef.current)
-              }
-            }}
-            onNew={registerNew}
-            blockedReason={blockedReason}
-          />
-        ) : null}
 
         <TextControl
           name={`donors.${index}.donor.name`}
