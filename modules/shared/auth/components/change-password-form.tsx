@@ -10,6 +10,7 @@ import { Form } from "@/components/form"
 import { Button } from "@/components/ui/button"
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -23,13 +24,18 @@ import { useChangePassword, useMe } from "@/modules/shared/auth/queries"
 import { safeNextPath } from "@/modules/shared/auth/safe-next-path"
 import {
   changePasswordSchema,
+  passwordRuleHint,
   type ChangePasswordValues,
 } from "@/modules/shared/auth/schemas"
 
 const fields = [
-  { name: "current_password", label: "Current password" },
-  { name: "password", label: "New password" },
-  { name: "password_confirmation", label: "Repeat new password" },
+  { name: "current_password", label: "Current password", hint: null },
+  { name: "password", label: "New password", hint: passwordRuleHint },
+  {
+    name: "password_confirmation",
+    label: "Repeat new password",
+    hint: null,
+  },
 ] as const
 
 /** Required before anything else when an admin set the password (`must_change_password`). */
@@ -78,7 +84,7 @@ export function ChangePasswordForm() {
   return (
     <Form onSubmit={form.handleSubmit(onSubmit)}>
       <FieldGroup>
-        {fields.map(({ name, label }) => (
+        {fields.map(({ name, label, hint }) => (
           <Controller
             key={name}
             name={name}
@@ -92,6 +98,7 @@ export function ChangePasswordForm() {
                   type="password"
                   aria-invalid={fieldState.invalid}
                 />
+                {hint ? <FieldDescription>{hint}</FieldDescription> : null}
                 <FieldError errors={[fieldState.error]} />
               </Field>
             )}

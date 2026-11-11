@@ -11,6 +11,7 @@ import {
 import { ChoiceGroup } from "@/components/choice-group"
 import { DateInput } from "@/components/date-input"
 import { EnumSelect } from "@/components/enum-select"
+import { SearchableSelect } from "@/components/searchable-select"
 import { NumberInput, toWholeNumber } from "@/components/number-input"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -62,8 +63,10 @@ export function TextControl({
   placeholder,
   disabled,
   className,
+  type = "text",
 }: ControlProps & {
   name: FieldPathByValue<Values, string>
+  type?: "text" | "password"
 }) {
   const { control } = useFormContext<Values>()
 
@@ -79,10 +82,64 @@ export function TextControl({
           </FieldLabel>
           <Input
             id={name}
+            type={type}
             name={field.name}
             ref={field.ref}
             value={field.value}
             onChange={field.onChange}
+            onBlur={field.onBlur}
+            placeholder={placeholder}
+            disabled={disabled}
+            aria-invalid={fieldState.invalid}
+          />
+          {description ? (
+            <FieldDescription>{description}</FieldDescription>
+          ) : null}
+          <FieldError errors={[fieldState.error]} />
+        </Field>
+      )}
+    />
+  )
+}
+
+/**
+ * Bangladeshi mobile number (`01` + 9 digits). Digits only; the format itself is checked
+ * by the schema and the backend.
+ */
+export function MobileControl({
+  name,
+  label,
+  required,
+  description,
+  placeholder = "01*********",
+  disabled,
+  className,
+}: Omit<ControlProps, "hideLabel"> & {
+  name: FieldPathByValue<Values, string>
+}) {
+  const { control } = useFormContext<Values>()
+
+  return (
+    <Controller
+      name={name}
+      control={control}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid} className={className}>
+          <FieldLabel htmlFor={name}>
+            {label}
+            {required ? <RequiredMark /> : null}
+          </FieldLabel>
+          <Input
+            id={name}
+            type="tel"
+            inputMode="numeric"
+            maxLength={11}
+            name={field.name}
+            ref={field.ref}
+            value={field.value}
+            onChange={(event) =>
+              field.onChange(event.target.value.replace(/\D/g, ""))
+            }
             onBlur={field.onBlur}
             placeholder={placeholder}
             disabled={disabled}
@@ -423,11 +480,15 @@ export function EnumControl<T extends string>({
   className,
   labels,
   optional = false,
+  searchable = false,
 }: ControlProps & {
   name: FieldPathByValue<Values, T | "">
   labels: Record<T, string>
   optional?: boolean
+  /** A select with a search box, for long option lists. */
+  searchable?: boolean
 }) {
+  const Select = searchable ? SearchableSelect : EnumSelect
   const { control } = useFormContext<Values>()
 
   return (
@@ -440,7 +501,7 @@ export function EnumControl<T extends string>({
             {label}
             {required ? <RequiredMark /> : null}
           </FieldLabel>
-          <EnumSelect
+          <Select
             id={name}
             // `name` only admits `T | ""` paths; TS cannot resolve that through the generic.
             value={field.value as T | ""}

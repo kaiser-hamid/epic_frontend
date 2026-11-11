@@ -1,3 +1,5 @@
+import type { Designation } from "@/modules/shared/auth/enums"
+
 /** `BranchResource` as returned by `POST /api/auth/login-branches` and inside `Me`. */
 export type Branch = {
   id: number
@@ -10,7 +12,7 @@ export type AuthUser = {
   employee_id: string | null
   name: string
   username: string
-  designation: string | null
+  designation: Designation | null
 }
 
 /**

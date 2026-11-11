@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SidebarMenuButton, useSidebar } from "@/components/ui/sidebar"
+import { designationLabel } from "@/modules/shared/auth/enums"
 import { useLogout, useMe } from "@/modules/shared/auth/queries"
 
 function initials(name: string): string {
@@ -64,7 +65,7 @@ export function UserMenu() {
           <span>{me.user.username}</span>
           {me.user.designation ? (
             <span className="text-xs font-normal text-muted-foreground">
-              {me.user.designation}
+              {designationLabel(me.user.designation)}
             </span>
           ) : null}
         </DropdownMenuLabel>

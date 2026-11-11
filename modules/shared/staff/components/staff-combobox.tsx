@@ -5,6 +5,7 @@ import { useState } from "react"
 import { AutocompleteInput } from "@/components/autocomplete-input"
 import { ReadonlyInput } from "@/components/readonly-input"
 import { lookupEmptyText, useLookupTerm } from "@/hooks/use-lookup-term"
+import { designationLabel } from "@/modules/shared/auth/enums"
 import { useStaffLookup } from "@/modules/shared/staff/queries"
 import type { Staff } from "@/modules/shared/staff/types"
 
@@ -16,7 +17,7 @@ function staffItem(staff: Staff) {
       </span>
       {staff.designation ? (
         <span className="text-xs text-muted-foreground">
-          {staff.designation}
+          {designationLabel(staff.designation)}
         </span>
       ) : null}
     </div>
@@ -96,7 +97,9 @@ export function StaffCombobox({
         className="min-w-0 flex-1"
         value={
           shown
-            ? [shown.name, shown.designation].filter(Boolean).join(" · ")
+            ? [shown.name, designationLabel(shown.designation)]
+                .filter(Boolean)
+                .join(" · ")
             : null
         }
       />

@@ -44,8 +44,18 @@ const me: Me = {
 }
 
 const staff = [
-  { id: 5, employee_id: "E005", name: "Tech Rahman", designation: "MT" },
-  { id: 9, employee_id: "E009", name: "Dr Karim", designation: "Physician" },
+  {
+    id: 5,
+    employee_id: "E005",
+    name: "Tech Rahman",
+    designation: "medical_technologist",
+  },
+  {
+    id: 9,
+    employee_id: "E009",
+    name: "Dr Karim",
+    designation: "medical_officer",
+  },
 ]
 
 let screenRequests = 0

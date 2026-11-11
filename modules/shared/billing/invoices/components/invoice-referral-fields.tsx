@@ -16,6 +16,7 @@ import { CheckboxControl, TextControl } from "@/components/form-controls"
 import type { InvoiceValues } from "@/modules/shared/billing/invoices/schemas"
 import { useDoctorLookup } from "@/modules/shared/doctor/queries"
 import type { Doctor } from "@/modules/shared/doctor/types"
+import { designationLabel } from "@/modules/shared/auth/enums"
 import { useStaffLookup } from "@/modules/shared/staff/queries"
 import type { Staff } from "@/modules/shared/staff/types"
 
@@ -255,7 +256,7 @@ function staffItem(staff: Staff) {
       </span>
       {staff.designation ? (
         <span className="text-xs text-muted-foreground">
-          {staff.designation}
+          {designationLabel(staff.designation)}
         </span>
       ) : null}
     </div>
@@ -315,7 +316,7 @@ function StaffFields() {
           className="min-w-0 flex-1"
           value={
             selected
-              ? [selected.name, selected.designation]
+              ? [selected.name, designationLabel(selected.designation)]
                   .filter(Boolean)
                   .join(" · ")
               : null
