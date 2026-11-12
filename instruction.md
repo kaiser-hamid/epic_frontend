@@ -1,6 +1,7 @@
 Update the Blood Bank donor registration UI and donor displays for 5 new donor fields.
 
 API changes (all fields optional/nullable, snake_case):
+
 - father_name: string, max 255
 - marital_status: enum "single" | "married" | "divorced" | "widowed"
 - religion: enum "islam" | "hinduism" | "buddhism" | "christianity" | "other"
@@ -8,6 +9,7 @@ API changes (all fields optional/nullable, snake_case):
 - occupation: string, max 100
 
 Where they apply:
+
 1. Request: the donor object accepted when registering a donor. This is `donors[].donor` in
    POST /api/blood-bank/cases and `donor` in POST /api/blood-bank/cases/{case}/donors.
    Send these fields alongside the existing name, age/date_of_birth, gender, blood_group,
@@ -20,6 +22,7 @@ Where they apply:
    - the `donor` object inside case donors (case responses and add-donor responses)
 
 Tasks:
+
 - Add the fields to the donor type/interface and to the Zod/form schema:
   - father_name, relationship and occupation: optional strings with max lengths 255 / 100 / 100.
   - marital_status and religion: optional enums using the values above.

@@ -9,7 +9,7 @@ export const loginSchema = z.object({
 export type LoginValues = z.infer<typeof loginSchema>
 
 /** Mirrors the backend `AccountRules`. */
-export const PASSWORD_MIN = 10
+export const PASSWORD_MIN = 6
 export const PASSWORD_MAX = 64
 
 export const passwordRuleHint = `${PASSWORD_MIN} to ${PASSWORD_MAX} characters: letters, numbers or both. No special characters.`
