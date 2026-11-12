@@ -199,8 +199,10 @@ function GrantsEditorPage({
     .filter(Boolean)
     .join(" · ")
 
+  // From md up the page fills the viewport below the app header (h-16, or h-12 with the sidebar
+  // collapsed to icons) and main's padding, so only the permission list scrolls.
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 md:h-[calc(100svh-7rem)] md:group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100svh-6rem)]">
       <PageHeader
         title={
           <span className="flex flex-wrap items-center gap-3">
@@ -266,8 +268,8 @@ function GrantsEditorPage({
       {user.is_super_admin ? null : branch === null ? (
         <p className="text-sm text-muted-foreground">No active branches.</p>
       ) : (
-        <div className="grid items-start gap-4 md:grid-cols-[15rem_1fr]">
-          <Card className="py-2">
+        <div className="grid items-start gap-4 md:min-h-0 md:flex-1 md:grid-cols-[15rem_1fr] md:grid-rows-[minmax(0,1fr)]">
+          <Card className="py-2 md:max-h-full md:overflow-y-auto">
             <CardContent className="px-2">
               <nav aria-label="Branches" className="flex flex-col gap-0.5">
                 {branches.map((option) => {
@@ -308,7 +310,7 @@ function GrantsEditorPage({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="md:max-h-full">
             <CardHeader>
               <CardTitle>{branch.name}</CardTitle>
               <CardDescription>
@@ -316,7 +318,7 @@ function GrantsEditorPage({
                 {isDirty ? " · unsaved changes" : ""}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="md:min-h-0 md:overflow-y-auto">
               <GrantEditor
                 modules={modules}
                 checked={checked}
