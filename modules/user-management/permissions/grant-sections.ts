@@ -16,6 +16,8 @@ export type GrantSection = {
 export type GrantModule = {
   key: string
   label: string
+  /** Only branches that run it offer it (e.g. Blood Bank); otherwise every branch does. */
+  optional: boolean
   sections: GrantSection[]
 }
 
@@ -34,53 +36,79 @@ export function buildGrantModules(
   const order = new Map(catalog.map((entry, index) => [entry.name, index]))
   const modules = new Map<
     string,
-    { label: string; entries: PermissionCatalogEntry[] }
+    { label: string; optional: boolean; entries: PermissionCatalogEntry[] }
   >()
   for (const entry of catalog) {
     const bucket = modules.get(entry.module) ?? {
       label: entry.module_label,
+      optional: entry.module_is_optional,
       entries: [],
     }
     bucket.entries.push(entry)
     modules.set(entry.module, bucket)
   }
 
-  return [...modules].map(([key, { label, entries: moduleEntries }]) => {
-    const byName = new Map(moduleEntries.map((entry) => [entry.name, entry]))
-    const inSomeRole = new Set<string>()
-    const sections: GrantSection[] = []
+  return [...modules].map(
+    ([key, { label, optional, entries: moduleEntries }]) => {
+      const byName = new Map(moduleEntries.map((entry) => [entry.name, entry]))
+      const inSomeRole = new Set<string>()
+      const sections: GrantSection[] = []
 
-    for (const role of roles) {
-      if (role.module !== key) {
-        continue
+      for (const role of roles) {
+        if (role.module !== key) {
+          continue
+        }
+        const entries = role.permissions
+          .flatMap((name) => byName.get(name) ?? [])
+          .sort((a, b) => (order.get(a.name) ?? 0) - (order.get(b.name) ?? 0))
+        if (entries.length === 0) {
+          continue
+        }
+        entries.forEach((entry) => inSomeRole.add(entry.name))
+        sections.push({
+          key: `role-${role.id}`,
+          roleId: role.id,
+          title: role.name,
+          entries,
+        })
       }
-      const entries = role.permissions
-        .flatMap((name) => byName.get(name) ?? [])
-        .sort((a, b) => (order.get(a.name) ?? 0) - (order.get(b.name) ?? 0))
-      if (entries.length === 0) {
-        continue
+
+      const others = moduleEntries.filter(
+        (entry) => !inSomeRole.has(entry.name)
+      )
+      if (others.length > 0) {
+        sections.push({
+          key: `other-${key}`,
+          roleId: null,
+          title: `Other ${label} permissions`,
+          entries: others,
+        })
       }
-      entries.forEach((entry) => inSomeRole.add(entry.name))
-      sections.push({
-        key: `role-${role.id}`,
-        roleId: role.id,
-        title: role.name,
-        entries,
-      })
-    }
 
-    const others = moduleEntries.filter((entry) => !inSomeRole.has(entry.name))
-    if (others.length > 0) {
-      sections.push({
-        key: `other-${key}`,
-        roleId: null,
-        title: `Other ${label} permissions`,
-        entries: others,
-      })
+      return { key, label, optional, sections }
     }
+  )
+}
 
-    return { key, label, sections }
-  })
+/** The modules a branch offers: every non-optional module, plus the optional ones the branch runs. */
+export function modulesForBranch(
+  modules: GrantModule[],
+  branchModules: readonly string[]
+): GrantModule[] {
+  return modules.filter(
+    (module) => !module.optional || branchModules.includes(module.key)
+  )
+}
+
+/** Every permission name the given modules offer. */
+export function offeredNames(modules: GrantModule[]): Set<string> {
+  return new Set(
+    modules.flatMap((module) =>
+      module.sections.flatMap((section) =>
+        section.entries.map((entry) => entry.name)
+      )
+    )
+  )
 }
 
 export function sectionState(

@@ -36,12 +36,20 @@ export type UserFilters = {
 
 /** `BranchPermissionsResource`: what a user holds in one branch. */
 export type BranchPermissions = {
-  branch: Branch
+  branch: BranchWithModules
   permissions: string[]
   /** Role templates the permissions fully cover (display only); a template inside a bigger match is left out. */
   matched_roles: RoleRef[]
   /** Permissions no matched role explains. */
   other_permissions: string[]
+}
+
+/**
+ * A branch with the optional modules it runs (e.g. `["blood-bank"]`). Modules every branch has are not
+ * listed. A permission of an optional module the branch does not run cannot be given there and allows nothing.
+ */
+export type BranchWithModules = Branch & {
+  modules: string[]
 }
 
 /** A role template named by the backend's role matching. */
@@ -60,6 +68,8 @@ export type PermissionCatalogEntry = {
   module: string
   module_label: string
   module_order: number
+  /** True when only some branches run the module (see `BranchWithModules.modules`). */
+  module_is_optional: boolean
   group: string
   description: string | null
 }

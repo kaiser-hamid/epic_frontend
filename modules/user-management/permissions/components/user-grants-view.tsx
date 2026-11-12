@@ -23,7 +23,6 @@ import { errorMessage } from "@/lib/api-error"
 import { cn } from "@/lib/utils"
 import { designationLabel } from "@/modules/shared/auth/enums"
 import { useMe } from "@/modules/shared/auth/queries"
-import type { Branch } from "@/modules/shared/auth/types"
 import { useBreadcrumbLabel } from "@/modules/shared/layout/breadcrumbs"
 import { CopyFromDialog } from "@/modules/user-management/permissions/components/copy-from-dialog"
 import { GrantEditor } from "@/modules/user-management/permissions/components/grant-editor"
@@ -31,6 +30,8 @@ import {
   buildGrantModules,
   fullyTickedRoleIds,
   type GrantModule,
+  modulesForBranch,
+  offeredNames,
   sameSelection,
 } from "@/modules/user-management/permissions/grant-sections"
 import { userErrorMessages } from "@/modules/user-management/users/error-messages"
@@ -44,18 +45,23 @@ import {
 } from "@/modules/user-management/users/queries"
 import type {
   BranchPermissions,
+  BranchWithModules,
   User,
 } from "@/modules/user-management/users/types"
 
-/** Stable empty list, so memoized selections don't reset every render. */
+/** Stable empty lists, so memoized selections don't reset every render. */
 const noPermissions: string[] = []
+const noModules: string[] = []
 
 function plural(count: number): string {
   return `${count} permission${count === 1 ? "" : "s"}`
 }
 
 /** Active branches plus deactivated ones the user still holds grants in (so they can be cleared). */
-function branchList(options: Branch[], grants: BranchPermissions[]): Branch[] {
+function branchList(
+  options: BranchWithModules[],
+  grants: BranchPermissions[]
+): BranchWithModules[] {
   const extra = grants
     .map((grant) => grant.branch)
     .filter((branch) => !options.some((option) => option.id === branch.id))
@@ -115,7 +121,7 @@ function GrantsEditorPage({
 }: {
   user: User
   grants: BranchPermissions[]
-  branches: Branch[]
+  branches: BranchWithModules[]
   modules: GrantModule[]
 }) {
   const { data: me } = useMe()
@@ -124,7 +130,7 @@ function GrantsEditorPage({
 
   const [chosenBranchId, setChosenBranchId] = useState<number | null>(null)
   const [draft, setDraft] = useState<Set<string> | null>(null)
-  const [switchTo, setSwitchTo] = useState<Branch | null>(null)
+  const [switchTo, setSwitchTo] = useState<BranchWithModules | null>(null)
   const [copyOpen, setCopyOpen] = useState(false)
 
   const savedIn = (branchId: number): string[] =>
@@ -138,13 +144,42 @@ function GrantsEditorPage({
     branches[0] ??
     null
 
-  const saved = branch ? savedIn(branch.id) : noPermissions
+  // A branch offers every common module plus the optional ones it runs (Blood Bank: East Gate only).
+  const branchModules = branch?.modules ?? noModules
+  const branchGrantModules = useMemo(
+    () => modulesForBranch(modules, branchModules),
+    [modules, branchModules]
+  )
+  const offered = useMemo(
+    () => offeredNames(branchGrantModules),
+    [branchGrantModules]
+  )
+
+  const savedAll = branch ? savedIn(branch.id) : noPermissions
+  const saved = useMemo(
+    () => savedAll.filter((name) => offered.has(name)),
+    [savedAll, offered]
+  )
+  // Held from before a module was switched off for this branch: they allow nothing, and Save removes them.
+  const leftoverCount = savedAll.length - saved.length
+  const leftoverLabels = modules
+    .filter(
+      (module) =>
+        !branchGrantModules.includes(module) &&
+        module.sections.some((section) =>
+          section.entries.some((entry) => savedAll.includes(entry.name))
+        )
+    )
+    .map((module) => module.label)
+    .join(", ")
+
   const checked = useMemo(() => draft ?? new Set(saved), [draft, saved])
   const isDirty = draft !== null && !sameSelection(draft, saved)
+  const canSave = isDirty || leftoverCount > 0
 
   const total =
     grants.reduce((sum, grant) => sum + grant.permissions.length, 0) -
-    saved.length +
+    savedAll.length +
     checked.size
 
   useEffect(() => {
@@ -156,7 +191,7 @@ function GrantsEditorPage({
     return () => window.removeEventListener("beforeunload", warn)
   }, [isDirty])
 
-  function openBranch(next: Branch) {
+  function openBranch(next: BranchWithModules) {
     if (next.id === branch?.id) {
       return
     }
@@ -177,7 +212,7 @@ function GrantsEditorPage({
         userId: user.id,
         branchId: branch.id,
         permissions: [...checked].sort(),
-        appliedRoleIds: fullyTickedRoleIds(modules, checked),
+        appliedRoleIds: fullyTickedRoleIds(branchGrantModules, checked),
       },
       {
         onSuccess: (result) => {
@@ -236,7 +271,7 @@ function GrantsEditorPage({
                 <Undo2Icon data-icon="inline-start" />
                 Undo
               </Button>
-              <Button disabled={!isDirty || sync.isPending} onClick={save}>
+              <Button disabled={!canSave || sync.isPending} onClick={save}>
                 {sync.isPending ? (
                   <Spinner data-icon="inline-start" />
                 ) : (
@@ -318,9 +353,19 @@ function GrantsEditorPage({
                 {isDirty ? " · unsaved changes" : ""}
               </CardDescription>
             </CardHeader>
-            <CardContent className="md:min-h-0 md:overflow-y-auto">
+            <CardContent className="flex flex-col gap-4 md:min-h-0 md:overflow-y-auto">
+              {leftoverCount > 0 ? (
+                <Alert>
+                  <AlertDescription>
+                    {plural(leftoverCount)} from {leftoverLabels}{" "}
+                    {leftoverCount === 1 ? "does" : "do"} nothing here, because{" "}
+                    {branch.name} does not run {leftoverLabels}.
+                    {editable ? " Save to remove them." : ""}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
               <GrantEditor
-                modules={modules}
+                modules={branchGrantModules}
                 checked={checked}
                 onChange={setDraft}
                 disabled={!editable || sync.isPending}
@@ -357,7 +402,7 @@ function GrantsEditorPage({
           branch={branch}
           targetUserId={user.id}
           onCopy={(permissions, source) => {
-            setDraft(new Set(permissions))
+            setDraft(new Set(permissions.filter((name) => offered.has(name))))
             toast.success(
               `Copied ${plural(permissions.length)} from ${source.name}. Press Save to apply.`
             )

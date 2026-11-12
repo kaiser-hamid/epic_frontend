@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest"
 import {
   buildGrantModules,
   fullyTickedRoleIds,
+  modulesForBranch,
+  offeredNames,
   sectionState,
   toggleSection,
   type GrantSection,
@@ -22,6 +24,7 @@ function entry(
     module,
     module_label,
     module_order: 0,
+    module_is_optional: module === "blood-bank",
     group: "Group",
     description: name,
   }
@@ -104,6 +107,16 @@ describe("grant modules", () => {
     expect([
       ...toggleSection(sampleCollection, new Set(["bb.a", "bb.b", "bill.a"])),
     ]).toEqual(["bill.a"])
+  })
+
+  it("offers an optional module only in branches that run it, and common modules everywhere", () => {
+    const modules = buildGrantModules(catalog, roles)
+    const labels = (branchModules: string[]) =>
+      modulesForBranch(modules, branchModules).map((module) => module.label)
+
+    expect(labels(["blood-bank"])).toEqual(["Blood Bank", "Billing"])
+    expect(labels([])).toEqual(["Billing"])
+    expect([...offeredNames(modulesForBranch(modules, []))]).toEqual(["bill.a"])
   })
 
   it("reports only fully ticked templates as applied", () => {

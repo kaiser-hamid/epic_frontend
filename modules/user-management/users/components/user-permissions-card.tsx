@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 import { SharedPermission } from "@/modules/shared/rbac/permissions"
 import { useCan } from "@/modules/shared/rbac/use-can"
 import {
@@ -31,13 +32,16 @@ import type {
 type HeldGroup = {
   key: string
   title: string
+  /** An optional module the branch does not run: its permissions allow nothing there. */
+  inactive: boolean
   entries: PermissionCatalogEntry[]
 }
 
 /** Only the modules the user holds something in, in catalog (module) order. Unknown names get their own group. */
 function heldGroups(
   catalog: PermissionCatalogEntry[],
-  permissions: string[]
+  permissions: string[],
+  branchModules: string[]
 ): HeldGroup[] {
   const held = new Set(permissions)
   const groups = new Map<string, HeldGroup>()
@@ -50,6 +54,8 @@ function heldGroups(
     const group = groups.get(key) ?? {
       key,
       title: entry.module_label,
+      inactive:
+        entry.module_is_optional && !branchModules.includes(entry.module),
       entries: [],
     }
     group.entries.push(entry)
@@ -59,11 +65,13 @@ function heldGroups(
     groups.set("unknown", {
       key: "unknown",
       title: "Other",
+      inactive: false,
       entries: [...held].map((name) => ({
         name,
         module: "",
         module_label: "Other",
         module_order: 0,
+        module_is_optional: false,
         group: "",
         description: null,
       })),
@@ -140,8 +148,8 @@ function BranchSummary({
   catalog: PermissionCatalogEntry[]
 }) {
   const groups = useMemo(
-    () => heldGroups(catalog, grant.permissions),
-    [catalog, grant.permissions]
+    () => heldGroups(catalog, grant.permissions, grant.branch.modules),
+    [catalog, grant.permissions, grant.branch.modules]
   )
 
   return (
@@ -162,9 +170,16 @@ function BranchSummary({
           <div key={group.key} className="flex flex-col gap-1">
             <dt className="text-xs font-medium text-muted-foreground">
               {group.title}
+              {group.inactive ? " · not run in this branch" : ""}
             </dt>
             {group.entries.map((entry) => (
-              <dd key={entry.name} className="text-sm">
+              <dd
+                key={entry.name}
+                className={cn(
+                  "text-sm",
+                  group.inactive && "text-muted-foreground line-through"
+                )}
+              >
                 {entry.description ?? entry.name}
               </dd>
             ))}

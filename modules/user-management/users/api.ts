@@ -5,7 +5,6 @@ import type {
   ResourceResponse,
 } from "@/lib/api-types"
 import { emptyToNull } from "@/lib/utils"
-import type { Branch } from "@/modules/shared/auth/types"
 import type {
   CreateUserValues,
   ResetPasswordValues,
@@ -13,6 +12,7 @@ import type {
 } from "@/modules/user-management/users/schemas"
 import type {
   BranchPermissions,
+  BranchWithModules,
   PermissionCatalogEntry,
   RoleTemplate,
   User,
@@ -163,9 +163,9 @@ export async function listRoleTemplates(): Promise<RoleTemplate[]> {
   return response.data.data
 }
 
-/** Active branches a permission can be assigned in. */
-export async function listBranchOptions(): Promise<Branch[]> {
-  const response = await apiClient.get<ResourceResponse<Branch[]>>(
+/** Active branches a permission can be assigned in, with the optional modules each runs. */
+export async function listBranchOptions(): Promise<BranchWithModules[]> {
+  const response = await apiClient.get<ResourceResponse<BranchWithModules[]>>(
     "/api/access/branch-options"
   )
   return response.data.data
