@@ -25,21 +25,34 @@ export function PageHeaderSkeleton({ actions = [] }: { actions?: string[] }) {
   )
 }
 
-/** Placeholder for a label/value card: the real title and labels, a bar for each value. */
+/**
+ * Placeholder for a label/value card: the real title and labels, a bar for each value.
+ * `twoColumn` lays the pairs out two per row from md up (labels in reading order);
+ * `children` render below the list.
+ */
 export function DetailCardSkeleton({
   title,
   labels,
+  twoColumn = false,
+  children,
 }: {
   title: string
   labels: string[]
+  twoColumn?: boolean
+  children?: React.ReactNode
 }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-[auto_1fr] items-center gap-x-6 gap-y-2 text-sm">
+      <CardContent className="flex flex-col gap-6">
+        <dl
+          className={cn(
+            "grid grid-cols-[auto_1fr] items-center gap-x-6 gap-y-2 text-sm",
+            twoColumn && "md:grid-cols-[auto_1fr_auto_1fr]"
+          )}
+        >
           {labels.map((label, index) => (
             <Fragment key={label}>
               <dt className="text-muted-foreground">{label}</dt>
@@ -51,6 +64,7 @@ export function DetailCardSkeleton({
             </Fragment>
           ))}
         </dl>
+        {children}
       </CardContent>
     </Card>
   )

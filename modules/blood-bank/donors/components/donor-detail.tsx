@@ -3,6 +3,10 @@
 import Link from "next/link"
 
 import { DateTime } from "@/components/date-time"
+import {
+  DetailCardSkeleton,
+  PageHeaderSkeleton,
+} from "@/components/detail-skeleton"
 import { PageHeader } from "@/components/page-header"
 import { QueryError } from "@/components/query-error"
 import { Badge } from "@/components/ui/badge"
@@ -92,7 +96,7 @@ export function DonorDetailView({ donorId }: { donorId: number }) {
   useBreadcrumbLabel(String(donorId), query.data?.donor_no)
 
   if (query.isPending) {
-    return <Skeleton className="h-96 w-full" />
+    return <DonorDetailSkeleton />
   }
   if (query.isError) {
     if (hasErrorCode(query.error, ErrorCode.NotFound)) {
@@ -191,6 +195,92 @@ export function DonorDetailView({ donorId }: { donorId: number }) {
         </CardHeader>
         <CardContent>
           <DonationHistory donor={donor} />
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+/** In reading order: the card shows them two per row. */
+const donorLabels = [
+  "Age",
+  "Date of birth",
+  "Gender",
+  "Blood group",
+  "Phone",
+  "National ID",
+  "Father's name",
+  "Marital status",
+  "Religion",
+  "Occupation",
+  "Address",
+  "Regular volunteer",
+]
+
+/** Same frame as the loaded donor: static labels and headings, placeholders for the values. */
+function DonorDetailSkeleton() {
+  return (
+    <div
+      className="flex flex-col gap-6"
+      aria-busy="true"
+      aria-label="Loading donor"
+    >
+      <PageHeaderSkeleton />
+
+      <DetailCardSkeleton title="Donor" labels={donorLabels} twoColumn>
+        <Skeleton className="h-4 w-full max-w-md" />
+      </DetailCardSkeleton>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Donation history</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-hidden rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Case</TableHead>
+                  <TableHead>Branch</TableHead>
+                  <TableHead>Donated for</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Bag</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow className="*:align-top">
+                  <TableCell>
+                    <Skeleton className="h-4 w-32" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1.5">
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1.5">
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1.5">
+                      <Skeleton className="h-5 w-10 rounded-full" />
+                      <Skeleton className="h-3 w-36" />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
