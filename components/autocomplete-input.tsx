@@ -75,7 +75,7 @@ export function AutocompleteInput<T>({
             role="combobox"
             aria-autocomplete="list"
             aria-expanded={expanded}
-            autoComplete="off"
+            autoComplete="nope"
             value={value}
             onChange={(event) => {
               onValueChange(event.target.value)

@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "User permissions" }
 
 export default async function UserGrantsPage({
   params,
-}: PageProps<"/user-management/permissions/[userId]">) {
+}: PageProps<"/user-management/access-control/[userId]">) {
   const userId = parseRouteId((await params).userId)
   if (userId === null) {
     notFound()

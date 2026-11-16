@@ -4,12 +4,7 @@ import { useEffect } from "react"
 import { Controller, useFormContext, useWatch } from "react-hook-form"
 
 import { RequiredMark } from "@/components/required-mark"
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import {
   Select,
   SelectContent,
@@ -116,9 +111,6 @@ export function InvoiceDiscountFields() {
                 ))}
               </SelectContent>
             </Select>
-            <FieldDescription>
-              Applies to every test, except tests with their own discount rate.
-            </FieldDescription>
             <FieldError errors={[fieldState.error]} />
           </Field>
         )}

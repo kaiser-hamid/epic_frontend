@@ -19,8 +19,8 @@ export const userManagementNav: NavItem = {
       permission: SharedPermission.UserView,
     },
     {
-      title: "Permissions",
-      href: "/user-management/permissions",
+      title: "Access Control",
+      href: "/user-management/access-control",
       permission: SharedPermission.UserAssignPermissions,
     },
   ],

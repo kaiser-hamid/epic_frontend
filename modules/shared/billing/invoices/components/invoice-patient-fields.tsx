@@ -3,7 +3,7 @@
 import { useFormContext, useFormState, useWatch } from "react-hook-form"
 
 import { focusNextField } from "@/components/form"
-import { FieldDescription, FieldError } from "@/components/ui/field"
+import { FieldError } from "@/components/ui/field"
 import {
   AgeControl,
   DateControl,
@@ -110,10 +110,6 @@ export function InvoicePatientFields() {
             value={patientId}
             onChange={link}
           />
-        ) : canLookup ? (
-          <FieldDescription className="sm:pb-1.5">
-            Patients registered with this number are offered to pick from.
-          </FieldDescription>
         ) : null}
         <FieldError errors={[patientIdError]} />
       </div>
@@ -153,7 +149,6 @@ export function InvoicePatientFields() {
       <DateControl
         name="patient.date_of_birth"
         label="Date of birth"
-        description="Age and date of birth fill each other."
         ageNames={{
           years: "patient.age_years",
           months: "patient.age_months",

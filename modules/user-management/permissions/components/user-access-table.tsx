@@ -135,7 +135,7 @@ export function UserAccessTable() {
         onPageChange={setPage}
         getRowId={(row) => String(row.id)}
         onRowClick={(row) =>
-          router.push(`/user-management/permissions/${row.id}`)
+          router.push(`/user-management/access-control/${row.id}`)
         }
         emptyTitle="No users found"
       />

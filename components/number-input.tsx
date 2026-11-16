@@ -34,7 +34,7 @@ export function NumberInput({
     <Input
       type="text"
       inputMode="numeric"
-      autoComplete="off"
+      autoComplete="nope"
       maxLength={max === undefined ? undefined : String(max).length}
       value={value ?? ""}
       onChange={(event) => onChange(toWholeNumber(event.target.value))}

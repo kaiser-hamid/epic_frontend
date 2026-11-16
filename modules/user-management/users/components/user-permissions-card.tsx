@@ -97,7 +97,7 @@ export function UserPermissionsCard({ user }: { user: User }) {
         {canAssign && user.abilities.assign_permissions ? (
           <CardAction>
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/user-management/permissions/${user.id}`}>
+              <Link href={`/user-management/access-control/${user.id}`}>
                 <PencilIcon data-icon="inline-start" />
                 Edit permissions
               </Link>

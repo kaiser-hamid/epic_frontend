@@ -83,7 +83,9 @@ export function TextControl({
           <Input
             id={name}
             type={type}
-            name={field.name}
+            // Chrome ignores autocomplete="off" on name/address-like fields and keys its saved
+            // suggestions on the name attribute: an unknown token and no name stop both.
+            autoComplete="nope"
             ref={field.ref}
             value={field.value}
             onChange={field.onChange}
@@ -320,7 +322,7 @@ export function PhoneControl({
             <InputGroupInput
               type="tel"
               inputMode="numeric"
-              autoComplete="off"
+              autoComplete="nope"
               maxLength={20}
               data-enter-key="native"
               id={name}
@@ -429,7 +431,7 @@ export function AgeControl({
                 <InputGroupInput
                   type="text"
                   inputMode="numeric"
-                  autoComplete="off"
+                  autoComplete="nope"
                   maxLength={String(part.max).length}
                   id={part.name}
                   name={field.name}

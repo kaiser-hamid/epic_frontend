@@ -515,7 +515,7 @@ function UnitCrossmatchRow({
                 {...field}
                 id={id("remarks")}
                 maxLength={REMARKS_MAX}
-                autoComplete="off"
+                autoComplete="nope"
                 aria-invalid={fieldState.invalid}
               />
               <FieldError errors={[fieldState.error]} />
@@ -591,7 +591,7 @@ function VitalsBlock({
                 {...field}
                 id={id("temperature_f")}
                 inputMode="decimal"
-                autoComplete="off"
+                autoComplete="nope"
                 maxLength={5}
                 aria-invalid={fieldState.invalid}
               />

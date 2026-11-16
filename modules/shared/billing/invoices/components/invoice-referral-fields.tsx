@@ -74,6 +74,7 @@ export function InvoiceReferralFields() {
           name="referral.remark"
           label="Remarks"
           className="sm:col-span-4"
+          disabled={isSelfReferral}
         />
       </DoctorFields>
       {showSecond ? (

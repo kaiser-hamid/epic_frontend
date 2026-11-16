@@ -1,10 +1,11 @@
 import * as React from "react"
 import { cn } from "cn"
 
+// Chrome keys its saved suggestions on `name`; forms here use react-hook-form, so the DOM name is dropped.
 function Input({
   className,
   type,
-  autoComplete = "off",
+  autoComplete = "nope",
   ...props
 }: React.ComponentProps<"input">) {
   return (
@@ -17,6 +18,7 @@ function Input({
         className
       )}
       {...props}
+      name={undefined}
     />
   )
 }

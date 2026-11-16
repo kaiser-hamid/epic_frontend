@@ -5,13 +5,13 @@ import { SharedPermission } from "@/modules/shared/rbac/permissions"
 import { RequirePermission } from "@/modules/shared/rbac/require-permission"
 import { UserAccessTable } from "@/modules/user-management/permissions/components/user-access-table"
 
-export const metadata: Metadata = { title: "Permissions" }
+export const metadata: Metadata = { title: "Access Control" }
 
 export default function PermissionsPage() {
   return (
     <RequirePermission permission={SharedPermission.UserAssignPermissions}>
       <PageHeader
-        title="Permissions"
+        title="Access Control"
         description="Who may do what, per branch. Open a user to change their permissions."
       />
       <UserAccessTable />

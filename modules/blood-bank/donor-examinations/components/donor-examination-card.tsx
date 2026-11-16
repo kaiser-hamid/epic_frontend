@@ -413,7 +413,7 @@ function MeasurementField({
               onBlur={field.onBlur}
               inputMode={inputMode}
               placeholder={placeholder}
-              autoComplete="off"
+              autoComplete="nope"
               disabled={disabled}
               aria-invalid={fieldState.invalid}
             />
