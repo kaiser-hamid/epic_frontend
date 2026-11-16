@@ -1,8 +1,10 @@
 "use client"
 
-import { Fragment } from "react"
-
 import { DateTime } from "@/components/date-time"
+import {
+  DetailCardSkeleton,
+  PageHeaderSkeleton,
+} from "@/components/detail-skeleton"
 import { Money } from "@/components/money"
 import { PageHeader } from "@/components/page-header"
 import { QueryError } from "@/components/query-error"
@@ -245,20 +247,11 @@ function InvoiceDetailSkeleton() {
       aria-busy="true"
       aria-label="Loading invoice"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-7 w-56" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-9 w-20" />
-        </div>
-      </div>
+      <PageHeaderSkeleton actions={["w-24", "w-20"]} />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <SkeletonDetailCard title="Patient" labels={patientLabels} />
-        <SkeletonDetailCard title="Invoice" labels={invoiceLabels} />
+        <DetailCardSkeleton title="Patient" labels={patientLabels} />
+        <DetailCardSkeleton title="Invoice" labels={invoiceLabels} />
       </div>
 
       <Card>
@@ -320,39 +313,6 @@ function InvoiceDetailSkeleton() {
         </CardContent>
       </Card>
     </div>
-  )
-}
-
-function SkeletonDetailCard({
-  title,
-  labels,
-}: {
-  title: string
-  labels: string[]
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-[auto_1fr] items-center gap-x-6 gap-y-2 text-sm">
-          {labels.map((label, index) => (
-            <Fragment key={label}>
-              <dt className="text-muted-foreground">{label}</dt>
-              <dd>
-                <Skeleton
-                  className={cn(
-                    "h-4",
-                    ["w-28", "w-36", "w-24", "w-20", "w-32"][index % 5]
-                  )}
-                />
-              </dd>
-            </Fragment>
-          ))}
-        </dl>
-      </CardContent>
-    </Card>
   )
 }
 

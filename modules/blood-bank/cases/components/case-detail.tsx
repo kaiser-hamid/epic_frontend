@@ -5,6 +5,10 @@ import Link from "next/link"
 import { useState } from "react"
 
 import { DateTime } from "@/components/date-time"
+import {
+  DetailCardSkeleton,
+  PageHeaderSkeleton,
+} from "@/components/detail-skeleton"
 import { Money } from "@/components/money"
 import { PageHeader } from "@/components/page-header"
 import { QueryError } from "@/components/query-error"
@@ -19,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { cn } from "@/lib/utils"
 import { CaseDetailsDialog } from "@/modules/blood-bank/cases/components/case-details-dialog"
 import { CaseStatusBadge } from "@/modules/blood-bank/cases/components/case-status-badge"
 import { useCase } from "@/modules/blood-bank/cases/queries"
@@ -43,7 +48,7 @@ export function CaseDetail({ caseId }: { caseId: number }) {
   const [editing, setEditing] = useState(false)
 
   if (query.isPending) {
-    return <Skeleton className="h-96 w-full" />
+    return <CaseDetailSkeleton />
   }
   if (query.isError) {
     return <QueryError error={query.error} onRetry={() => query.refetch()} />
@@ -267,6 +272,107 @@ export function CaseDetail({ caseId }: { caseId: number }) {
                   </TableRow>
                 ))
               )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+const patientLabels = [
+  "Patient no",
+  "Name",
+  "Age",
+  "Gender",
+  "Blood group",
+  "Phone",
+  "Address",
+]
+const invoiceLabels = ["Invoice no", "Amount", "Billed", "Referred by"]
+const caseLabels = [
+  "Care of",
+  "Cause of transfusion",
+  "Reference note",
+  "Supply time",
+]
+const donorWidths = ["w-10", "w-24", "w-20", "w-14"]
+
+/** Same frame as the loaded case: static labels and headings, placeholders for the values. */
+function CaseDetailSkeleton() {
+  return (
+    <div
+      className="flex flex-col gap-6"
+      aria-busy="true"
+      aria-label="Loading case"
+    >
+      <PageHeaderSkeleton actions={["w-28", "w-28"]} />
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <DetailCardSkeleton title="Patient" labels={patientLabels} />
+        <DetailCardSkeleton title="Invoice" labels={invoiceLabels} />
+        <DetailCardSkeleton title="Case" labels={caseLabels} />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Requested components</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Component</TableHead>
+                <TableHead className="text-right">Quantity</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell>
+                  <Skeleton className="h-4 w-36" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="ml-auto h-4 w-4" />
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Donors</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>#</TableHead>
+                <TableHead>Donor</TableHead>
+                <TableHead>Blood group</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Invoice no</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell>
+                  <Skeleton className="h-4 w-4" />
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1.5">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                </TableCell>
+                {donorWidths.map((width, index) => (
+                  <TableCell key={index}>
+                    <Skeleton className={cn("h-4", width)} />
+                  </TableCell>
+                ))}
+              </TableRow>
             </TableBody>
           </Table>
         </CardContent>
