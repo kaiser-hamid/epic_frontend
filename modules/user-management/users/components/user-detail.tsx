@@ -1,9 +1,20 @@
 "use client"
 
 import { DateTime } from "@/components/date-time"
+import {
+  DetailCardSkeleton,
+  PageHeaderSkeleton,
+} from "@/components/detail-skeleton"
 import { PageHeader } from "@/components/page-header"
 import { QueryError } from "@/components/query-error"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import {
   Empty,
   EmptyDescription,
@@ -29,12 +40,57 @@ function Detail({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
+/** In reading order: the card shows them two per row. */
+const accountLabels = [
+  "Name",
+  "Username",
+  "Employee ID",
+  "Designation",
+  "Phone",
+  "Status",
+  "Last sign-in",
+  "Password",
+  "Locked until",
+  "Created",
+]
+
+/** Same frame as the loaded user: static labels and headings, placeholders for the values. */
+function UserDetailSkeleton() {
+  return (
+    <div
+      className="flex flex-col gap-6"
+      aria-busy="true"
+      aria-label="Loading user"
+    >
+      <PageHeaderSkeleton avatar badge actions={["w-16", "w-36", "w-24"]} />
+
+      <DetailCardSkeleton title="Account" labels={accountLabels} twoColumn />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Permissions</CardTitle>
+          <CardDescription>
+            Granted per branch. A permission in one branch does not apply in
+            another.
+          </CardDescription>
+          <CardAction>
+            <Skeleton className="h-8 w-32" />
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-4 w-48" />
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 export function UserDetailView({ userId }: { userId: number }) {
   const query = useUser(userId)
   useBreadcrumbLabel(String(userId), query.data?.username)
 
   if (query.isPending) {
-    return <Skeleton className="h-96 w-full" />
+    return <UserDetailSkeleton />
   }
   if (query.isError) {
     if (hasErrorCode(query.error, ErrorCode.NotFound)) {

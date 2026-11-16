@@ -6,12 +6,31 @@ import { cn } from "@/lib/utils"
 
 const valueWidths = ["w-28", "w-36", "w-24", "w-20", "w-32"]
 
-/** Placeholder for a `PageHeader`: title, description line and `actions` button shapes (Tailwind widths). */
-export function PageHeaderSkeleton({ actions = [] }: { actions?: string[] }) {
+/**
+ * Placeholder for a `PageHeader`: title, description line and `actions` button shapes (Tailwind widths).
+ * `avatar` puts a round avatar before the title, `badge` a status pill after it.
+ */
+export function PageHeaderSkeleton({
+  actions = [],
+  avatar = false,
+  badge = false,
+}: {
+  actions?: string[]
+  avatar?: boolean
+  badge?: boolean
+}) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex flex-col gap-2">
-        <Skeleton className="h-7 w-56" />
+        {avatar || badge ? (
+          <div className="flex items-center gap-3">
+            {avatar ? <Skeleton className="size-10 rounded-full" /> : null}
+            <Skeleton className="h-7 w-40" />
+            {badge ? <Skeleton className="h-5 w-14 rounded-full" /> : null}
+          </div>
+        ) : (
+          <Skeleton className="h-7 w-56" />
+        )}
         <Skeleton className="h-4 w-56" />
       </div>
       {actions.length > 0 ? (
