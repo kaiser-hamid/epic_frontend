@@ -100,7 +100,7 @@ export function UserGrantsView({ userId }: { userId: number }) {
     !catalogQuery.data ||
     !rolesQuery.data
   ) {
-    return <Skeleton className="h-96 w-full" />
+    return <UserGrantsSkeleton />
   }
 
   return (
@@ -110,6 +110,88 @@ export function UserGrantsView({ userId }: { userId: number }) {
       branches={branchList(branchesQuery.data, grantsQuery.data)}
       modules={buildGrantModules(catalogQuery.data, rolesQuery.data)}
     />
+  )
+}
+
+const pageHeight =
+  "md:h-[calc(100svh-7rem)] md:group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100svh-6rem)]"
+
+/** Same frame as the editor page: header with actions, branch list, one branch's permission tree. */
+function UserGrantsSkeleton() {
+  return (
+    <div
+      className={cn("flex flex-col gap-6", pageHeight)}
+      aria-busy="true"
+      aria-label="Loading permissions"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-5 w-24 rounded-full" />
+          </div>
+          <Skeleton className="h-4 w-56" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-28" />
+          <Skeleton className="h-9 w-20" />
+          <Skeleton className="h-9 w-20" />
+        </div>
+      </div>
+
+      <div className="grid items-start gap-4 md:min-h-0 md:flex-1 md:grid-cols-[15rem_1fr] md:grid-rows-[minmax(0,1fr)]">
+        <Card className="py-2">
+          <CardContent className="flex flex-col gap-0.5 px-2">
+            {[0, 1, 2, 3, 4].map((row) => (
+              <div key={row} className="flex items-center gap-2 px-3 py-2">
+                <Skeleton className="h-4 flex-1" />
+                <Skeleton className="h-3 w-3" />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="md:max-h-full">
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-4 w-44" />
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 md:min-h-0 md:overflow-hidden">
+            <Skeleton className="mx-2 h-4 w-28" />
+            <div className="ml-2 flex flex-col gap-3 border-l-2 pl-3">
+              {[0, 1, 2, 3].map((section) => (
+                <div key={section} className="flex flex-col gap-1">
+                  <div className="flex items-center gap-3 px-2 py-1.5">
+                    <Skeleton className="size-4" />
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="ml-auto h-3 w-6" />
+                  </div>
+                  <div className="ml-4.5 flex flex-col border-l-2 pl-3">
+                    {[0, 1, 2].map((entry) => (
+                      <div
+                        key={entry}
+                        className="flex items-start gap-3 px-2 py-1.5"
+                      >
+                        <Skeleton className="mt-0.5 size-4" />
+                        <div className="flex flex-1 flex-col gap-1.5">
+                          <Skeleton
+                            className={cn(
+                              "h-4",
+                              ["w-2/5", "w-3/5", "w-1/2"][entry]
+                            )}
+                          />
+                          <Skeleton className="h-3 w-32" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   )
 }
 
@@ -237,7 +319,7 @@ function GrantsEditorPage({
   // From md up the page fills the viewport below the app header (h-16, or h-12 with the sidebar
   // collapsed to icons) and main's padding, so only the permission list scrolls.
   return (
-    <div className="flex flex-col gap-6 md:h-[calc(100svh-7rem)] md:group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100svh-6rem)]">
+    <div className={cn("flex flex-col gap-6", pageHeight)}>
       <PageHeader
         title={
           <span className="flex flex-wrap items-center gap-3">
