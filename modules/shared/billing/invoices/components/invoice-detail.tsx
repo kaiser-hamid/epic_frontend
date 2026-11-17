@@ -56,7 +56,7 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: number }) {
         title={
           <span className="flex items-center gap-2">
             Invoice {record.invoice_no}
-            {record.category === TestItemCategory.BloodBank ? (
+            {record.categories?.includes(TestItemCategory.BloodBank) ? (
               <Badge variant="secondary">
                 {testItemCategoryLabels.blood_bank}
               </Badge>

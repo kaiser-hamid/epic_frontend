@@ -12,10 +12,14 @@ export type InvoiceDiscount = {
   amount: number
 }
 
-/** `InvoiceItemResource`. `amount` is rate × quantity; `net_amount` is after the line discount. */
+/**
+ * `InvoiceItemResource`. `amount` is rate × quantity; `net_amount` is after the line discount.
+ * `category` is the item's category when billed.
+ */
 export type InvoiceItem = {
   id: number
   test_item_id: number
+  category: TestItemCategory
   code?: string
   name?: string
   department_name?: string | null
@@ -41,13 +45,14 @@ export type InvoiceReferral = {
 /**
  * `InvoiceResource`. `amount` is the payable: subtotal − discount + rounding (the payable drops
  * the paisa and rounds up to the next 10 taka). Relations are present on the detail and create
- * responses; list rows carry `patient` and `patient_type`.
+ * responses; list rows carry `patient`, `patient_type` and `items` (the list asks for them).
+ * `categories` lists the distinct categories of the lines (a bill may mix them); sent with `items`.
  */
 export type Invoice = {
   id: number
   invoice_no: string
   branch_id: number
-  category: TestItemCategory
+  categories?: TestItemCategory[]
   status: BillingStatus
   patient_type?: { id: number; code: string; name: string }
   discount?: InvoiceDiscount | null
@@ -70,9 +75,12 @@ export type Invoice = {
   created_at: string | null
 }
 
-/** `InvoiceQuoteResource`: the totals the server would bill, nothing saved. */
+/**
+ * `InvoiceQuoteResource`: the totals the server would bill, nothing saved. `categories` lists the
+ * distinct item categories on the bill.
+ */
 export type InvoiceQuote = {
-  category: TestItemCategory
+  categories: TestItemCategory[]
   discount_policy: { id: number; name: string; discount_percent: number } | null
   subtotal_amount: number
   discount_amount: number
@@ -106,6 +114,7 @@ export type InvoiceFilters = {
   /** Patient name, phone or patient no (partial). */
   search?: string | null
   status?: BillingStatus | null
+  /** Bills with at least one line of this category. */
   category?: TestItemCategory | null
   /** `YYYY-MM-DD`, inclusive. */
   billed_from?: string | null

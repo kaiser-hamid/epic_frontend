@@ -4,7 +4,7 @@ import { EnumControl } from "@/components/form-controls"
 import { careTypeLabels } from "@/modules/blood-bank/enums"
 
 /**
- * "Care of" (Daycare / Takeaway), required on a Blood Bank bill and editable on the case.
+ * "Care of" (Daycare / Takeaway), required on a bill with Blood Bank items and editable on the case.
  * Renders inside any `FormProvider`; `name` is its path there (`category_details.care_type` on
  * New Bill Entry, `care_type` on the case details form).
  */

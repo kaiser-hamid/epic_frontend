@@ -24,10 +24,10 @@ Permissions are granted per user per branch. All calls work only inside the bran
 
 ## Opening a case: POST /api/billing/invoices
 
-There is no case create endpoint. A case is opened when a **Blood Bank bill** is saved on New Bill Entry (`POST /api/billing/invoices`, permission `sh.billing.create`), in the same transaction: if the case can't be opened, the bill isn't saved either.
+There is no case create endpoint. A case is opened when a bill **with Blood Bank items** is saved on New Bill Entry (`POST /api/billing/invoices`, permission `sh.billing.create`), in the same transaction: if the case can't be opened, the bill isn't saved either.
 
-- A bill is Blood Bank when its items have `category: "blood_bank"` (`GET /api/test-items/lookup?category=blood_bank` lists them). It may not mix Blood Bank and other items: `422 INVOICE_CATEGORY_MIXED`.
-- A Blood Bank bill needs `category_details.care_type` (`daycare` / `out`); a general bill refuses `category_details`.
+- Blood Bank items have `category: "blood_bank"` (`GET /api/test-items/lookup?category=blood_bank` lists them). A bill may mix them with general items; only the Blood Bank lines reach the case.
+- A bill with Blood Bank items needs `category_details.care_type` (`daycare` / `out`); a bill without them refuses `category_details`.
 - Billed items that are component types (`bb_component_types.test_item_id`) become the case's `components` with the line quantity.
 - `idempotency_key` (uuid, one per form session) makes a resubmit return the saved bill (`200`) without a second case; another user's key → `409 IDEMPOTENCY_KEY_REUSED`.
 
@@ -43,7 +43,7 @@ There is no case create endpoint. A case is opened when a **Blood Bank bill** is
 }
 ```
 
-Also `invoice_no` (optional vendor number, letters and digits, max 30; else generated), `patient` (a new patient instead of `patient_id`). The response is the bill (`InvoiceResource`, with `category`, `patient_type`, `discount`, `subtotal_amount`, `discount_amount`, `rounding_amount`, `amount` = payable). `POST /api/billing/invoices/quote` (`items`, `patient_type_id`, `discount_policy_id`) returns the same totals without saving; `GET /api/billing/patient-types` lists the patient types and their discount policies.
+Also `invoice_no` (optional vendor number, letters and digits, max 30; else generated), `patient` (a new patient instead of `patient_id`). The response is the bill (`InvoiceResource`, with `categories` (distinct line categories, e.g. `["general", "blood_bank"]`; each item has its own `category`), `patient_type`, `discount`, `subtotal_amount`, `discount_amount`, `rounding_amount`, `amount` = payable). `POST /api/billing/invoices/quote` (`items`, `patient_type_id`, `discount_policy_id`) returns the same totals without saving; `GET /api/billing/patient-types` lists the patient types and their discount policies.
 
 ---
 

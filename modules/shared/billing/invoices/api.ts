@@ -7,7 +7,7 @@ import type {
 import { localDateTimeToIso } from "@/lib/format"
 import { emptyToNull } from "@/lib/utils"
 import {
-  invoiceCategory,
+  hasBloodBankItems,
   type InvoiceValues,
   type NewPatientValues,
   type TestLineValues,
@@ -18,7 +18,6 @@ import type {
   InvoiceQuote,
   PatientType,
 } from "@/modules/shared/billing/invoices/types"
-import { TestItemCategory } from "@/modules/shared/test-catalog/enums"
 
 const basePath = "/api/billing"
 
@@ -26,13 +25,16 @@ export type InvoiceListParams = Omit<ListParams, "filter" | "include"> & {
   filter?: InvoiceFilters
 }
 
-/** Newest first by default. Rows embed the patient and patient type. */
+/**
+ * Newest first by default. Rows embed the patient and patient type, and their lines so the row
+ * carries `categories` (a bill may mix general and Blood Bank items).
+ */
 export async function listInvoices(
   params: InvoiceListParams
 ): Promise<PaginatedResponse<Invoice>> {
   const response = await apiClient.get<PaginatedResponse<Invoice>>(
     `${basePath}/invoices`,
-    { params }
+    { params: { ...params, include: "items.testItem" } }
   )
   return response.data
 }
@@ -96,8 +98,8 @@ export function billedLines(lines: readonly Partial<TestLineValues>[]) {
 /**
  * Form values → request body. Sends exactly one of `patient_id` (found by phone) / `patient`,
  * test lines without their display-only `item`, no `doctor_id` on a self referral, the typed
- * invoice no only when given, and `category_details` only on a Blood Bank bill (empty values
- * dropped, so the server reports what is missing). Empty optional numbers stay `undefined` and
+ * invoice no only when given, and `category_details` only when a Blood Bank item is on the bill
+ * (empty values dropped, so the server reports what is missing). Empty optional numbers stay `undefined` and
  * are dropped from the JSON. The paid taka go as paisa and the delivery time as UTC ISO 8601;
  * "Given" is never sent.
  */
@@ -106,8 +108,7 @@ export function toCreateInvoicePayload(
   idempotencyKey: string
 ) {
   const { referral } = values
-  const isBloodBank =
-    invoiceCategory(values.items) === TestItemCategory.BloodBank
+  const isBloodBank = hasBloodBankItems(values.items)
 
   return {
     idempotency_key: idempotencyKey,
@@ -144,8 +145,8 @@ export type CreateInvoiceInput = {
 }
 
 /**
- * Saves the bill (registering a new patient if needed). A Blood Bank bill also opens its case
- * in the same transaction.
+ * Saves the bill (registering a new patient if needed). A bill with Blood Bank items (mixed with
+ * other items or not) also opens its case in the same transaction.
  */
 export async function createInvoice({
   values,
@@ -161,8 +162,8 @@ export async function createInvoice({
 export type PrintInvoiceInput = { id: number; reprintReason?: string }
 
 /**
- * Logs the print and returns the bill PDF: the Customer Copy, then a Non Lab Copy per
- * department. The first print is the "Original Copy"; later ones are "Duplicate Copy" and
+ * Logs the print and returns the bill PDF: the Customer Copy, the Lab Copy (all lab items), then
+ * a Non-Lab Copy per non-lab department, each with its room in the branch. The first print is the "Original Copy"; later ones are "Duplicate Copy" and
  * answer `REPRINT_REASON_REQUIRED` without a reason.
  */
 export async function printInvoice({

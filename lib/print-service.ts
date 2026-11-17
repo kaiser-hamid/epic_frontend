@@ -221,7 +221,7 @@ export function printCompatibilityReport(
   return printPdf(pdf, REPORT_PRINTER, { ...opts, exactSize: true })
 }
 
-/** A bill PDF (Customer Copy + Non Lab Copies) on the report printer's pad, printed 1:1. */
+/** A bill PDF (Customer, Lab and Non-Lab Copies) on the report printer's pad, printed 1:1. */
 export function printInvoiceCopies(
   pdf: Blob,
   opts: { jobName?: string } = {}

@@ -6,7 +6,7 @@ import type { TestItem } from "@/modules/shared/test-catalog/types"
 /**
  * Active test items whose code or name contains `search`; exact code first, at most 20.
  * `excludeIds` (the tests already on the form) are never returned; `category` narrows to one
- * kind of item (a Blood Bank bill offers Blood Bank items only).
+ * kind of item (New Bill Entry sends none: a bill may mix them).
  */
 export async function lookupTestItems(
   search: string,

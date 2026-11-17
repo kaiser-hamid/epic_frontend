@@ -2,7 +2,8 @@ import type { TestItemCategory } from "@/modules/shared/test-catalog/enums"
 
 /**
  * `TestItemResource` (lookup row). `rate` is integer paisa, for display only; the bill snapshots
- * it. `category` decides the kind of bill (Blood Bank items are never billed with others).
+ * it. `category` says which module the item also belongs to (a Blood Bank item opens the bill's
+ * Blood Bank case); items of any category may share one bill.
  * `discount_percent` is the item's own discount rate under a discount policy (null follows the
  * policy, 0 is never discounted).
  */

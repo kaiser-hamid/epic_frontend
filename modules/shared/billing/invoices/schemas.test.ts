@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { todayIsoDate } from "@/lib/format"
 import {
   emptyNewPatient,
-  invoiceCategory,
+  invoiceCategories,
   invoiceSchema,
   type InvoiceValues,
 } from "@/modules/shared/billing/invoices/schemas"
@@ -113,11 +113,17 @@ describe("invoiceSchema", () => {
   })
 })
 
-describe("invoiceCategory", () => {
-  it("is Blood Bank as soon as one Blood Bank item is picked", () => {
-    expect(invoiceCategory([{ item: testItem("general") }, {}])).toBe("general")
-    expect(invoiceCategory([{ item: testItem("blood_bank") }, {}])).toBe(
-      "blood_bank"
-    )
+describe("invoiceCategories", () => {
+  it("lists each picked category once, so a bill can mix general and Blood Bank items", () => {
+    expect(invoiceCategories([{ item: testItem("general") }, {}])).toEqual([
+      "general",
+    ])
+    expect(
+      invoiceCategories([
+        { item: testItem("general") },
+        { item: testItem("blood_bank") },
+        { item: testItem("general") },
+      ])
+    ).toEqual(["general", "blood_bank"])
   })
 })

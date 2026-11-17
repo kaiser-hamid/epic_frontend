@@ -18,6 +18,16 @@ const bloodBankItem: TestItem = {
   discount_percent: null,
 }
 
+const generalItem: TestItem = {
+  ...bloodBankItem,
+  id: 12,
+  code: "HAEM-001",
+  name: "Complete Blood Count (CBC)",
+  department_name: "Haematology",
+  category: "general",
+  rate: 40000,
+}
+
 const values: InvoiceValues = {
   invoice_no: "",
   patient: { ...emptyNewPatient, name: "Rahim Uddin", age_years: 40 },
@@ -67,12 +77,18 @@ describe("toCreateInvoicePayload", () => {
     expect(sent.referral).not.toHaveProperty("doctor_id")
   })
 
-  it("sends category details only on a Blood Bank bill, without empty values", () => {
+  it("sends category details only when a Blood Bank item is on the bill, without empty values", () => {
     expect(body(values)).not.toHaveProperty("category_details")
 
-    const items = [{ test_item_id: 30, quantity: 2, item: bloodBankItem }]
+    const items = [
+      { test_item_id: 12, quantity: 1, item: generalItem },
+      { test_item_id: 30, quantity: 2, item: bloodBankItem },
+    ]
     expect(body({ ...values, items })).toMatchObject({
-      items: [{ test_item_id: 30, quantity: 2 }],
+      items: [
+        { test_item_id: 12, quantity: 1 },
+        { test_item_id: 30, quantity: 2 },
+      ],
       category_details: { care_type: "daycare" },
     })
     expect(

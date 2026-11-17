@@ -16,7 +16,7 @@ export default function CasesPage() {
     <RequirePermission permission={BloodBankPermission.CaseView}>
       <PageHeader
         title="Cases"
-        description="Patient blood requests for this branch. A case opens when a Blood Bank bill is saved in Billing."
+        description="Patient blood requests for this branch. A case opens when a bill with Blood Bank items is saved in Billing."
         actions={
           <Can permission={BloodBankPermission.CaseUpdate}>
             <Button asChild variant="outline">

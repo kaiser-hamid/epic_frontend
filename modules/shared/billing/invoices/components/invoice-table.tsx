@@ -65,10 +65,12 @@ const columns = helper.columns([
       )
     },
   }),
-  helper.accessor("category", {
+  helper.display({
+    id: "categories",
     header: "Type",
-    cell: (info) =>
-      info.getValue() === TestItemCategory.BloodBank ? (
+    // A bill may mix items; the Blood Bank badge marks one that also opened a case.
+    cell: ({ row }) =>
+      row.original.categories?.includes(TestItemCategory.BloodBank) ? (
         <Badge variant="secondary">{testItemCategoryLabels.blood_bank}</Badge>
       ) : (
         testItemCategoryLabels.general

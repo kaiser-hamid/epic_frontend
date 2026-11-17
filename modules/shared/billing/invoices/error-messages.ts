@@ -2,7 +2,6 @@ import { ErrorCode } from "@/lib/api-error"
 
 /** Bill error codes (backend `errorCode()` values). */
 export const InvoiceErrorCode = {
-  InvoiceCategoryMixed: "INVOICE_CATEGORY_MIXED",
   DiscountPolicyNotAllowed: "DISCOUNT_POLICY_NOT_ALLOWED",
   IdempotencyKeyReused: "IDEMPOTENCY_KEY_REUSED",
   InvoiceNoTaken: "INVOICE_NO_TAKEN",
@@ -11,8 +10,6 @@ export const InvoiceErrorCode = {
 } as const
 
 export const invoiceErrorMessages: Partial<Record<string, string>> = {
-  [InvoiceErrorCode.InvoiceCategoryMixed]:
-    "Blood Bank items cannot be billed with other items. Bill them separately.",
   [InvoiceErrorCode.DiscountPolicyNotAllowed]:
     "This discount is not available for the selected patient type.",
   [InvoiceErrorCode.IdempotencyKeyReused]:

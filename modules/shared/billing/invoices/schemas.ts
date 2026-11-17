@@ -125,8 +125,8 @@ export const invoiceSchema = z
     /** Taka handed over, only to show the change; never sent. */
     given_amount: wholeNumber(0, MAX_TAKA).optional(),
     /**
-     * Fields the bill's category asks for (Blood Bank: `care_type`), rendered by that module.
-     * Validated by the server, which answers on `category_details.*`.
+     * Fields the module-owned categories on the bill ask for (Blood Bank items: `care_type`),
+     * rendered by that module. Validated by the server, which answers on `category_details.*`.
      */
     category_details: z.record(z.string(), z.string().optional()),
   })
@@ -194,15 +194,22 @@ export const emptyInvoiceValues: InvoiceValues = {
 }
 
 /**
- * The bill's category, from the picked items: Blood Bank as soon as one Blood Bank item is on
- * it (the form never keeps other items next to one), otherwise general.
+ * The distinct categories of the picked items, in the order they first appear. A bill may mix
+ * them; each module-owned category (Blood Bank) adds its own fields and record.
  */
-export function invoiceCategory(
+export function invoiceCategories(
   lines: readonly Partial<TestLineValues>[]
-): TestItemCategory {
-  return lines.some(
-    (line) => line.item?.category === TestItemCategory.BloodBank
-  )
-    ? TestItemCategory.BloodBank
-    : TestItemCategory.General
+): TestItemCategory[] {
+  return [
+    ...new Set(
+      lines.flatMap((line) => (line.item ? [line.item.category] : []))
+    ),
+  ]
+}
+
+/** Whether a Blood Bank item is on the bill: saving it then opens a Blood Bank case. */
+export function hasBloodBankItems(
+  lines: readonly Partial<TestLineValues>[]
+): boolean {
+  return invoiceCategories(lines).includes(TestItemCategory.BloodBank)
 }

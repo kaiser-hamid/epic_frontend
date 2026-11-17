@@ -37,7 +37,7 @@ import {
 import { useCreateInvoice } from "@/modules/shared/billing/invoices/queries"
 import {
   emptyInvoiceValues,
-  invoiceCategory,
+  invoiceCategories,
   invoiceSchema,
   type InvoiceValues,
 } from "@/modules/shared/billing/invoices/schemas"
@@ -49,18 +49,19 @@ import {
 } from "@/modules/shared/test-catalog/enums"
 
 /**
- * Fields a kind of bill asks for besides the tests (Blood Bank: "Care of"), supplied by the
- * module that owns it. They write under `category_details.*` and are shown only while the bill
- * is of that kind.
+ * Fields an item category asks for besides the tests (Blood Bank: "Care of"), supplied by the
+ * module that owns it. They write under `category_details.*` and are shown only while an item of
+ * that category is on the bill.
  */
 export type CategoryDetailsFields = Partial<
   Record<TestItemCategory, React.ReactNode>
 >
 
 /**
- * New Bill Entry. One save registers the patient (if new) and the bill; a Blood Bank bill also
- * opens its case. The saved bill is printed straight away (Customer Copy + Non Lab Copies) for
- * staff who may print, while the page moves on to the bill. The page stays mounted when the user navigates away and back, so after a save
+ * New Bill Entry. One save registers the patient (if new) and the bill, which may mix general and
+ * Blood Bank items; with Blood Bank items it also opens their case. The saved bill is printed
+ * straight away (Customer, Lab and Non-Lab Copies) for staff who may print, while the page moves
+ * on to the bill. The page stays mounted when the user navigates away and back, so after a save
  * the form is remounted (new key), which drops every value and starts a new idempotency key.
  */
 export function InvoiceForm({
@@ -97,15 +98,17 @@ function InvoiceEntryForm({
     defaultValues: { ...emptyInvoiceValues, delivery_at: `${todayIsoDate()}T` },
   })
   const lines = useWatch({ control: form.control, name: "items" })
-  const category = invoiceCategory(lines)
-  const details = categoryDetails[category]
+  const detailCategories = invoiceCategories(lines).filter(
+    (category) => categoryDetails[category] !== undefined
+  )
+  const hasDetails = detailCategories.length > 0
 
-  // Details belong to the bill's kind; a general bill sends none.
+  // Details belong to the items that ask for them; without such items none are sent.
   useEffect(() => {
-    if (category === TestItemCategory.General) {
+    if (!hasDetails) {
       form.setValue("category_details", {})
     }
-  }, [category, form])
+  }, [hasDetails, form])
 
   function onSubmit(values: InvoiceValues) {
     if (createInvoice.isPending || createInvoice.isSuccess) {
@@ -189,14 +192,14 @@ function InvoiceEntryForm({
           </CardContent>
         </Card>
 
-        {details ? (
-          <Card>
+        {detailCategories.map((category) => (
+          <Card key={category}>
             <CardHeader>
               <CardTitle>{testItemCategoryLabels[category]}</CardTitle>
             </CardHeader>
-            <CardContent>{details}</CardContent>
+            <CardContent>{categoryDetails[category]}</CardContent>
           </Card>
-        ) : null}
+        ))}
 
         <Card>
           <CardHeader>

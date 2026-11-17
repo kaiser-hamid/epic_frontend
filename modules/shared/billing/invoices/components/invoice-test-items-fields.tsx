@@ -11,7 +11,6 @@ import {
 } from "react-hook-form"
 
 import { AutocompleteInput } from "@/components/autocomplete-input"
-import { ConfirmDialog } from "@/components/confirm-dialog"
 import { focusNextField } from "@/components/form"
 import { Money } from "@/components/money"
 import { NumberInput } from "@/components/number-input"
@@ -31,11 +30,11 @@ import {
 import { lookupEmptyText, useLookupTerm } from "@/hooks/use-lookup-term"
 import { formatTaka } from "@/lib/format"
 import {
-  invoiceCategory,
+  hasBloodBankItems,
   type InvoiceValues,
   type TestLineValues,
 } from "@/modules/shared/billing/invoices/schemas"
-import { TestItemCategory } from "@/modules/shared/test-catalog/enums"
+import { testItemCategoryLabels } from "@/modules/shared/test-catalog/enums"
 import { useTestItemLookup } from "@/modules/shared/test-catalog/queries"
 import type { TestItem } from "@/modules/shared/test-catalog/types"
 
@@ -46,24 +45,19 @@ function lineAmount(line: Partial<TestLine> | undefined): number | null {
   return line?.item && line.quantity ? line.item.rate * line.quantity : null
 }
 
-/** A Blood Bank item picked while other items are on the bill, waiting for confirmation. */
-type PendingSwitch = { apply: () => void; removeIndexes: number[] }
-
 /**
  * Tests billed on the invoice. Item ID (code) and name search the catalog; the other
  * columns are read-only. Amounts preview the catalog rate; the totals are the server's.
  *
- * A bill is either general or Blood Bank, never both. Picking the first Blood Bank item while
- * other items are listed asks to remove them; once a Blood Bank item is on the bill, the
- * search offers Blood Bank items only. Removing the last one makes it a general bill again.
+ * General and Blood Bank items may share one bill. With a Blood Bank item on it, saving also
+ * opens the Blood Bank case for those items.
  */
 export function InvoiceTestItemsFields() {
   const { control, formState } = useFormContext<InvoiceValues>()
   const items = useFieldArray({ control, name: "items" })
   const lines = useWatch({ control, name: "items" })
   const itemsError = formState.errors.items
-  const isBloodBank = invoiceCategory(lines) === TestItemCategory.BloodBank
-  const [pendingSwitch, setPendingSwitch] = useState<PendingSwitch | null>(null)
+  const hasBloodBank = hasBloodBankItems(lines)
 
   function addTest() {
     items.append({ quantity: 1 } as TestLine, {
@@ -71,39 +65,14 @@ export function InvoiceTestItemsFields() {
     })
   }
 
-  /** Every row but `index` holding a general item: what a Blood Bank pick would remove. */
-  function generalRowsBesides(index: number): number[] {
-    return lines.flatMap((line, other) =>
-      other !== index &&
-      line.item !== undefined &&
-      line.item.category !== TestItemCategory.BloodBank
-        ? [other]
-        : []
-    )
-  }
-
-  function confirmPick(index: number, option: TestItem, apply: () => void) {
-    const removeIndexes =
-      option.category === TestItemCategory.BloodBank
-        ? generalRowsBesides(index)
-        : []
-    if (removeIndexes.length === 0) {
-      apply()
-      return
-    }
-    setPendingSwitch({ apply, removeIndexes })
-  }
-
-  const removeCount = pendingSwitch?.removeIndexes.length ?? 0
-
   return (
     <div className="flex flex-col gap-4">
-      {isBloodBank ? (
+      {hasBloodBank ? (
         <p className="text-sm text-muted-foreground">
           <Badge variant="secondary" className="mr-2">
-            Blood Bank bill
+            {testItemCategoryLabels.blood_bank}
           </Badge>
-          Only Blood Bank items can be added. Saving opens the Blood Bank case.
+          Saving opens the Blood Bank case for the Blood Bank items.
         </p>
       ) : null}
       <Table>
@@ -136,8 +105,6 @@ export function InvoiceTestItemsFields() {
               index={index}
               // Tests on the other rows are not offered again; this row's own may stay.
               otherLines={lines.filter((_, other) => other !== index)}
-              category={isBloodBank ? TestItemCategory.BloodBank : undefined}
-              onPick={(option, apply) => confirmPick(index, option, apply)}
               canRemove={items.fields.length > 1}
               isLast={index === items.fields.length - 1}
               onAdd={addTest}
@@ -157,29 +124,6 @@ export function InvoiceTestItemsFields() {
         <PlusIcon data-icon="inline-start" />
         Add test
       </Button>
-      <ConfirmDialog
-        open={pendingSwitch !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingSwitch(null)
-          }
-        }}
-        title="Make this a Blood Bank bill?"
-        description={`Blood Bank items are billed on their own. ${
-          removeCount === 1
-            ? "The other item on this bill will be removed."
-            : `The ${removeCount} other items on this bill will be removed.`
-        }`}
-        confirmLabel="Remove and continue"
-        destructive
-        onConfirm={() => {
-          if (pendingSwitch) {
-            pendingSwitch.apply()
-            items.remove(pendingSwitch.removeIndexes)
-          }
-          setPendingSwitch(null)
-        }}
-      />
     </div>
   )
 }
@@ -219,8 +163,6 @@ function matchesPicked(lines: Partial<TestLine>[], search: string): boolean {
 function TestLineRow({
   index,
   otherLines,
-  category,
-  onPick,
   canRemove,
   isLast,
   onAdd,
@@ -228,10 +170,6 @@ function TestLineRow({
 }: {
   index: number
   otherLines: Partial<TestLine>[]
-  /** Narrows the search (a Blood Bank bill offers Blood Bank items only). */
-  category: TestItemCategory | undefined
-  /** Runs `apply` (puts the pick on the row) now, or after the user confirms removing others. */
-  onPick: (option: TestItem, apply: () => void) => void
   canRemove: boolean
   isLast: boolean
   /** Appends a row and focuses its Item ID. */
@@ -257,8 +195,7 @@ function TestLineRow({
     lookupTerm.search,
     otherLines.flatMap(({ test_item_id }) =>
       test_item_id === undefined ? [] : [test_item_id]
-    ),
-    category
+    )
   )
   const nameId = `items.${index}.item.name`
   const amount = lineAmount(line)
@@ -291,17 +228,15 @@ function TestLineRow({
 
   function pick(option: TestItem) {
     lookupTerm.setTerm("")
-    onPick(option, () => {
-      setCode(option.code)
-      setItemName(option.name)
-      setValue(itemPath, option)
-      onChange(option.id)
-      // On to the quantity.
-      const nameInput = document.getElementById(nameId)
-      if (nameInput) {
-        focusNextField(nameInput)
-      }
-    })
+    setCode(option.code)
+    setItemName(option.name)
+    setValue(itemPath, option)
+    onChange(option.id)
+    // On to the quantity.
+    const nameInput = document.getElementById(nameId)
+    if (nameInput) {
+      focusNextField(nameInput)
+    }
   }
 
   return (
