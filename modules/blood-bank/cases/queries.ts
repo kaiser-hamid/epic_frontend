@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-query"
 
 import {
+  closeCase,
   getCase,
   listCases,
   updateCase,
@@ -50,6 +51,27 @@ export function useUpdateCase() {
     onSuccess: (record: BloodBankCase) => {
       queryClient.setQueryData(caseKeys.detail(record.id), record)
       queryClient.invalidateQueries({ queryKey: caseKeys.lists() })
+    },
+  })
+}
+
+/**
+ * A closed case leaves every Blood Bank work list (pending tabs, screens), so all
+ * Blood Bank queries are refetched; the case detail takes the response.
+ */
+export function useCloseCase() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: closeCase,
+    onSuccess: (record: BloodBankCase) => {
+      queryClient.setQueryData(caseKeys.detail(record.id), record)
+      queryClient.invalidateQueries({
+        queryKey: ["blood-bank"],
+        predicate: (query) =>
+          JSON.stringify(query.queryKey) !==
+          JSON.stringify(caseKeys.detail(record.id)),
+      })
     },
   })
 }

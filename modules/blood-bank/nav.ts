@@ -33,8 +33,8 @@ export const bloodBankNav: NavItem = {
       permission: BloodBankPermission.CollectionView,
     },
     {
-      title: "Component Preparation",
-      href: "/blood-bank/component-preparation",
+      title: "Units",
+      href: "/blood-bank/units",
       permission: BloodBankPermission.UnitView,
     },
     {

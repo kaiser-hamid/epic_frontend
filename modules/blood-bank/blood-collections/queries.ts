@@ -16,7 +16,7 @@ import {
   getBloodCollection,
   listBags,
   listPendingBloodCollections,
-  printBagLabels,
+  recordPhlebotomy,
   type BagListParams,
   type CollectBloodRequest,
   type PendingBloodCollectionListParams,
@@ -26,13 +26,18 @@ import {
   focusView,
   scanFocus,
 } from "@/modules/blood-bank/blood-collections/focus"
-import type { BloodCollection } from "@/modules/blood-bank/blood-collections/types"
+import type {
+  BloodCollection,
+  RecordPhlebotomyInput,
+} from "@/modules/blood-bank/blood-collections/types"
+import { bloodIssueKeys } from "@/modules/blood-bank/blood-issue/queries"
 import { caseDonorKeys } from "@/modules/blood-bank/case-donors/queries"
 import { caseKeys } from "@/modules/blood-bank/cases/queries"
 import { donorExaminationKeys } from "@/modules/blood-bank/donor-examinations/queries"
 import { donorSerologyKeys } from "@/modules/blood-bank/donor-serology/queries"
 import { donorKeys } from "@/modules/blood-bank/donors/queries"
 import { sampleKeys } from "@/modules/blood-bank/samples/queries"
+import { unitKeys } from "@/modules/blood-bank/units/queries"
 
 export const bloodCollectionKeys = {
   all: ["blood-bank", "blood-collections"] as const,
@@ -124,6 +129,9 @@ export function useCollectBlood(caseId: number) {
       queryClient.invalidateQueries({ queryKey: caseDonorKeys.all })
       queryClient.invalidateQueries({ queryKey: caseKeys.detail(caseId) })
       queryClient.invalidateQueries({ queryKey: donorKeys.all })
+      // The bag's units are made at collection: reserved for the patient (Blood Issue) or stock.
+      queryClient.invalidateQueries({ queryKey: unitKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: bloodIssueKeys.all })
     },
     onError: (error) => {
       if (
@@ -134,40 +142,6 @@ export function useCollectBlood(caseId: number) {
           queryKey: bloodCollectionKeys.caseScreens(caseId),
         })
       }
-    },
-  })
-}
-
-/**
- * Logs bag label prints. Each printed label's `label_print_count` goes up by one on the
- * cached screens of the case, so the next print of it asks for a reprint reason without a
- * refetch.
- */
-export function usePrintBagLabels() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: printBagLabels,
-    onSuccess: (labels, { caseId }) => {
-      const printed = new Set(labels.map((label) => label.id))
-      queryClient.setQueriesData<BloodCollection>(
-        { queryKey: bloodCollectionKeys.caseScreens(caseId) },
-        (view) =>
-          view && {
-            ...view,
-            donors: view.donors.map((donor) =>
-              donor.collection && printed.has(donor.collection.id)
-                ? {
-                    ...donor,
-                    collection: {
-                      ...donor.collection,
-                      label_print_count: donor.collection.label_print_count + 1,
-                    },
-                  }
-                : donor
-            ),
-          }
-      )
     },
   })
 }
@@ -187,5 +161,38 @@ export function useBags(params: BagListParams) {
     queryKey: bloodCollectionKeys.list(params),
     queryFn: () => listBags(params),
     placeholderData: keepPreviousData,
+  })
+}
+
+/**
+ * Therapeutic Phlebotomy "Mark done". The response is the refreshed screen (case closed,
+ * phlebotomy recorded); the case leaves the pending list and its detail changes.
+ */
+export function useRecordPhlebotomy(caseId: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (values: RecordPhlebotomyInput) =>
+      recordPhlebotomy(caseId, values),
+    onSuccess: (view: BloodCollection) => {
+      queryClient.setQueriesData<BloodCollection>(
+        { queryKey: bloodCollectionKeys.caseScreens(caseId) },
+        view
+      )
+      queryClient.invalidateQueries({
+        queryKey: bloodCollectionKeys.pendingLists(),
+      })
+      queryClient.invalidateQueries({ queryKey: caseKeys.all })
+    },
+    onError: (error) => {
+      if (
+        isApiError(error) &&
+        bloodCollectionReloadCodes.includes(error.code)
+      ) {
+        queryClient.invalidateQueries({
+          queryKey: bloodCollectionKeys.caseScreens(caseId),
+        })
+      }
+    },
   })
 }

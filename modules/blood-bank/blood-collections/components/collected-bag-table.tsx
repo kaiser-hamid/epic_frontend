@@ -1,6 +1,5 @@
 "use client"
 
-import { PrinterIcon } from "lucide-react"
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs"
 
 import { dataTableColumnHelper } from "@/components/data-table/columns"
@@ -8,7 +7,6 @@ import { DataTable } from "@/components/data-table/data-table"
 import { useListParams } from "@/components/data-table/use-list-params"
 import { DateTime } from "@/components/date-time"
 import { DateFilter, ScanFilter } from "@/components/list-filters"
-import { Button } from "@/components/ui/button"
 import { Field, FieldLabel } from "@/components/ui/field"
 import {
   Select,
@@ -18,7 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { todayIsoDate } from "@/lib/format"
-import { useBagLabelPrinter } from "@/modules/blood-bank/blood-collections/components/bag-label-printer"
 import { useBags } from "@/modules/blood-bank/blood-collections/queries"
 import {
   bagSortableColumns,
@@ -28,9 +25,7 @@ import {
   CollectionStatus,
   collectionStatusLabels,
 } from "@/modules/blood-bank/enums"
-import { BloodBankPermission } from "@/modules/blood-bank/permissions"
 import { bloodGroupLabels } from "@/modules/shared/patient/enums"
-import { useCan } from "@/modules/shared/rbac/use-can"
 
 const ALL = "all"
 
@@ -98,11 +93,6 @@ const columns = helper.columns([
         </span>
       </div>
     ),
-  }),
-  helper.display({
-    id: "label",
-    header: () => <span className="sr-only">Label</span>,
-    cell: ({ row }) => <ReprintLabelButton bag={row.original} />,
   }),
 ])
 
@@ -233,30 +223,5 @@ export function CollectedBagTable() {
         emptyTitle="No bags"
       />
     </div>
-  )
-}
-
-/** A reprint from the list always asks for a reason. */
-function ReprintLabelButton({ bag }: { bag: Bag }) {
-  const canPrint = useCan(BloodBankPermission.CollectionLabelPrint)
-  const { print, isPrinting } = useBagLabelPrinter()
-
-  if (!canPrint) {
-    return null
-  }
-
-  return (
-    <Button
-      variant="outline"
-      size="xs"
-      disabled={bag.status === CollectionStatus.Cancelled || isPrinting}
-      onClick={() =>
-        print({ caseId: bag.case.id, collectionIds: [bag.id], isReprint: true })
-      }
-      aria-label={`Reprint label ${bag.bag_no}`}
-    >
-      <PrinterIcon data-icon="inline-start" />
-      Reprint
-    </Button>
   )
 }

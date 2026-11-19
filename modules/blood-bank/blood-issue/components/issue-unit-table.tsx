@@ -81,7 +81,8 @@ export function IssueUnitTable({
                 colSpan={columns}
                 className="text-center text-muted-foreground"
               >
-                No unit is reserved for this case yet (Component Preparation).
+                No unit is reserved for this case yet (reserved at Blood
+                Collection).
               </TableCell>
             </TableRow>
           ) : (

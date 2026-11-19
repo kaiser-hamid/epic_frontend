@@ -8,7 +8,6 @@ import {
   parseAsStringLiteral,
   useQueryStates,
 } from "nuqs"
-import { toast } from "sonner"
 
 import { dataTableColumnHelper } from "@/components/data-table/columns"
 import { DataTable } from "@/components/data-table/data-table"
@@ -17,7 +16,6 @@ import { DateTime } from "@/components/date-time"
 import { DateFilter, ScanFilter } from "@/components/list-filters"
 import { Button } from "@/components/ui/button"
 import { Field, FieldLabel } from "@/components/ui/field"
-import { Spinner } from "@/components/ui/spinner"
 import {
   Select,
   SelectContent,
@@ -34,12 +32,8 @@ import {
   UnitExpiry,
   UnitStatusBadge,
 } from "@/modules/blood-bank/units/components/unit-status-badge"
-import { unitErrorText } from "@/modules/blood-bank/units/error-messages"
 import { storageText } from "@/modules/blood-bank/units/format"
-import {
-  useFindComponentPreparation,
-  useUnits,
-} from "@/modules/blood-bank/units/queries"
+import { useUnits } from "@/modules/blood-bank/units/queries"
 import {
   unitSortableColumns,
   type Unit,
@@ -325,15 +319,12 @@ export function UnitTable() {
 }
 
 /**
- * Labels are printed through the case whose bag the unit was made from, which a list row
- * doesn't carry (`reserved_for` may be another case, or none for stock). So the bag is looked
- * up first; its screen gives the case and the unit's print count, so a reprint asks for the
- * reason up front.
+ * Reprints a unit's label through the case its bag was collected for. Labels are printed
+ * when the blood is collected, so this is always a reprint: the reason is asked up front.
  */
 function LabelButton({ unit }: { unit: Unit }) {
   const canPrint = useCan(BloodBankPermission.UnitLabelPrint)
   const { print, isPrinting } = useUnitLabelPrinter()
-  const lookup = useFindComponentPreparation()
 
   if (!canPrint) {
     return null
@@ -343,29 +334,13 @@ function LabelButton({ unit }: { unit: Unit }) {
     <Button
       variant="outline"
       size="xs"
-      disabled={isPrinting || lookup.isPending}
+      disabled={isPrinting}
       onClick={() =>
-        lookup.mutate(unit.bag_no, {
-          onSuccess: (view) => {
-            const printCount =
-              view.units.find((candidate) => candidate.id === unit.id)
-                ?.label_print_count ?? 0
-            print({
-              caseId: view.case.id,
-              unitIds: [unit.id],
-              isReprint: printCount > 0,
-            })
-          },
-          onError: (error) => toast.error(unitErrorText(error)),
-        })
+        print({ caseId: unit.bag_case_id, unitIds: [unit.id], isReprint: true })
       }
-      aria-label={`Print label ${unit.unit_no}`}
+      aria-label={`Reprint label ${unit.unit_no}`}
     >
-      {lookup.isPending ? (
-        <Spinner data-icon="inline-start" />
-      ) : (
-        <PrinterIcon data-icon="inline-start" />
-      )}
+      <PrinterIcon data-icon="inline-start" />
       Label
     </Button>
   )

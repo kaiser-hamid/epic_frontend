@@ -32,11 +32,21 @@ import {
 import {
   CareType,
   careTypeLabels,
+  CaseService,
+  caseServiceLabels,
   CaseStatus,
   caseStatusLabels,
 } from "@/modules/blood-bank/enums"
 
 const ALL = "all"
+
+/** Open cases that never close by themselves (only services billed); closed by hand. */
+const NEEDS_CLOSING = "needs_closing"
+
+const serviceFilterValues = [
+  ...Object.values(CaseService),
+  NEEDS_CLOSING,
+] as const
 
 const helper = dataTableColumnHelper<BloodBankCase>()
 
@@ -71,11 +81,13 @@ const columns = helper.columns([
     id: "components",
     header: "Components",
     cell: ({ row }) =>
-      row.original.components.length === 0
-        ? "—"
-        : row.original.components
-            .map((line) => `${line.code} × ${line.quantity}`)
-            .join(", "),
+      row.original.service !== CaseService.Transfusion
+        ? caseServiceLabels[row.original.service]
+        : row.original.components.length === 0
+          ? "Services only"
+          : row.original.components
+              .map((line) => `${line.code} × ${line.quantity}`)
+              .join(", "),
   }),
   helper.accessor("donors_count", {
     header: "Donors",
@@ -129,6 +141,7 @@ export function CaseTable() {
       search: parseAsString,
       status: parseAsStringLiteral(Object.values(CaseStatus)),
       care_type: parseAsStringLiteral(Object.values(CareType)),
+      service: parseAsStringLiteral(serviceFilterValues),
     },
     { history: "replace" }
   )
@@ -164,6 +177,8 @@ export function CaseTable() {
       search: filters.search,
       status: filters.status,
       care_type: filters.care_type,
+      service: filters.service === NEEDS_CLOSING ? null : filters.service,
+      needs_closing: filters.service === NEEDS_CLOSING ? "1" : null,
     },
     sort,
     page,
@@ -239,6 +254,31 @@ export function CaseTable() {
                 {careTypeLabels[careType]}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={filters.service ?? ALL}
+          onValueChange={(value) => {
+            setFilters({
+              service:
+                value === ALL
+                  ? null
+                  : (value as (typeof serviceFilterValues)[number]),
+            })
+            resetPage()
+          }}
+        >
+          <SelectTrigger className="sm:w-52" aria-label="Service">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All services</SelectItem>
+            {Object.values(CaseService).map((service) => (
+              <SelectItem key={service} value={service}>
+                {caseServiceLabels[service]}
+              </SelectItem>
+            ))}
+            <SelectItem value={NEEDS_CLOSING}>Open · needs closing</SelectItem>
           </SelectContent>
         </Select>
       </div>

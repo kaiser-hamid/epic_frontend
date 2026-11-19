@@ -5,6 +5,7 @@ export const AddDonorErrorCode = {
   CaseNotFound: "CASE_NOT_FOUND",
   CaseNotOpen: "CASE_NOT_OPEN",
   DonorAlreadyInCase: "DONOR_ALREADY_IN_CASE",
+  CaseTakesNoDonors: "CASE_TAKES_NO_DONORS",
   InvoiceNotFound: "INVOICE_NOT_FOUND",
   InvoiceNotInBranch: "INVOICE_NOT_IN_BRANCH",
   InvoiceNotActive: "INVOICE_NOT_ACTIVE",
@@ -26,6 +27,8 @@ export const addDonorErrorMessages: Partial<Record<string, string>> = {
     "No case found for this invoice in this branch.",
   [AddDonorErrorCode.CaseNotOpen]:
     "This case is closed — donors cannot be added. The page has been refreshed.",
+  [AddDonorErrorCode.CaseTakesNoDonors]:
+    "This case is billed for a procedure on the patient (Autologous PRP or Therapeutic Phlebotomy); it takes no donors.",
   [AddDonorErrorCode.DonorAlreadyInCase]:
     "This donor is already on the case. Add someone else.",
   [AddDonorErrorCode.InvoiceNotFound]:

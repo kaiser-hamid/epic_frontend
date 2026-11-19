@@ -25,11 +25,14 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { CaseDetailsDialog } from "@/modules/blood-bank/cases/components/case-details-dialog"
+import { CloseCaseButton } from "@/modules/blood-bank/cases/components/close-case-button"
 import { CaseStatusBadge } from "@/modules/blood-bank/cases/components/case-status-badge"
 import { useCase } from "@/modules/blood-bank/cases/queries"
 import {
   careTypeLabels,
   caseDonorStatusLabels,
+  CaseService,
+  caseServiceLabels,
   CaseStatus,
 } from "@/modules/blood-bank/enums"
 import { BloodBankPermission } from "@/modules/blood-bank/permissions"
@@ -74,22 +77,27 @@ export function CaseDetail({ caseId }: { caseId: number }) {
         }
         actions={
           isOpen ? (
-            <Can permission={BloodBankPermission.CaseUpdate}>
-              <Button variant="outline" onClick={() => setEditing(true)}>
-                <PencilIcon data-icon="inline-start" />
-                Edit details
-              </Button>
-              {invoice ? (
-                <Button asChild>
-                  <Link
-                    href={`/blood-bank/cases/add-donor?invoice_no=${encodeURIComponent(invoice.invoice_no)}`}
-                  >
-                    <UserPlusIcon data-icon="inline-start" />
-                    Add donor
-                  </Link>
+            <>
+              <Can permission={BloodBankPermission.CaseClose}>
+                <CloseCaseButton record={record} />
+              </Can>
+              <Can permission={BloodBankPermission.CaseUpdate}>
+                <Button variant="outline" onClick={() => setEditing(true)}>
+                  <PencilIcon data-icon="inline-start" />
+                  Edit details
                 </Button>
-              ) : null}
-            </Can>
+                {invoice && record.service === CaseService.Transfusion ? (
+                  <Button asChild>
+                    <Link
+                      href={`/blood-bank/cases/add-donor?invoice_no=${encodeURIComponent(invoice.invoice_no)}`}
+                    >
+                      <UserPlusIcon data-icon="inline-start" />
+                      Add donor
+                    </Link>
+                  </Button>
+                ) : null}
+              </Can>
+            </>
           ) : null
         }
       />
@@ -176,6 +184,14 @@ export function CaseDetail({ caseId }: { caseId: number }) {
           <CardContent>
             <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
               <Detail
+                label="Service"
+                value={
+                  record.keeps_units_in_storage
+                    ? `${caseServiceLabels[record.service]} · units kept in storage`
+                    : caseServiceLabels[record.service]
+                }
+              />
+              <Detail
                 label="Care of"
                 value={careTypeLabels[record.care_type]}
               />
@@ -188,6 +204,22 @@ export function CaseDetail({ caseId }: { caseId: number }) {
                 label="Supply time"
                 value={<DateTime value={record.supplied_at} />}
               />
+              {record.closed_at ? (
+                <>
+                  <Detail
+                    label="Closed"
+                    value={
+                      <>
+                        <DateTime value={record.closed_at} />
+                        {record.closed_by ? ` by ${record.closed_by.name}` : ""}
+                      </>
+                    }
+                  />
+                  {record.close_reason ? (
+                    <Detail label="Close reason" value={record.close_reason} />
+                  ) : null}
+                </>
+              ) : null}
             </dl>
           </CardContent>
         </Card>
@@ -291,6 +323,7 @@ const patientLabels = [
 ]
 const invoiceLabels = ["Invoice no", "Amount", "Billed", "Referred by"]
 const caseLabels = [
+  "Service",
   "Care of",
   "Cause of transfusion",
   "Reference note",

@@ -192,7 +192,7 @@ function IssueWorkspace({
           <AlertDescription>
             {view.patient_sample === null
               ? "Collect the patient sample first (Sample Collection)."
-              : "No unit is waiting to be issued: reserve units for this case through Component Preparation."}
+              : "No unit is waiting to be issued: units are reserved for this case when its blood is collected."}
           </AlertDescription>
         </Alert>
       ) : null}

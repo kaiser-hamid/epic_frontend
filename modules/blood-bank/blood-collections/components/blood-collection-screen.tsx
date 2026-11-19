@@ -3,10 +3,11 @@
 import { parseAsInteger, parseAsStringLiteral, useQueryStates } from "nuqs"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { BagLabelPrinter } from "@/modules/blood-bank/blood-collections/components/bag-label-printer"
+
 import { CollectedBagTable } from "@/modules/blood-bank/blood-collections/components/collected-bag-table"
 import { CollectionTab } from "@/modules/blood-bank/blood-collections/components/collection-tab"
 import { PendingBloodCollectionTable } from "@/modules/blood-bank/blood-collections/components/pending-blood-collection-table"
+import { UnitLabelPrinter } from "@/modules/blood-bank/units/components/unit-label-printer"
 
 const tabs = ["collection", "pending", "collected"] as const
 type Tab = (typeof tabs)[number]
@@ -27,7 +28,7 @@ export function BloodCollectionScreen() {
   )
 
   return (
-    <BagLabelPrinter>
+    <UnitLabelPrinter>
       <Tabs
         value={state.tab}
         onValueChange={(value) => {
@@ -62,6 +63,6 @@ export function BloodCollectionScreen() {
           <CollectedBagTable />
         </TabsContent>
       </Tabs>
-    </BagLabelPrinter>
+    </UnitLabelPrinter>
   )
 }

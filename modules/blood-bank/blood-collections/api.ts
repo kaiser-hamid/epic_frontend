@@ -7,11 +7,11 @@ import type {
 import type {
   Bag,
   BagFilters,
-  BagLabel,
   BloodCollection,
   BloodCollectionLookup,
   CollectBloodInput,
   PendingBloodCollectionFilters,
+  RecordPhlebotomyInput,
 } from "@/modules/blood-bank/blood-collections/types"
 import type { BloodBankCase } from "@/modules/blood-bank/cases/types"
 
@@ -31,13 +31,6 @@ export type PendingBloodCollectionListParams = Omit<
 export type CollectBloodRequest = {
   caseDonorId: number
   values: CollectBloodInput
-}
-
-export type PrintBagLabelsInput = {
-  caseId: number
-  collectionIds: number[]
-  /** Required when any of the labels was printed before. */
-  reprintReason?: string
 }
 
 /**
@@ -88,25 +81,6 @@ export async function collectBlood(
   return response.data.data
 }
 
-/**
- * Logs the print of one or more bag labels of a case (all or none) and returns what goes on
- * each. `422 REPRINT_REASON_REQUIRED` when one was printed before and no reason is given.
- */
-export async function printBagLabels({
-  caseId,
-  collectionIds,
-  reprintReason,
-}: PrintBagLabelsInput): Promise<BagLabel[]> {
-  const response = await apiClient.post<ResourceResponse<BagLabel[]>>(
-    `${basePath}/cases/${caseId}/bag-labels`,
-    {
-      collection_ids: collectionIds,
-      reprint_reason: reprintReason?.trim() || null,
-    }
-  )
-  return response.data.data
-}
-
 /** Open cases with a donor cleared at serology and not yet bled, oldest first by default. */
 export async function listPendingBloodCollections(
   params: PendingBloodCollectionListParams
@@ -127,4 +101,19 @@ export async function listBags(
     { params }
   )
   return response.data
+}
+
+/**
+ * Therapeutic Phlebotomy "Mark done": records the blood drawn (and optional vitals) and closes
+ * the case. Returns the refreshed screen. `422 NOT_A_PHLEBOTOMY_CASE` on another service.
+ */
+export async function recordPhlebotomy(
+  caseId: number,
+  values: RecordPhlebotomyInput
+): Promise<BloodCollection> {
+  const response = await apiClient.post<ResourceResponse<BloodCollection>>(
+    `${basePath}/cases/${caseId}/therapeutic-phlebotomy`,
+    values
+  )
+  return response.data.data
 }

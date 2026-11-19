@@ -5,6 +5,7 @@
 export const BloodBankPermission = {
   CaseView: "bb.case.view",
   CaseUpdate: "bb.case.update",
+  CaseClose: "bb.case.close",
   DonorView: "bb.donor.view",
   DonorExamView: "bb.donor_exam.view",
   DonorExamRecord: "bb.donor_exam.record",
@@ -15,9 +16,8 @@ export const BloodBankPermission = {
   SampleLabelPrint: "bb.sample.print_label",
   CollectionView: "bb.collection.view",
   CollectionCollect: "bb.collection.collect",
-  CollectionLabelPrint: "bb.collection.print_label",
+  PhlebotomyRecord: "bb.phlebotomy.record",
   UnitView: "bb.unit.view",
-  UnitPrepare: "bb.unit.prepare",
   UnitLabelPrint: "bb.unit.print_label",
   IssueView: "bb.issue.view",
   IssueRecord: "bb.issue.record",

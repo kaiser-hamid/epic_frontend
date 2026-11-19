@@ -33,6 +33,7 @@ import { InvoiceScanBox } from "@/modules/blood-bank/cases/components/invoice-sc
 import {
   CaseDonorStatus,
   caseDonorStatusLabels,
+  CaseService,
   SampleStatus,
 } from "@/modules/blood-bank/enums"
 import { BloodBankPermission } from "@/modules/blood-bank/permissions"
@@ -287,6 +288,12 @@ function CollectionWorkspace({
           <CardTitle>Actions</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          {view.case.service === CaseService.AutologousPrp ? (
+            <p className="text-sm text-muted-foreground">
+              Autologous PRP: the patient label prints 5 copies, and collecting
+              the sample closes the case.
+            </p>
+          ) : null}
           {canCollect ? (
             <Button
               onClick={handleCollect}

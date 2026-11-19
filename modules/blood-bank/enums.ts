@@ -30,6 +30,24 @@ export const careTypeLabels: Record<CareType, string> = {
   out: "Takeaway",
 }
 
+/**
+ * `CaseService`: the path a case follows, decided by its bill (one bill, one service).
+ * Procedures take no donors and close inside their own step: Autologous PRP when its
+ * sample is collected, Therapeutic Phlebotomy when it is recorded on Blood Collection.
+ */
+export const CaseService = {
+  Transfusion: "transfusion",
+  AutologousPrp: "autologous_prp",
+  TherapeuticPhlebotomy: "therapeutic_phlebotomy",
+} as const
+export type CaseService = ValueOf<typeof CaseService>
+
+export const caseServiceLabels: Record<CaseService, string> = {
+  transfusion: "Transfusion",
+  autologous_prp: "Autologous PRP",
+  therapeutic_phlebotomy: "Therapeutic Phlebotomy",
+}
+
 /** `Religion` of a donor (`bb_donors.religion`). */
 export const Religion = {
   Islam: "islam",

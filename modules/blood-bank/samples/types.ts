@@ -6,6 +6,7 @@ import type {
 import type {
   CareType,
   CaseDonorStatus,
+  CaseService,
   CaseStatus,
   SampleStatus,
   SampleSubject,
@@ -58,6 +59,8 @@ export type SampleCollectionCase = {
   case_no: string
   status: CaseStatus
   care_type: CareType
+  service: CaseService
+  keeps_units_in_storage: boolean
   transfusion_reason: string | null
   reference_note: string | null
   created_at: string | null

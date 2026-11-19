@@ -81,9 +81,6 @@ export function useIssueBlood(caseId: number) {
       })
       queryClient.invalidateQueries({ queryKey: unitKeys.lists() })
       queryClient.invalidateQueries({
-        queryKey: unitKeys.casePreparations(caseId),
-      })
-      queryClient.invalidateQueries({
         queryKey: donorExaminationKeys.screen(caseId),
       })
       queryClient.invalidateQueries({ queryKey: caseKeys.detail(caseId) })

@@ -35,6 +35,8 @@ const view: DonorSerology = {
     case_no: "C-1",
     status: "open",
     care_type: "daycare",
+    service: "transfusion",
+    keeps_units_in_storage: false,
     transfusion_reason: null,
     reference_note: null,
     created_at: null,

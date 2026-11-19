@@ -1,6 +1,6 @@
 "use client"
 
-import { DropletIcon, PrinterIcon, ScanBarcodeIcon } from "lucide-react"
+import { DropletIcon, ScanBarcodeIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -25,8 +25,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
-import { useBagLabelPrinter } from "@/modules/blood-bank/blood-collections/components/bag-label-printer"
 import { CollectBloodDialog } from "@/modules/blood-bank/blood-collections/components/collect-blood-dialog"
+import { PhlebotomyPanel } from "@/modules/blood-bank/blood-collections/components/phlebotomy-panel"
 import {
   BloodCollectionErrorCode,
   bloodCollectionErrorText,
@@ -39,21 +39,25 @@ import { scanFocus } from "@/modules/blood-bank/blood-collections/focus"
 import type {
   BloodCollection,
   CollectionDonor,
-  DonorBag,
 } from "@/modules/blood-bank/blood-collections/types"
 import { CaseDonorStatusBadge } from "@/modules/blood-bank/case-donors/components/case-donor-status-badge"
 import { CaseInformationPanel } from "@/modules/blood-bank/cases/components/case-information-panel"
 import { InvoiceScanBox } from "@/modules/blood-bank/cases/components/invoice-scan-box"
-import { CaseDonorStatus } from "@/modules/blood-bank/enums"
+import {
+  CaseDonorStatus,
+  CaseService,
+  CaseStatus,
+} from "@/modules/blood-bank/enums"
 import { BloodBankPermission } from "@/modules/blood-bank/permissions"
+import { useUnitLabelPrinter } from "@/modules/blood-bank/units/components/unit-label-printer"
 import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
 import { useCan } from "@/modules/shared/rbac/use-can"
 import { formatAge } from "@/modules/shared/patient/format"
 
 /**
  * Tab 1: scan an invoice no or a donor no, see the patient panel and one row per donor,
- * collect blood from an eligible donor and print bag labels. An invoice scan shows every
- * donor; a donor no scan only that donor (`focusDonorId`). Both live in the URL
+ * collect blood from an eligible donor (the bag and its units, labels printed). An invoice
+ * scan shows every donor; a donor no scan only that donor (`focusDonorId`). Both live in the URL
  * (`?case=&donor=`), so the Pending tab and a page reload can open them.
  */
 export function CollectionTab({
@@ -125,6 +129,12 @@ export function CollectionTab({
         </Card>
       ) : query.isError && !query.data ? (
         <QueryError error={query.error} onRetry={() => query.refetch()} />
+      ) : view?.case.service === CaseService.TherapeuticPhlebotomy ? (
+        <PhlebotomyPanel
+          key={view.case.id}
+          view={view}
+          onRecorded={focusScan}
+        />
       ) : view ? (
         <CollectionWorkspace
           key={view.case.id}
@@ -153,37 +163,24 @@ function CollectionWorkspace({
 }) {
   const caseId = view.case.id
   const canCollect = useCan(BloodBankPermission.CollectionCollect)
-  const canPrint = useCan(BloodBankPermission.CollectionLabelPrint)
-  const { print, isPrinting } = useBagLabelPrinter()
+  const { printLogged } = useUnitLabelPrinter()
   const [collecting, setCollecting] = useState<CollectionDonor | null>(null)
-
-  const bags = view.donors
-    .map((donor) => donor.collection)
-    .filter((bag) => bag !== null)
-
-  function printBags(selected: DonorBag[]) {
-    print({
-      caseId,
-      collectionIds: selected.map((bag) => bag.id),
-      isReprint: selected.some((bag) => bag.label_print_count > 0),
-    })
-  }
+  const needsNothingMore =
+    view.case.status === CaseStatus.Open && view.bag_plan.length === 0
 
   function handleCollected(next: BloodCollection) {
     setCollecting(null)
     const bag = next.donors.find(
       (donor) => donor.collection?.id === next.collected_collection_id
     )?.collection
+    const units = next.collected_units.map((unit) => unit.unit_no).join(", ")
     toast.success(
-      bag ? `Blood collected: bag ${bag.bag_no}.` : "Blood collected."
+      bag
+        ? `Blood collected: bag ${bag.bag_no}, units ${units}.`
+        : "Blood collected."
     )
-    if (canPrint && next.collected_collection_id !== null) {
-      print({
-        caseId,
-        collectionIds: [next.collected_collection_id],
-        isReprint: false,
-      })
-    }
+    // The backend logged these labels as printed and returned their printer commands.
+    printLogged(next.collected_units)
     onCollected()
   }
 
@@ -208,20 +205,15 @@ function CollectionWorkspace({
                 </Button>
               </>
             ) : null}
-            {canPrint ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => printBags(bags)}
-                disabled={bags.length === 0 || isPrinting}
-              >
-                <PrinterIcon data-icon="inline-start" />
-                Label (All)
-              </Button>
-            ) : null}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-3">
+          {needsNothingMore ? (
+            <p className="text-sm text-muted-foreground">
+              The case already has every component it was billed for; no more
+              blood is collected for it. Unit labels are reprinted from Units.
+            </p>
+          ) : null}
           <div className="overflow-hidden rounded-lg border">
             <Table>
               <TableHeader>
@@ -236,7 +228,7 @@ function CollectionWorkspace({
                   <TableHead>Bag no</TableHead>
                   <TableHead>Volume</TableHead>
                   <TableHead>Collected</TableHead>
-                  {canCollect || canPrint ? (
+                  {canCollect ? (
                     <TableHead>
                       <span className="sr-only">Actions</span>
                     </TableHead>
@@ -259,10 +251,7 @@ function CollectionWorkspace({
                       key={donor.case_donor_id ?? donor.number}
                       donor={donor}
                       canCollect={canCollect}
-                      canPrint={canPrint}
-                      printDisabled={isPrinting}
                       onCollect={() => setCollecting(donor)}
-                      onPrint={(bag) => printBags([bag])}
                     />
                   ))
                 )}
@@ -276,6 +265,7 @@ function CollectionWorkspace({
         <CollectBloodDialog
           caseId={caseId}
           donor={collecting}
+          plan={view.bag_plan}
           onOpenChange={(open) => {
             if (!open) {
               setCollecting(null)
@@ -291,17 +281,11 @@ function CollectionWorkspace({
 function DonorRow({
   donor,
   canCollect,
-  canPrint,
-  printDisabled,
   onCollect,
-  onPrint,
 }: {
   donor: CollectionDonor
   canCollect: boolean
-  canPrint: boolean
-  printDisabled: boolean
   onCollect: () => void
-  onPrint: (bag: DonorBag) => void
 }) {
   const { collection: bag } = donor
   const deferred = donor.case_donor_status === CaseDonorStatus.Deferred
@@ -342,36 +326,18 @@ function DonorRow({
           "—"
         )}
       </TableCell>
-      {canCollect || canPrint ? (
+      {canCollect ? (
         <TableCell>
           <div className="flex justify-end gap-2">
-            {canCollect ? (
-              <Button
-                size="xs"
-                disabled={!donor.is_collectable}
-                onClick={onCollect}
-                aria-label={`Collect blood from ${name}`}
-              >
-                <DropletIcon data-icon="inline-start" />
-                Collect
-              </Button>
-            ) : null}
-            {canPrint ? (
-              <Button
-                variant="outline"
-                size="xs"
-                disabled={bag === null || printDisabled}
-                onClick={() => {
-                  if (bag) {
-                    onPrint(bag)
-                  }
-                }}
-                aria-label={`Print bag label for ${name}`}
-              >
-                <PrinterIcon data-icon="inline-start" />
-                Label
-              </Button>
-            ) : null}
+            <Button
+              size="xs"
+              disabled={!donor.is_collectable}
+              onClick={onCollect}
+              aria-label={`Collect blood from ${name}`}
+            >
+              <DropletIcon data-icon="inline-start" />
+              Collect
+            </Button>
           </div>
         </TableCell>
       ) : null}

@@ -11,7 +11,7 @@ import type {
   CaseInvoice,
   CasePatient,
 } from "@/modules/blood-bank/cases/types"
-import { careTypeLabels } from "@/modules/blood-bank/enums"
+import { careTypeLabels, caseServiceLabels } from "@/modules/blood-bank/enums"
 import { componentsSummary } from "@/modules/blood-bank/samples/format"
 import {
   bloodGroupLabels,
@@ -26,6 +26,8 @@ export type CaseInformation = Pick<
   | "case_no"
   | "status"
   | "care_type"
+  | "service"
+  | "keeps_units_in_storage"
   | "transfusion_reason"
   | "reference_note"
   | "components"
@@ -120,6 +122,16 @@ export function CaseInformationPanel({
             <Info
               label="Care of"
               value={record ? careTypeLabels[record.care_type] : undefined}
+            />
+            <Info
+              label="Service"
+              value={
+                record
+                  ? record.keeps_units_in_storage
+                    ? `${caseServiceLabels[record.service]} · kept in storage`
+                    : caseServiceLabels[record.service]
+                  : undefined
+              }
             />
             <Info
               label="Cause of transfusion"

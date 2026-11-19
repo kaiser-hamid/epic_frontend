@@ -2,6 +2,7 @@ import type { Donor } from "@/modules/blood-bank/donors/types"
 import type {
   CareType,
   CaseDonorStatus,
+  CaseService,
   CaseStatus,
 } from "@/modules/blood-bank/enums"
 import type { BillingStatus } from "@/modules/shared/billing/enums"
@@ -66,9 +67,21 @@ export type BloodBankCase = {
   branch_id: number
   status: CaseStatus
   care_type: CareType
+  /** The path the case follows, from its bill. */
+  service: CaseService
+  /** The storage fee was billed: the patient's units wait in storage for a later visit. */
+  keeps_units_in_storage: boolean
   transfusion_reason: string | null
   reference_note: string | null
   supplied_at: string | null
+  closed_at: string | null
+  closed_by: { id: number; name: string } | null
+  close_reason: string | null
+  /**
+   * Case detail only (null on list rows): `can_close` shows "Close case" (open, no unit
+   * reserved); `needs_reason` means billed work is outstanding, so a reason is required.
+   */
+  closing: CaseClosing | null
   patient: CasePatient | null
   invoice: CaseInvoice | null
   components: CaseComponent[]
@@ -76,6 +89,11 @@ export type BloodBankCase = {
   donors?: CaseDonor[]
   donors_count: number
   created_at: string
+}
+
+export type CaseClosing = {
+  can_close: boolean
+  needs_reason: boolean
 }
 
 /** Filters the backend allows on `GET /api/blood-bank/cases`. */
@@ -86,6 +104,9 @@ export type CaseFilters = {
   search?: string | null
   status?: CaseStatus | null
   care_type?: CareType | null
+  service?: CaseService | null
+  /** Open cases that never close by themselves (only services billed): `1` to filter. */
+  needs_closing?: "1" | null
   /** `YYYY-MM-DD`, inclusive. */
   registered_from?: string | null
   registered_to?: string | null

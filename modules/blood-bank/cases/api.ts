@@ -88,3 +88,21 @@ export async function updateCase({
   )
   return response.data.data
 }
+
+export type CloseCaseInput = {
+  id: number
+  /** Required by the backend while billed work is outstanding (`CLOSE_REASON_REQUIRED`). */
+  reason: string | null
+}
+
+/** "Close case": a case that does not close by itself (services only, or work that cannot finish). */
+export async function closeCase({
+  id,
+  reason,
+}: CloseCaseInput): Promise<BloodBankCase> {
+  const response = await apiClient.post<ResourceResponse<BloodBankCase>>(
+    `${basePath}/${id}/close`,
+    { reason: emptyToNull(reason ?? "") }
+  )
+  return response.data.data
+}
