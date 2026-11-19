@@ -79,10 +79,6 @@ const columns = helper.columns([
       )
     },
   }),
-  helper.accessor("volume_ml", {
-    header: "Volume",
-    cell: (info) => <span className="tabular-nums">{info.getValue()} ml</span>,
-  }),
   helper.accessor("collected_at", {
     header: "Collected",
     cell: ({ row }) => (

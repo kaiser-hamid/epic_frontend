@@ -53,7 +53,6 @@ import {
   defaultCollectBloodValues,
   toCollectBloodPayload,
   UNIT_VOLUME_ML,
-  VOLUME_ML,
   type CollectBloodValues,
 } from "@/modules/blood-bank/blood-collections/schemas"
 import type {
@@ -66,7 +65,7 @@ import type { StorageLocation } from "@/modules/blood-bank/storage-locations/typ
 
 /**
  * "Collect" for one eligible donor: the units the bag is made into (the bag plan: patient
- * units locked, storage units with their shelf and optional ml), the bag volume, notes and
+ * units locked, storage units with their shelf, each with an optional volume), notes and
  * when (empty is now; may be back-dated). "Collect and Print" saves the bag and its units and
  * hands the refreshed screen to `onCollected`, whose `collected_units` carry the labels to
  * print (patient label, storage label).
@@ -202,34 +201,6 @@ function CollectBloodForm({
         ))}
         {unitsError ? <FieldError errors={[{ message: unitsError }]} /> : null}
       </fieldset>
-
-      <Controller
-        name="volume_ml"
-        control={control}
-        render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid}>
-            <FieldLabel htmlFor="collect_volume_ml">
-              Bag volume (ml)
-              <RequiredMark />
-            </FieldLabel>
-            <NumberInput
-              id="collect_volume_ml"
-              name={field.name}
-              ref={field.ref}
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              max={VOLUME_ML.max}
-              className="sm:max-w-32"
-              aria-invalid={fieldState.invalid}
-            />
-            <FieldDescription>
-              {VOLUME_ML.min}–{VOLUME_ML.max} ml drawn.
-            </FieldDescription>
-            <FieldError errors={[fieldState.error]} />
-          </Field>
-        )}
-      />
 
       <Controller
         name="notes"
@@ -384,7 +355,7 @@ function UnitRow({
         control={control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid}>
-            <FieldLabel htmlFor={id("volume_ml")}>ml</FieldLabel>
+            <FieldLabel htmlFor={id("volume_ml")}>Volume (ml)</FieldLabel>
             <NumberInput
               id={id("volume_ml")}
               name={field.name}

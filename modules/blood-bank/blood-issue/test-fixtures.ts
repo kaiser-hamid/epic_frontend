@@ -47,7 +47,6 @@ export function issueDonor(
       id: 200 + sequence,
       bag_no: `BAG-${sequence}`,
       status: "collected",
-      volume_ml: 450,
       collected_at: "2026-11-02T09:00:00+06:00",
       collected_by: staff,
     },

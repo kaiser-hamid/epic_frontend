@@ -390,9 +390,6 @@ function DonationHistory({ donor }: { donor: DonorDetail }) {
                     {donation.collections.map((collection) => (
                       <span key={collection.id} className="text-sm">
                         {collection.bag_no}
-                        {collection.volume_ml !== null
-                          ? ` · ${collection.volume_ml} ml`
-                          : ""}
                         {collection.status === CollectionStatus.Cancelled ? (
                           <Badge variant="outline" className="ml-2">
                             Cancelled

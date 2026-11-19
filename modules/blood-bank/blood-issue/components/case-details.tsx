@@ -388,7 +388,6 @@ function DonorCard({ donor }: { donor: IssueDonor }) {
           {bag ? (
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
               <Info label="Bag no" value={bag.bag_no} />
-              <Info label="Volume" value={`${bag.volume_ml} ml`} />
               <Info
                 label="Collected"
                 value={

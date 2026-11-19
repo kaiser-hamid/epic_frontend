@@ -226,7 +226,6 @@ function CollectionWorkspace({
                   <TableHead>Blood group</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Bag no</TableHead>
-                  <TableHead>Volume</TableHead>
                   <TableHead>Collected</TableHead>
                   {canCollect ? (
                     <TableHead>
@@ -239,7 +238,7 @@ function CollectionWorkspace({
                 {view.donors.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={11}
+                      colSpan={10}
                       className="text-center text-muted-foreground"
                     >
                       No donor is registered for this case.
@@ -311,9 +310,6 @@ function DonorRow({
         )}
       </TableCell>
       <TableCell className="font-medium">{bag?.bag_no ?? "—"}</TableCell>
-      <TableCell className="tabular-nums">
-        {bag ? `${bag.volume_ml} ml` : "—"}
-      </TableCell>
       <TableCell>
         {bag ? (
           <div className="flex flex-col">

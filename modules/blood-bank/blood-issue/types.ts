@@ -91,7 +91,6 @@ export type IssueBag = {
   id: number
   bag_no: string
   status: CollectionStatus
-  volume_ml: number
   collected_at: string
   collected_by: StaffRef | null
 }

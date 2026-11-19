@@ -62,7 +62,6 @@ export type DonationPatient = {
 export type DonationCollection = {
   id: number
   bag_no: string
-  volume_ml: number | null
   status: CollectionStatus
   collected_at: string | null
 }

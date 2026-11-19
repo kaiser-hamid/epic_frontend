@@ -8,14 +8,13 @@ import type {
 import type { StorageLocation } from "@/modules/blood-bank/storage-locations/types"
 
 /**
- * The "Collect" popup: the bag (volume, notes, when) and one row per unit of the bag plan.
+ * The "Collect" popup: the bag (notes, when) and one row per unit of the bag plan.
  * Ranges mirror the backend (`CollectBloodData`, `CollectedUnitData`). `collected_at` is a
  * `datetime-local` value read as Asia/Dhaka time; empty leaves it to the server (now). It may
  * be back-dated, never future-dated. A row that needs a storage location (stock, or a patient
- * unit kept in storage) must have one; a unit's ml is optional.
+ * unit kept in storage) must have one; a unit's ml is optional (the bag records no volume).
  */
 
-export const VOLUME_ML = { min: 50, max: 600, default: 450 } as const
 export const UNIT_VOLUME_ML = { min: 1, max: 600 } as const
 const NOTES_MAX = 500
 
@@ -45,11 +44,6 @@ const unitRowSchema = z
   })
 
 export const collectBloodSchema = z.object({
-  volume_ml: z
-    .number({ error: "Enter the volume." })
-    .int("Enter a whole number.")
-    .min(VOLUME_ML.min, `At least ${VOLUME_ML.min} ml.`)
-    .max(VOLUME_ML.max, `At most ${VOLUME_ML.max} ml.`),
   notes: z.string().trim().max(NOTES_MAX, `At most ${NOTES_MAX} characters.`),
   collected_at: z.string().superRefine((value, ctx) => {
     if (value === "") {
@@ -77,7 +71,6 @@ export function defaultCollectBloodValues(
   locations: StorageLocation[]
 ): CollectBloodValues {
   return {
-    volume_ml: VOLUME_ML.default,
     notes: "",
     collected_at: "",
     units: plan.map((row) => ({
@@ -100,7 +93,6 @@ export function toCollectBloodPayload(
   values: CollectBloodValues
 ): CollectBloodInput {
   return {
-    volume_ml: values.volume_ml,
     notes: values.notes.trim() || null,
     collected_at:
       values.collected_at === ""

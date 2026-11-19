@@ -74,16 +74,8 @@ describe("defaultCollectBloodValues", () => {
 })
 
 describe("collectBloodSchema", () => {
-  it("accepts the defaults (450 ml, collected now)", () => {
+  it("accepts the defaults (collected now, no volumes)", () => {
     expect(issuePaths({})).toEqual([])
-  })
-
-  it("requires a whole volume of 50–600 ml", () => {
-    expect(issuePaths({ volume_ml: undefined })).toEqual(["volume_ml"])
-    expect(issuePaths({ volume_ml: 49 })).toEqual(["volume_ml"])
-    expect(issuePaths({ volume_ml: 601 })).toEqual(["volume_ml"])
-    expect(issuePaths({ volume_ml: 50 })).toEqual([])
-    expect(issuePaths({ volume_ml: 600 })).toEqual([])
   })
 
   it("requires a shelf for a unit that is stored", () => {
@@ -110,9 +102,8 @@ describe("collectBloodSchema", () => {
 })
 
 describe("toCollectBloodPayload", () => {
-  it("sends null notes, time, shelf and ml when left empty", () => {
+  it("sends null notes, time, shelf and volume when left empty", () => {
     expect(toCollectBloodPayload(defaults)).toEqual({
-      volume_ml: 450,
       notes: null,
       collected_at: null,
       units: [
@@ -126,12 +117,10 @@ describe("toCollectBloodPayload", () => {
     expect(
       toCollectBloodPayload({
         ...defaults,
-        volume_ml: 350,
         notes: " clotted line ",
         collected_at: "2026-11-02T09:15",
       })
     ).toMatchObject({
-      volume_ml: 350,
       notes: "clotted line",
       collected_at: "2026-11-02T03:15:00.000Z",
     })

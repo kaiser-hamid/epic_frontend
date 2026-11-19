@@ -17,7 +17,6 @@ export type DonorBag = {
   id: number
   bag_no: string
   status: CollectionStatus
-  volume_ml: number
   notes: string | null
   collected_at: string
   collected_by: StaffRef
@@ -81,7 +80,6 @@ export type CollectedUnitInput = {
 
 /** Body of `POST /cases/{id}/donors/{caseDonorId}/collection`. */
 export type CollectBloodInput = {
-  volume_ml: number
   notes: string | null
   /** ISO 8601; null leaves it to the server (now). */
   collected_at: string | null
@@ -96,7 +94,6 @@ export type Bag = {
   id: number
   bag_no: string
   status: CollectionStatus
-  volume_ml: number
   notes: string | null
   collected_at: string
   collected_by: StaffRef
