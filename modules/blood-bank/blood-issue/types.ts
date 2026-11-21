@@ -9,6 +9,7 @@ import type {
   CareType,
   CollectionStatus,
   CrossmatchResult,
+  CrossmatchScope,
   MalariaResult,
   ResultStatus,
   SampleStatus,
@@ -111,12 +112,16 @@ export type IssueDonor = SampleSubjectInfo & {
   needs_post_vitals: boolean
 }
 
-/** The unit's current crossmatch with the patient sample (the Compatibility Test Report). */
+/**
+ * The unit's current crossmatch with the patient sample (the Compatibility Test Report). A side
+ * outside its `scope` is null.
+ */
 export type Crossmatch = {
   id: number
   version: number
-  major_result: CrossmatchResult
-  minor_result: CrossmatchResult
+  scope: CrossmatchScope
+  major_result: CrossmatchResult | null
+  minor_result: CrossmatchResult | null
   is_compatible: boolean
   remarks: string | null
   status: ResultStatus
@@ -127,10 +132,12 @@ export type Crossmatch = {
 }
 
 /**
- * A unit reserved for or issued to the case. `crossmatch` is null until issued; it can be
+ * A unit reserved for or issued to the case. `crossmatch_scope` is the crossmatch its component
+ * gets (recorded compatible at issue, not entered). `crossmatch` is null until issued; it can be
  * issued now while `can_issue`.
  */
 export type IssueUnit = Unit & {
+  crossmatch_scope: CrossmatchScope
   crossmatch: Crossmatch | null
   compatibility_report_print_count: number
   can_issue: boolean
@@ -153,11 +160,9 @@ export type BloodIssue = {
 /** Exactly one of them is sent to `GET /blood-issue`. */
 export type BloodIssueLookup = { invoice_no: string } | { donor_no: string }
 
-/** One unit row of `POST /cases/{id}/blood-issue`. */
+/** One unit row of `POST /cases/{id}/blood-issue`; its crossmatch results follow its scope. */
 export type CrossmatchUnitInput = {
   unit_id: number
-  major_result: CrossmatchResult
-  minor_result: CrossmatchResult
   remarks: string | null
 }
 
@@ -168,6 +173,8 @@ export type PostDonationInput = Vitals & { case_donor_id: number }
 export type IssueBloodInput = {
   technologist_id: number
   physician_id: number
+  /** "Cause of transfusion": required, saved on the case and printed on the report. */
+  transfusion_reason: string
   /** Null when unchanged and already recorded. */
   patient_blood_group: BloodGroup | null
   amendment_reason: string | null

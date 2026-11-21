@@ -87,6 +87,7 @@ export function issueUnit(
       patient_no: "P-1",
       patient_name: "Patient One",
     },
+    crossmatch_scope: "major",
     crossmatch: null,
     compatibility_report_print_count: 0,
     can_issue: true,

@@ -184,9 +184,21 @@ export const CrossmatchResult = {
 } as const
 export type CrossmatchResult = ValueOf<typeof CrossmatchResult>
 
-export const crossmatchResultLabels: Record<CrossmatchResult, string> = {
-  compatible: "Compatible",
-  incompatible: "Incompatible",
+/**
+ * The sides a unit is crossmatched on, set by its component (never chosen): whole blood major
+ * and minor, PCV major, every plasma or platelet component minor.
+ */
+export const CrossmatchScope = {
+  Major: "major",
+  Minor: "minor",
+  MajorMinor: "major_minor",
+} as const
+export type CrossmatchScope = ValueOf<typeof CrossmatchScope>
+
+export const crossmatchScopeLabels: Record<CrossmatchScope, string> = {
+  major: "Major",
+  minor: "Minor",
+  major_minor: "Major/Minor",
 }
 
 /** The physician's decision on the physical examination form. */

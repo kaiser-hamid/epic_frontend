@@ -7,18 +7,18 @@ import type {
   IssueUnit,
 } from "@/modules/blood-bank/blood-issue/types"
 import { parseDecimal } from "@/modules/blood-bank/donor-examinations/format"
-import { CrossmatchResult } from "@/modules/blood-bank/enums"
 import { BloodGroup } from "@/modules/shared/patient/enums"
 
 /**
- * The "Issue Blood" form: one request that records the patient blood group, the crossmatch of
- * every selected unit, the optional post-donation vitals not yet recorded, and issues the units. Choices
- * start empty ("") so nothing is recorded by accident. The ranges mirror the backend and only
- * catch typos; the backend stays the authority.
+ * The "Issue Blood" form: one request that records the cause of transfusion, the patient blood
+ * group, the crossmatch of every selected unit (its results follow the unit's component, so only
+ * remarks are entered), the optional post-donation vitals not yet recorded, and issues the units.
+ * The ranges mirror the backend and only catch typos; the backend stays the authority.
  */
 
 export const MAX_ISSUE_UNITS = 20
 export const REMARKS_MAX = 1000
+export const TRANSFUSION_REASON_MAX = 1000
 export const AMENDMENT_REASON_MAX = 1000
 export const REPRINT_REASON_MAX = 500
 
@@ -28,14 +28,6 @@ export const VITALS = {
   bp_diastolic: { min: 20, max: 200 },
   temperature_f: { min: 90, max: 110 },
 } as const
-
-export const INCOMPATIBLE_TEXT = "An incompatible unit cannot be issued."
-
-const crossmatchChoice = (message: string) =>
-  z
-    .enum(CrossmatchResult)
-    .or(z.literal(""))
-    .refine((value) => value !== "", { message })
 
 /** A whole number in a range; empty is `undefined` in the form (checked by the row). */
 function wholeNumber({ min, max }: { min: number; max: number }) {
@@ -59,8 +51,6 @@ function wholeNumber({ min, max }: { min: number; max: number }) {
 
 const unitRowSchema = z.object({
   unit_id: z.number(),
-  major_result: crossmatchChoice("Select the major crossmatch result."),
-  minor_result: crossmatchChoice("Select the minor crossmatch result."),
   remarks: z
     .string()
     .trim()
@@ -139,6 +129,14 @@ const vitalsRowSchema = z
   })
 
 const issueBloodFields = z.object({
+  transfusion_reason: z
+    .string()
+    .trim()
+    .min(1, "Enter the cause of transfusion.")
+    .max(
+      TRANSFUSION_REASON_MAX,
+      `At most ${TRANSFUSION_REASON_MAX} characters.`
+    ),
   patient_blood_group: z.enum(BloodGroup).or(z.literal("")),
   amendment_reason: z.string().trim(),
   technologist_id: z.number().optional(),
@@ -207,15 +205,6 @@ export function amendmentRequired(
   )
 }
 
-export function isIncompatible(
-  row: Pick<IssueUnitRowValues, "major_result" | "minor_result">
-): boolean {
-  return (
-    row.major_result === CrossmatchResult.Incompatible ||
-    row.minor_result === CrossmatchResult.Incompatible
-  )
-}
-
 export function issueBloodSchema(context: IssueBloodContext) {
   return issueBloodFields.superRefine((values, ctx) => {
     const issue = (path: (string | number)[], message: string) =>
@@ -245,16 +234,6 @@ export function issueBloodSchema(context: IssueBloodContext) {
     if (values.physician_id === undefined) {
       issue(["physician_id"], "Select the physician.")
     }
-
-    // The backend saves nothing when one unit is incompatible.
-    values.units.forEach((row, index) => {
-      if (row.major_result === CrossmatchResult.Incompatible) {
-        issue(["units", index, "major_result"], INCOMPATIBLE_TEXT)
-      }
-      if (row.minor_result === CrossmatchResult.Incompatible) {
-        issue(["units", index, "minor_result"], INCOMPATIBLE_TEXT)
-      }
-    })
   })
 }
 
@@ -324,24 +303,21 @@ export function emptyVitalsRow(caseDonorId: number): VitalsRowValues {
 }
 
 /**
- * The form for the selected units: the recorded blood group prefilled, one crossmatch row per
- * unit with nothing chosen, one empty (optional) vitals row per donor without recorded vitals.
+ * The form for the selected units: the case's cause of transfusion and the recorded blood group
+ * prefilled, one crossmatch row (remarks) per unit, one empty (optional) vitals row per donor
+ * without recorded vitals.
  */
 export function issueBloodDefaults(
   view: BloodIssue,
   units: readonly IssueUnit[]
 ): IssueBloodValues {
   return {
+    transfusion_reason: view.case.transfusion_reason ?? "",
     patient_blood_group: view.patient_sample?.blood_group?.value ?? "",
     amendment_reason: "",
     technologist_id: undefined,
     physician_id: undefined,
-    units: units.map((unit) => ({
-      unit_id: unit.id,
-      major_result: "",
-      minor_result: "",
-      remarks: "",
-    })),
+    units: units.map((unit) => ({ unit_id: unit.id, remarks: "" })),
     post_donation: donorsNeedingVitals(view.donors, units).flatMap((donor) =>
       donor.case_donor_id === null ? [] : [emptyVitalsRow(donor.case_donor_id)]
     ),
@@ -364,11 +340,8 @@ export function toIssueBloodPayload(
     return null
   }
 
-  // The refined choices can no longer be "" here.
   const units = values.units.map((row) => ({
     unit_id: row.unit_id,
-    major_result: row.major_result,
-    minor_result: row.minor_result,
     remarks: row.remarks === "" ? null : row.remarks,
   }))
 
@@ -405,6 +378,7 @@ export function toIssueBloodPayload(
   return {
     technologist_id: values.technologist_id,
     physician_id: values.physician_id,
+    transfusion_reason: values.transfusion_reason,
     patient_blood_group: unchanged ? null : group,
     amendment_reason: amendmentRequired(values, context)
       ? values.amendment_reason

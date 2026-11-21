@@ -33,18 +33,12 @@ function vitals(overrides: Partial<VitalsRowValues> = {}): VitalsRowValues {
 
 function values(overrides: Partial<IssueBloodValues> = {}): IssueBloodValues {
   return {
+    transfusion_reason: "Anaemia",
     patient_blood_group: "B_POS",
     amendment_reason: "",
     technologist_id: 5,
     physician_id: 9,
-    units: [
-      {
-        unit_id: 11,
-        major_result: "compatible",
-        minor_result: "compatible",
-        remarks: "",
-      },
-    ],
+    units: [{ unit_id: 11, remarks: "" }],
     post_donation: [vitals()],
     ...overrides,
   }
@@ -65,40 +59,16 @@ describe("issueBloodSchema", () => {
     expect(issuePaths(values())).toEqual([])
   })
 
-  it("requires both crossmatch results and both signers, with no default", () => {
+  it("requires the cause of transfusion and both signers, with no default", () => {
     expect(
       issuePaths(
         values({
+          transfusion_reason: "   ",
           technologist_id: undefined,
           physician_id: undefined,
-          units: [
-            { unit_id: 11, major_result: "", minor_result: "", remarks: "" },
-          ],
         })
       ).sort()
-    ).toEqual([
-      "physician_id",
-      "technologist_id",
-      "units.0.major_result",
-      "units.0.minor_result",
-    ])
-  })
-
-  it("refuses an incompatible unit", () => {
-    expect(
-      issuePaths(
-        values({
-          units: [
-            {
-              unit_id: 11,
-              major_result: "compatible",
-              minor_result: "incompatible",
-              remarks: "",
-            },
-          ],
-        })
-      )
-    ).toEqual(["units.0.minor_result"])
+    ).toEqual(["physician_id", "technologist_id", "transfusion_reason"])
   })
 
   it("checks the vitals ranges", () => {
@@ -227,13 +197,14 @@ describe("donor vitals", () => {
     ).toEqual([101])
   })
 
-  it("prefills the recorded group and one vitals row per donor that needs them", () => {
+  it("prefills the cause of transfusion, the recorded group and one vitals row per donor that needs them", () => {
     const defaults = issueBloodDefaults(view, [
       issueUnit(11, 1),
       issueUnit(12, 2),
     ])
+    expect(defaults.transfusion_reason).toBe("Anaemia")
     expect(defaults.patient_blood_group).toBe("B_POS")
-    expect(defaults.units.map((row) => row.major_result)).toEqual(["", ""])
+    expect(defaults.units.map((row) => row.unit_id)).toEqual([11, 12])
     expect(defaults.post_donation.map((row) => row.case_donor_id)).toEqual([
       101, 102,
     ])
@@ -246,16 +217,10 @@ describe("toIssueBloodPayload", () => {
     expect(toIssueBloodPayload(output, recordedB)).toEqual({
       technologist_id: 5,
       physician_id: 9,
+      transfusion_reason: "Anaemia",
       patient_blood_group: null,
       amendment_reason: null,
-      units: [
-        {
-          unit_id: 11,
-          major_result: "compatible",
-          minor_result: "compatible",
-          remarks: null,
-        },
-      ],
+      units: [{ unit_id: 11, remarks: null }],
       post_donation: [
         {
           case_donor_id: 101,

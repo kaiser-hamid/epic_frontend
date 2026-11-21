@@ -2,9 +2,16 @@ import type { Vitals } from "@/modules/blood-bank/blood-issue/types"
 import {
   CaseDonorSource,
   caseDonorSourceLabels,
+  crossmatchScopeLabels,
+  type CrossmatchScope,
 } from "@/modules/blood-bank/enums"
 import type { Gender } from "@/modules/shared/patient/enums"
 import { genderLabels } from "@/modules/shared/patient/enums"
+
+/** "Compatible (Major)": the report's "Compatibility with donor" for a crossmatch scope. */
+export function compatibilityText(scope: CrossmatchScope): string {
+  return `Compatible (${crossmatchScopeLabels[scope]})`
+}
 
 /** "Pulse 80 bpm · BP 120/80 · 98.4 °F". */
 export function vitalsText(vitals: Vitals): string {

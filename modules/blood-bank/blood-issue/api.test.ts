@@ -20,16 +20,10 @@ afterAll(() => server.close())
 const input: IssueBloodInput = {
   technologist_id: 5,
   physician_id: 9,
+  transfusion_reason: "Anaemia",
   patient_blood_group: null,
   amendment_reason: null,
-  units: [
-    {
-      unit_id: 41,
-      major_result: "compatible",
-      minor_result: "compatible",
-      remarks: null,
-    },
-  ],
+  units: [{ unit_id: 41, remarks: null }],
   post_donation: [],
 }
 

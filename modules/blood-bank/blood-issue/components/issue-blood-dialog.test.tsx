@@ -146,12 +146,6 @@ async function pickStaff(
   await user.click(await screen.findByRole("option", { name }))
 }
 
-async function chooseAll(user: UserEvent, dialog: HTMLElement, label: string) {
-  for (const radio of within(dialog).getAllByRole("radio", { name: label })) {
-    await user.click(radio)
-  }
-}
-
 describe("Issue Blood dialog", () => {
   it("asks for vitals only for donors that need them and whose units are selected", async () => {
     const user = renderWithClient(
@@ -169,28 +163,17 @@ describe("Issue Blood dialog", () => {
     expect(within(dialog).queryByText(/D0002/)).toBeNull()
   })
 
-  it("disables submit while a unit is incompatible", async () => {
+  it("prefills the cause of transfusion and shows each unit's compatibility as text", async () => {
     const user = renderWithClient(
       <IssueTab caseId={1} onCaseChange={() => {}} />
     )
     const dialog = await openIssueDialog(user)
-    const submit = within(dialog).getByRole("button", { name: "Issue blood" })
 
-    expect(submit).toBeEnabled()
-    const [majorIncompatible] = within(dialog).getAllByRole("radio", {
-      name: "Incompatible",
-    })
-    await user.click(majorIncompatible as HTMLElement)
-    expect(submit).toBeDisabled()
-    expect(
-      within(dialog).getByText(/U-11 is marked incompatible/)
-    ).toBeVisible()
-
-    const [majorCompatible] = within(dialog).getAllByRole("radio", {
-      name: "Compatible",
-    })
-    await user.click(majorCompatible as HTMLElement)
-    expect(submit).toBeEnabled()
+    expect(within(dialog).getByLabelText(/Cause of transfusion/)).toHaveValue(
+      "Anaemia"
+    )
+    expect(within(dialog).getAllByText("Compatible (Major)")).toHaveLength(3)
+    expect(within(dialog).queryByRole("radio")).toBeNull()
   })
 
   it("on 201 prints the PDF, then refetches the screen", async () => {
@@ -207,7 +190,6 @@ describe("Issue Blood dialog", () => {
       /Tech Rahman/
     )
     await pickStaff(user, dialog, /^Physician/, "Karim", /Dr Karim/)
-    await chooseAll(user, dialog, "Compatible")
     await user.type(within(dialog).getByLabelText(/Pulse/), "82")
     await user.type(within(dialog).getByLabelText(/BP systolic/), "118")
     await user.type(within(dialog).getByLabelText(/BP diastolic/), "78")
@@ -230,16 +212,10 @@ describe("Issue Blood dialog", () => {
     expect(issued).toEqual({
       technologist_id: 5,
       physician_id: 9,
+      transfusion_reason: "Anaemia",
       patient_blood_group: null,
       amendment_reason: null,
-      units: [
-        {
-          unit_id: 11,
-          major_result: "compatible",
-          minor_result: "compatible",
-          remarks: null,
-        },
-      ],
+      units: [{ unit_id: 11, remarks: null }],
       post_donation: [
         {
           case_donor_id: 101,

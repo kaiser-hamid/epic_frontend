@@ -1,18 +1,17 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { HandHeartIcon, TriangleAlertIcon } from "lucide-react"
+import { HandHeartIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Controller, useForm, useWatch, type Control } from "react-hook-form"
 import { toast } from "sonner"
 
-import { ChoiceGroup, type ChoiceOption } from "@/components/choice-group"
 import { DateTime } from "@/components/date-time"
 import { EnumSelect } from "@/components/enum-select"
 import { Form } from "@/components/form"
 import { NumberInput } from "@/components/number-input"
 import { RequiredMark } from "@/components/required-mark"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -39,18 +38,22 @@ import {
   bloodIssueErrorText,
   isBloodIssueReloadError,
 } from "@/modules/blood-bank/blood-issue/error-messages"
-import { donorTitle, vitalsText } from "@/modules/blood-bank/blood-issue/format"
+import {
+  compatibilityText,
+  donorTitle,
+  vitalsText,
+} from "@/modules/blood-bank/blood-issue/format"
 import { useIssueBlood } from "@/modules/blood-bank/blood-issue/queries"
 import {
   AMENDMENT_REASON_MAX,
   amendmentRequired,
   bloodGroupChanged,
   donorsWithRecordedVitals,
-  isIncompatible,
   issueBloodDefaults,
   issueBloodSchema,
   REMARKS_MAX,
   toIssueBloodPayload,
+  TRANSFUSION_REASON_MAX,
   unitDonor,
   VITALS,
   type IssueBloodContext,
@@ -63,36 +66,20 @@ import type {
   IssueUnit,
   PdfFile,
 } from "@/modules/blood-bank/blood-issue/types"
-import {
-  CrossmatchResult,
-  crossmatchResultLabels,
-} from "@/modules/blood-bank/enums"
 import { bloodGroupLabels } from "@/modules/shared/patient/enums"
 import { StaffCombobox } from "@/modules/shared/staff/components/staff-combobox"
 
-const crossmatchOptions: readonly ChoiceOption<CrossmatchResult>[] = [
-  {
-    value: CrossmatchResult.Compatible,
-    label: crossmatchResultLabels.compatible,
-    tone: "success",
-  },
-  {
-    value: CrossmatchResult.Incompatible,
-    label: crossmatchResultLabels.incompatible,
-    tone: "destructive",
-  },
-]
-
 /** Server error keys that sit under a visible field; any other one is toasted. */
 const visibleErrorKey =
-  /^(patient_blood_group|amendment_reason|technologist_id|physician_id|units\.\d+\.(major_result|minor_result|remarks)|post_donation\.\d+\.(pulse_bpm|bp_systolic|bp_diastolic|temperature_f))$/
+  /^(transfusion_reason|patient_blood_group|amendment_reason|technologist_id|physician_id|units\.\d+\.remarks|post_donation\.\d+\.(pulse_bpm|bp_systolic|bp_diastolic|temperature_f))$/
 
 /**
- * "Issue Blood" for the selected units: one form, one request. The patient blood group
- * (required until recorded; a change needs an amendment reason), the Medical Technologist and
- * Physician who sign the report, each unit's major and minor crossmatch, and (optionally) the
- * post-donation vitals of donors without recorded ones; recorded vitals are shown read-only.
- * `onIssued` gets the report PDF (201).
+ * "Issue Blood" for the selected units: one form, one request. The cause of transfusion
+ * (required, prefilled from the case), the patient blood group (required until recorded; a
+ * change needs an amendment reason), the Medical Technologist and Physician who sign the report,
+ * each unit's crossmatch remarks (its compatibility follows its component and is only shown), and
+ * (optionally) the post-donation vitals of donors without recorded ones; recorded vitals are
+ * shown read-only. `onIssued` gets the report PDF (201).
  */
 export function IssueBloodDialog({
   view,
@@ -189,10 +176,6 @@ function IssueBloodForm({
     { patient_blood_group: bloodGroup, units: unitRows },
     context
   )
-  const incompatibleUnits = units.filter((unit, index) => {
-    const row = unitRows[index]
-    return row !== undefined && isIncompatible(row)
-  })
   const recordedDonors = donorsWithRecordedVitals(view.donors, units)
 
   function handleError(error: unknown): boolean {
@@ -284,12 +267,39 @@ function IssueBloodForm({
           )}
         />
 
+        <Controller
+          name="transfusion_reason"
+          control={control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="issue_transfusion_reason">
+                Cause of transfusion
+                <RequiredMark />
+              </FieldLabel>
+              <Input
+                {...field}
+                id="issue_transfusion_reason"
+                maxLength={TRANSFUSION_REASON_MAX}
+                autoComplete="nope"
+                aria-invalid={fieldState.invalid}
+              />
+              <FieldDescription>
+                Saved on the case and printed on the report.
+              </FieldDescription>
+              <FieldError errors={[fieldState.error]} />
+            </Field>
+          )}
+        />
+
         {showAmendment ? (
           <Controller
             name="amendment_reason"
             control={control}
             render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
+              <Field
+                data-invalid={fieldState.invalid}
+                className="md:col-span-2"
+              >
                 <FieldLabel htmlFor="issue_amendment_reason">
                   Amendment reason
                   <RequiredMark />
@@ -305,9 +315,7 @@ function IssueBloodForm({
               </Field>
             )}
           />
-        ) : (
-          <div className="hidden md:block" />
-        )}
+        ) : null}
 
         <Controller
           name="technologist_id"
@@ -369,20 +377,6 @@ function IssueBloodForm({
             control={control}
           />
         ))}
-        {incompatibleUnits.length > 0 ? (
-          <Alert variant="destructive">
-            <TriangleAlertIcon />
-            <AlertTitle>Incompatible blood cannot be issued</AlertTitle>
-            <AlertDescription>
-              {incompatibleUnits.map((unit) => unit.unit_no).join(", ")}{" "}
-              {incompatibleUnits.length === 1 ? "is" : "are"} marked
-              incompatible. Nothing is saved while a unit is incompatible: close
-              this form and untick{" "}
-              {incompatibleUnits.length === 1 ? "it" : "them"} to issue the
-              others.
-            </AlertDescription>
-          </Alert>
-        ) : null}
       </section>
 
       {vitalsRows.length > 0 || recordedDonors.length > 0 ? (
@@ -436,10 +430,7 @@ function IssueBloodForm({
         >
           Cancel
         </Button>
-        <Button
-          type="submit"
-          disabled={isPending || incompatibleUnits.length > 0}
-        >
+        <Button type="submit" disabled={isPending}>
           {isPending ? (
             <Spinner data-icon="inline-start" />
           ) : (
@@ -479,32 +470,12 @@ function UnitCrossmatchRow({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
-        {(["major_result", "minor_result"] as const).map((name) => (
-          <Controller
-            key={name}
-            name={`units.${index}.${name}`}
-            control={control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel id={id(`${name}_label`)} htmlFor={id(name)}>
-                  {name === "major_result" ? "Major" : "Minor"}
-                  <RequiredMark />
-                </FieldLabel>
-                <ChoiceGroup
-                  id={id(name)}
-                  ref={field.ref}
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  options={crossmatchOptions}
-                  invalid={fieldState.invalid}
-                  aria-labelledby={id(`${name}_label`)}
-                />
-                <FieldError errors={[fieldState.error]} />
-              </Field>
-            )}
-          />
-        ))}
+        <div className="flex flex-col gap-2 sm:col-span-2">
+          <span className="text-sm font-medium">Compatibility with donor</span>
+          <Badge variant="secondary" className="w-fit">
+            {compatibilityText(unit.crossmatch_scope)}
+          </Badge>
+        </div>
         <Controller
           name={`units.${index}.remarks`}
           control={control}

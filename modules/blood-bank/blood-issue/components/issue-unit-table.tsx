@@ -17,7 +17,7 @@ import type {
   Crossmatch,
   IssueUnit,
 } from "@/modules/blood-bank/blood-issue/types"
-import { crossmatchResultLabels } from "@/modules/blood-bank/enums"
+import { compatibilityText } from "@/modules/blood-bank/blood-issue/format"
 import {
   UnitExpiry,
   UnitStatusBadge,
@@ -168,13 +168,11 @@ function CrossmatchCell({ crossmatch }: { crossmatch: Crossmatch }) {
   return (
     <div className="flex flex-col items-start gap-0.5">
       <Badge variant={crossmatch.is_compatible ? "secondary" : "destructive"}>
-        {crossmatch.is_compatible ? "Compatible" : "Incompatible"}
+        {crossmatch.is_compatible
+          ? compatibilityText(crossmatch.scope)
+          : "Incompatible"}
         {crossmatch.version > 1 ? ` · v${crossmatch.version}` : null}
       </Badge>
-      <span className="text-xs text-muted-foreground">
-        Major {crossmatchResultLabels[crossmatch.major_result].toLowerCase()} ·
-        Minor {crossmatchResultLabels[crossmatch.minor_result].toLowerCase()}
-      </span>
       {crossmatch.tested_by ? (
         <span className="text-xs text-muted-foreground">
           {crossmatch.tested_by.name}

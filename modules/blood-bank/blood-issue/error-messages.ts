@@ -7,7 +7,6 @@ export const BloodIssueErrorCode = {
   UnitNotInCase: "UNIT_NOT_IN_CASE",
   UnitNotReserved: "UNIT_NOT_RESERVED",
   UnitExpired: "UNIT_EXPIRED",
-  CrossmatchIncompatible: "CROSSMATCH_INCOMPATIBLE",
   PatientSampleNotCollected: "PATIENT_SAMPLE_NOT_COLLECTED",
   AmendmentReasonRequired: "AMENDMENT_REASON_REQUIRED",
   CaseDonorNotInCase: "CASE_DONOR_NOT_IN_CASE",
@@ -49,8 +48,6 @@ export const bloodIssueErrorMessages: Partial<Record<string, string>> = {
     "A selected unit is no longer reserved (it may already be issued).",
   [BloodIssueErrorCode.UnitExpired]:
     "A selected unit has expired and cannot be issued.",
-  [BloodIssueErrorCode.CrossmatchIncompatible]:
-    "An incompatible unit cannot be issued.",
   [BloodIssueErrorCode.PatientSampleNotCollected]:
     "Collect the patient sample first.",
   [BloodIssueErrorCode.AmendmentReasonRequired]:
