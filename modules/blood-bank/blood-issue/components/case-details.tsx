@@ -34,6 +34,7 @@ import {
   screeningResultLabels,
 } from "@/modules/blood-bank/enums"
 import { SampleStatusBadge } from "@/modules/blood-bank/samples/components/sample-status-badge"
+import { DonationUnitList } from "@/modules/blood-bank/units/components/donation-unit-list"
 import { StockUnitTag } from "@/modules/blood-bank/units/components/stock-unit-tag"
 import { bloodGroupLabels } from "@/modules/shared/patient/enums"
 
@@ -386,10 +387,13 @@ function DonorCard({ donor }: { donor: IssueDonor }) {
           )}
         </Section>
 
-        <Section title="Bag">
+        <Section title="Blood collection">
           {bag ? (
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
-              <Info label="Bag no" value={bag.bag_no} />
+              <Info
+                label="Unit no"
+                value={<DonationUnitList units={bag.units} />}
+              />
               <Info
                 label="Collected"
                 value={

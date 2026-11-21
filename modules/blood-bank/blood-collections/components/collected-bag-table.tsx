@@ -25,6 +25,7 @@ import {
   CollectionStatus,
   collectionStatusLabels,
 } from "@/modules/blood-bank/enums"
+import { DonationUnitList } from "@/modules/blood-bank/units/components/donation-unit-list"
 import { bloodGroupLabels } from "@/modules/shared/patient/enums"
 
 const ALL = "all"
@@ -32,9 +33,10 @@ const ALL = "all"
 const helper = dataTableColumnHelper<Bag>()
 
 const columns = helper.columns([
-  helper.accessor("bag_no", {
-    header: "Bag no",
-    cell: (info) => <span className="font-medium">{info.getValue()}</span>,
+  helper.display({
+    id: "units",
+    header: "Unit no",
+    cell: ({ row }) => <DonationUnitList units={row.original.units} />,
   }),
   helper.display({
     id: "donor",
@@ -93,7 +95,8 @@ const columns = helper.columns([
 ])
 
 /**
- * Tab 3: collected bags. A bag no, case no or donor no scan is exact and searches every date;
+ * Tab 3: donations, each with the units its blood was drawn into. A unit no (any unit of the
+ * donation), case no or donor no scan is exact and searches every date;
  * otherwise the list covers the collected date range (today by default).
  */
 export function CollectedBagTable() {
@@ -104,7 +107,7 @@ export function CollectedBagTable() {
   })
   const [filters, setFilters] = useQueryStates(
     {
-      bag_no: parseAsString,
+      unit_no: parseAsString,
       case_no: parseAsString,
       donor_no: parseAsString,
       status: parseAsStringLiteral(Object.values(CollectionStatus)),
@@ -114,11 +117,11 @@ export function CollectedBagTable() {
     { history: "replace" }
   )
 
-  const isScan = Boolean(filters.bag_no || filters.case_no || filters.donor_no)
+  const isScan = Boolean(filters.unit_no || filters.case_no || filters.donor_no)
 
   const query = useBags({
     filter: {
-      bag_no: filters.bag_no,
+      unit_no: filters.unit_no,
       case_no: filters.case_no,
       donor_no: filters.donor_no,
       status: filters.status,
@@ -139,10 +142,10 @@ export function CollectedBagTable() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3">
         <ScanFilter
-          id="filter_bag_no"
-          label="Bag no"
-          value={filters.bag_no}
-          onCommit={(bagNo) => update({ bag_no: bagNo })}
+          id="filter_unit_no"
+          label="Unit no"
+          value={filters.unit_no}
+          onCommit={(unitNo) => update({ unit_no: unitNo })}
         />
         <ScanFilter
           id="filter_case_no"

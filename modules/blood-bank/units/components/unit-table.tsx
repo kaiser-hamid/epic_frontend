@@ -110,13 +110,9 @@ const columns = helper.columns([
     },
   }),
   helper.display({
-    id: "bag_no",
-    header: "Bag no",
-    cell: ({ row }) => row.original.bag_no,
-  }),
-  helper.accessor("prepared_at", {
-    header: "Prepared at",
-    cell: (info) => <DateTime value={info.getValue()} />,
+    id: "collected_at",
+    header: "Collected at",
+    cell: ({ row }) => <DateTime value={row.original.collected_at} />,
   }),
   helper.accessor("expires_at", {
     header: "Expires at",
@@ -141,7 +137,6 @@ export function UnitTable() {
   const [filters, setFilters] = useQueryStates(
     {
       unit_no: parseAsString,
-      bag_no: parseAsString,
       case_no: parseAsString,
       component: parseAsInteger,
       blood_group: parseAsStringLiteral(Object.values(BloodGroup)),
@@ -157,7 +152,6 @@ export function UnitTable() {
   const query = useUnits({
     filter: {
       unit_no: filters.unit_no,
-      bag_no: filters.bag_no,
       case_no: filters.case_no,
       component_type_id: filters.component,
       blood_group: filters.blood_group,
@@ -183,12 +177,6 @@ export function UnitTable() {
           label="Unit no"
           value={filters.unit_no}
           onCommit={(unitNo) => update({ unit_no: unitNo })}
-        />
-        <ScanFilter
-          id="filter_bag_no"
-          label="Bag no"
-          value={filters.bag_no}
-          onCommit={(bagNo) => update({ bag_no: bagNo })}
         />
         <ScanFilter
           id="filter_case_no"

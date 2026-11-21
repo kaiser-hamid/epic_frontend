@@ -5,6 +5,7 @@ import type {
   CollectionStatus,
   Religion,
 } from "@/modules/blood-bank/enums"
+import type { DonationUnit } from "@/modules/blood-bank/units/types"
 import type {
   BloodGroup,
   Gender,
@@ -59,9 +60,10 @@ export type DonationPatient = {
   address: string | null
 }
 
+/** A donation's blood collection: the units it was drawn into (it has no number of its own). */
 export type DonationCollection = {
   id: number
-  bag_no: string
+  units: DonationUnit[]
   status: CollectionStatus
   collected_at: string | null
 }

@@ -188,7 +188,7 @@ describe("donor vitals", () => {
     ).toEqual(["D0003"])
   })
 
-  it("matches a unit to its donor by bag no when the donor no differs", () => {
+  it("matches a unit to the donor whose donation it was drawn in, whatever the donor no", () => {
     const donors = [issueDonor(1, { number: "D-OTHER" })]
     expect(
       donorsNeedingVitals(donors, [issueUnit(11, 1)]).map(

@@ -2,6 +2,7 @@
 
 import { PrinterIcon } from "lucide-react"
 
+import { DateTime } from "@/components/date-time"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -64,7 +65,7 @@ export function IssueUnitTable({
             <TableHead>Expires at</TableHead>
             <TableHead>Location</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Bag / donor no</TableHead>
+            <TableHead>Donor no / collected</TableHead>
             <TableHead>Crossmatch</TableHead>
             <TableHead className="text-right">Report prints</TableHead>
             {showReprint ? (
@@ -124,9 +125,9 @@ export function IssueUnitTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span>{unit.bag_no}</span>
+                    <span>{unit.donor_no}</span>
                     <span className="text-xs text-muted-foreground">
-                      {unit.donor_no}
+                      <DateTime value={unit.collected_at} />
                     </span>
                   </div>
                 </TableCell>

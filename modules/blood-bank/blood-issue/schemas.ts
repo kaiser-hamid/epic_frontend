@@ -237,17 +237,22 @@ export function issueBloodSchema(context: IssueBloodContext) {
   })
 }
 
-/** The donor a unit was made from: by donor no, else by bag no. */
+/** What identifies where a unit came from. */
+type UnitSource = Pick<IssueUnit, "id" | "donor_no" | "collection_id">
+
+/**
+ * The donor a unit came from: the donor whose donation it was drawn in, else the stock row
+ * standing for it, else by donor no.
+ */
 export function unitDonor(
   donors: readonly IssueDonor[],
-  unit: Pick<IssueUnit, "donor_no" | "bag_no">
+  unit: UnitSource
 ): IssueDonor | undefined {
   return (
+    donors.find((donor) => donor.bag?.id === unit.collection_id) ??
+    donors.find((donor) => donor.stock_unit?.id === unit.id) ??
     donors.find(
       (donor) => donor.number !== null && donor.number === unit.donor_no
-    ) ??
-    donors.find(
-      (donor) => donor.bag !== null && donor.bag.bag_no === unit.bag_no
     )
   )
 }
@@ -255,7 +260,7 @@ export function unitDonor(
 /** The case donors the given units come from, in donor order. */
 export function donorsOfUnits(
   donors: readonly IssueDonor[],
-  units: readonly Pick<IssueUnit, "donor_no" | "bag_no">[]
+  units: readonly UnitSource[]
 ): IssueDonor[] {
   const matched = new Set(
     units.map((unit) => unitDonor(donors, unit)).filter((donor) => donor)
@@ -269,7 +274,7 @@ export function donorsOfUnits(
  */
 export function donorsNeedingVitals(
   donors: readonly IssueDonor[],
-  units: readonly Pick<IssueUnit, "donor_no" | "bag_no">[]
+  units: readonly UnitSource[]
 ): IssueDonor[] {
   return donorsOfUnits(donors, units).filter(
     (donor) =>
@@ -282,7 +287,7 @@ export function donorsNeedingVitals(
 /** Donors of the units whose post-donation vitals are already recorded (shown, not sent). */
 export function donorsWithRecordedVitals(
   donors: readonly IssueDonor[],
-  units: readonly Pick<IssueUnit, "donor_no" | "bag_no">[]
+  units: readonly UnitSource[]
 ): IssueDonor[] {
   return donorsOfUnits(donors, units).filter((donor) => donor.examination?.post)
 }

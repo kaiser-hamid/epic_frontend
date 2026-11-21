@@ -41,6 +41,7 @@ import {
   religionLabels,
 } from "@/modules/blood-bank/enums"
 import { BloodBankPermission } from "@/modules/blood-bank/permissions"
+import { DonationUnitList } from "@/modules/blood-bank/units/components/donation-unit-list"
 import { useMe } from "@/modules/shared/auth/queries"
 import { useBreadcrumbLabel } from "@/modules/shared/layout/breadcrumbs"
 import {
@@ -245,7 +246,7 @@ function DonorDetailSkeleton() {
                   <TableHead>Branch</TableHead>
                   <TableHead>Donated for</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Bag</TableHead>
+                  <TableHead>Unit no</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -389,7 +390,7 @@ function DonationHistory({ donor }: { donor: DonorDetail }) {
                   <div className="flex flex-col gap-1">
                     {donation.collections.map((collection) => (
                       <span key={collection.id} className="text-sm">
-                        {collection.bag_no}
+                        <DonationUnitList units={collection.units} />
                         {collection.status === CollectionStatus.Cancelled ? (
                           <Badge variant="outline" className="ml-2">
                             Cancelled

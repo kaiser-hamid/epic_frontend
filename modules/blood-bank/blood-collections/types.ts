@@ -9,17 +9,23 @@ import type {
   SampleCollectionCase,
   SampleSubjectInfo,
 } from "@/modules/blood-bank/samples/types"
-import type { LoggedUnitLabel } from "@/modules/blood-bank/units/types"
+import type {
+  DonationUnit,
+  LoggedUnitLabel,
+} from "@/modules/blood-bank/units/types"
 import type { BloodGroup, Gender } from "@/modules/shared/patient/enums"
 
-/** A donor's bag on the collection screen. */
+/**
+ * A donor's donation on the collection screen: blood drawn straight into the component bags
+ * of `units`. It has no number of its own; the labels carry the unit nos.
+ */
 export type DonorBag = {
   id: number
-  bag_no: string
   status: CollectionStatus
   notes: string | null
   collected_at: string
   collected_by: StaffRef
+  units: DonationUnit[]
 }
 
 /**
@@ -90,12 +96,12 @@ export type CollectBloodInput = {
 }
 
 /**
- * `BagResource`: a bag with its donor, case and patient; a row of the Collected tab.
- * `age` is in years; `age_label` is as shown ("78Y").
+ * `BagResource`: a donation with its units, donor, case and patient; a row of the Collected
+ * tab. `age` is in years; `age_label` is as shown ("78Y").
  */
 export type Bag = {
   id: number
-  bag_no: string
+  units: DonationUnit[]
   status: CollectionStatus
   notes: string | null
   collected_at: string
@@ -123,8 +129,8 @@ export type Bag = {
 
 /** Filters the backend allows on `GET /api/blood-bank/blood-collections`. */
 export type BagFilters = {
-  /** Exact, for a bag label barcode scan. */
-  bag_no?: string | null
+  /** Exact, for a unit label barcode scan: the donation that unit was drawn in. */
+  unit_no?: string | null
   /** Exact. */
   case_no?: string | null
   /** Exact. */
@@ -135,8 +141,8 @@ export type BagFilters = {
   collected_to?: string | null
 }
 
-/** Sorts the backend allows on the bag list. Column ids use the same names. */
-export const bagSortableColumns = ["bag_no", "collected_at"] as const
+/** Sorts the backend allows on the donation list. Column ids use the same names. */
+export const bagSortableColumns = ["collected_at"] as const
 
 /** Filters the backend allows on `GET /api/blood-bank/blood-collection/pending`. */
 export type PendingBloodCollectionFilters = {

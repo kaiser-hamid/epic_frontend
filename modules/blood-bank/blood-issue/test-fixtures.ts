@@ -47,7 +47,14 @@ export function issueDonor(
     serology: null,
     bag: {
       id: 200 + sequence,
-      bag_no: `BAG-${sequence}`,
+      units: [
+        {
+          id: 10 + sequence,
+          unit_no: `U-${10 + sequence}`,
+          component_code: "PCV",
+          status: "reserved",
+        },
+      ],
       status: "collected",
       collected_at: "2026-11-02T09:00:00+06:00",
       collected_by: staff,
@@ -75,11 +82,10 @@ export function issueUnit(
     blood_group: "B_POS",
     volume_ml: 250,
     storage_location: null,
-    bag_no: `BAG-${donorSequence}`,
+    collection_id: 200 + donorSequence,
     bag_case_id: 1,
     donor_no: `D000${donorSequence}`,
     collected_at: "2026-11-02T09:00:00+06:00",
-    prepared_at: "2026-11-02T10:00:00+06:00",
     expires_at: "2026-12-07T10:00:00+06:00",
     reserved_for: {
       case_id: 1,

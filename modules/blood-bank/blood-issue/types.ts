@@ -19,7 +19,7 @@ import type {
   SampleCollectionCase,
   SampleSubjectInfo,
 } from "@/modules/blood-bank/samples/types"
-import type { Unit } from "@/modules/blood-bank/units/types"
+import type { DonationUnit, Unit } from "@/modules/blood-bank/units/types"
 import type { BloodGroup } from "@/modules/shared/patient/enums"
 
 /**
@@ -88,9 +88,13 @@ export type IssueSerology = Record<ScreeningTest, ScreeningResult | null> & {
   tested_by: StaffRef | null
 }
 
+/**
+ * The donor's donation: blood drawn straight into the component bags of `units` (the numbers on
+ * the labels; a donation has no number of its own). `id` is the units' `collection_id`.
+ */
 export type IssueBag = {
   id: number
-  bag_no: string
+  units: DonationUnit[]
   status: CollectionStatus
   collected_at: string
   collected_by: StaffRef | null

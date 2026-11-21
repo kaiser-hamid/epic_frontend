@@ -6,9 +6,21 @@ import type {
 import type { BloodGroup } from "@/modules/shared/patient/enums"
 
 /**
- * `UnitResource`: a blood unit with its component, storage location and source bag; also a
- * row of the Units tab. `reserved_for` is the case and patient the unit is reserved for or
- * issued to, null for stock.
+ * One unit of a donation (`DonationUnitResource`). Blood is drawn straight into the component
+ * bags, so a donation has no number of its own: screens list these unit nos (the numbers on
+ * the labels) instead.
+ */
+export type DonationUnit = {
+  id: number
+  unit_no: string
+  component_code: string
+  status: UnitStatus
+}
+
+/**
+ * `UnitResource`: a blood unit (one component bag) with its component, storage location and
+ * donation (`collection_id`); also a row of the Units tab. `reserved_for` is the case and
+ * patient the unit is reserved for or issued to, null for stock.
  */
 export type Unit = {
   id: number
@@ -23,12 +35,12 @@ export type Unit = {
   blood_group: BloodGroup | null
   volume_ml: number | null
   storage_location: { id: number; code: string; name: string } | null
-  bag_no: string
-  /** The case the bag was collected for; its labels are printed through it. */
+  /** The donation the unit was drawn in (the units drawn together share it). */
+  collection_id: number
+  /** The case the blood was collected for; its labels are printed through it. */
   bag_case_id: number
   donor_no: string
   collected_at: string
-  prepared_at: string
   expires_at: string
   reserved_for: {
     case_id: number
@@ -70,8 +82,6 @@ export type UnitLabel = LoggedUnitLabel & {
 export type UnitFilters = {
   /** Exact, for a unit label barcode scan. */
   unit_no?: string | null
-  /** Exact. */
-  bag_no?: string | null
   /** Exact: the case a unit is reserved for or issued to. */
   case_no?: string | null
   component_type_id?: number | null
@@ -83,8 +93,4 @@ export type UnitFilters = {
 }
 
 /** Sorts the backend allows on the unit list. Column ids use the same names. */
-export const unitSortableColumns = [
-  "expires_at",
-  "prepared_at",
-  "unit_no",
-] as const
+export const unitSortableColumns = ["expires_at", "unit_no"] as const

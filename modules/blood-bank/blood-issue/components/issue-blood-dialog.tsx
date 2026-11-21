@@ -521,10 +521,10 @@ function VitalsBlock({
       </legend>
       <p className="text-sm font-medium" aria-hidden>
         {donor ? donorTitle(donor) : "Donor"}
-        {donor?.bag ? (
+        {donor?.bag && donor.bag.units.length > 0 ? (
           <span className="font-normal text-muted-foreground">
             {" "}
-            · bag {donor.bag.bag_no}
+            · {donor.bag.units.map((unit) => unit.unit_no).join(", ")}
           </span>
         ) : null}
       </p>

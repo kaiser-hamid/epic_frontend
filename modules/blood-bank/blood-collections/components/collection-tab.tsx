@@ -52,6 +52,7 @@ import {
 } from "@/modules/blood-bank/enums"
 import { BloodBankPermission } from "@/modules/blood-bank/permissions"
 import { isStockRow } from "@/modules/blood-bank/samples/format"
+import { DonationUnitList } from "@/modules/blood-bank/units/components/donation-unit-list"
 import { StockUnitTag } from "@/modules/blood-bank/units/components/stock-unit-tag"
 import { useUnitLabelPrinter } from "@/modules/blood-bank/units/components/unit-label-printer"
 import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
@@ -201,14 +202,9 @@ function CollectionWorkspace({
 
   function handleCollected(next: BloodCollection) {
     setCollecting(null)
-    const bag = next.donors.find(
-      (donor) => donor.collection?.id === next.collected_collection_id
-    )?.collection
     const units = next.collected_units.map((unit) => unit.unit_no).join(", ")
     toast.success(
-      bag
-        ? `Blood collected: bag ${bag.bag_no}, units ${units}.`
-        : "Blood collected."
+      units ? `Blood collected: units ${units}.` : "Blood collected."
     )
     // The backend logged these labels as printed and returned their printer commands.
     printLogged(next.collected_units)
@@ -256,7 +252,7 @@ function CollectionWorkspace({
                   <TableHead>Gender</TableHead>
                   <TableHead>Blood group</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Bag no</TableHead>
+                  <TableHead>Unit no</TableHead>
                   <TableHead>Collected</TableHead>
                   {canCollect ? (
                     <TableHead>
@@ -315,6 +311,18 @@ function CollectionWorkspace({
 }
 
 /**
+ * The unit nos printed on the labels: the units the donor's blood was drawn into
+ * ("BC2611210001 · PCV"), or the stock bag of a stock row.
+ */
+function UnitNos({ donor }: { donor: CollectionDonor }) {
+  const units = donor.collection?.units ?? []
+  if (units.length > 0) {
+    return <DonationUnitList units={units} />
+  }
+  return <>{donor.stock_unit?.unit_no ?? "—"}</>
+}
+
+/**
  * One donor row. A stock row (a stock bag standing in for a donor) has no bag to collect: its
  * action prints the patient label, which reserves the bag for the patient.
  */
@@ -363,7 +371,7 @@ function DonorRow({
         )}
       </TableCell>
       <TableCell className="font-medium">
-        {bag?.bag_no ?? donor.stock_unit?.unit_no ?? "—"}
+        <UnitNos donor={donor} />
       </TableCell>
       <TableCell>
         {bag ? (
