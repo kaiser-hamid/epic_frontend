@@ -1,4 +1,8 @@
 import type { Vitals } from "@/modules/blood-bank/blood-issue/types"
+import {
+  CaseDonorSource,
+  caseDonorSourceLabels,
+} from "@/modules/blood-bank/enums"
 import type { Gender } from "@/modules/shared/patient/enums"
 import { genderLabels } from "@/modules/shared/patient/enums"
 
@@ -19,14 +23,22 @@ export function ageGenderText(person: {
   )
 }
 
-/** "Donor #2 · D000123 · Rahim", for headings and unit rows. */
+/**
+ * "Donor #2 · D000123 · Rahim" (or "Stock bag #2 · …" for a stock row, whose person is the
+ * bag's original donor), for headings and unit rows.
+ */
 export function donorTitle(donor: {
   sequence_no: number | null
   number: string | null
   name: string | null
+  source?: CaseDonorSource | null
 }): string {
+  const kind =
+    donor.source === CaseDonorSource.Stock
+      ? caseDonorSourceLabels.stock
+      : caseDonorSourceLabels.donor
   return [
-    donor.sequence_no === null ? "Donor" : `Donor #${donor.sequence_no}`,
+    donor.sequence_no === null ? kind : `${kind} #${donor.sequence_no}`,
     donor.number,
     donor.name,
   ]

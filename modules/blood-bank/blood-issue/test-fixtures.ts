@@ -16,6 +16,8 @@ export function issueDonor(
     subject_type: "donor",
     case_donor_id: 100 + sequence,
     case_donor_status: "collected",
+    source: "donor",
+    stock_unit: null,
     sequence_no: sequence,
     number: `D000${sequence}`,
     name: `Donor ${sequence}`,

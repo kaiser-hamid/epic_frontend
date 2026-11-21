@@ -14,6 +14,7 @@ const variants: Record<
   React.ComponentProps<typeof Badge>["variant"]
 > = {
   available: "success",
+  held: "outline",
   reserved: "info",
   issued: "secondary",
   quarantined: "warning",

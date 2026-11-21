@@ -58,6 +58,7 @@ import {
   serologyDecisionLabels,
   type CaseStatus,
 } from "@/modules/blood-bank/enums"
+import { StockUnitTag } from "@/modules/blood-bank/units/components/stock-unit-tag"
 import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
 import { formatAge } from "@/modules/shared/patient/format"
 
@@ -203,6 +204,7 @@ export function DonorSerologyCard({
           {donor.case_donor_status ? (
             <SerologyStatusBadge status={donor.case_donor_status} />
           ) : null}
+          <StockUnitTag subject={donor} showStatus />
           {saved && saved.version > 1 ? (
             <Badge variant="outline">Amended</Badge>
           ) : null}

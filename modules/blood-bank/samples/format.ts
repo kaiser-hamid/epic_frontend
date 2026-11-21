@@ -1,18 +1,36 @@
-import { SampleSubject, sampleSubjectLabels } from "@/modules/blood-bank/enums"
+import {
+  CaseDonorSource,
+  caseDonorSourceLabels,
+  SampleSubject,
+  sampleSubjectLabels,
+} from "@/modules/blood-bank/enums"
 import type { CaseComponent } from "@/modules/blood-bank/cases/types"
 import type {
   CollectSubjectInput,
   SampleSubjectInfo,
 } from "@/modules/blood-bank/samples/types"
 
-/** "Patient" or "Donor #2". */
-export function subjectLabel(subject: SampleSubjectInfo): string {
+/** "Patient", "Donor #2" or "Stock bag #3". */
+export function subjectLabel(
+  subject: Pick<SampleSubjectInfo, "subject_type" | "sequence_no" | "source">
+): string {
   if (subject.subject_type === SampleSubject.Donor) {
+    const kind =
+      subject.source === CaseDonorSource.Stock
+        ? caseDonorSourceLabels.stock
+        : sampleSubjectLabels.donor
     return subject.sequence_no === null
-      ? sampleSubjectLabels.donor
-      : `${sampleSubjectLabels.donor} #${subject.sequence_no}`
+      ? kind
+      : `${kind} #${subject.sequence_no}`
   }
   return sampleSubjectLabels.patient
+}
+
+/** A stock bag standing in for a donor (not a person who came to donate). */
+export function isStockRow(
+  subject: Pick<SampleSubjectInfo, "source">
+): boolean {
+  return subject.source === CaseDonorSource.Stock
 }
 
 /** Stable grid row key: the patient appears once, donors by their case donor id. */

@@ -41,6 +41,8 @@ const donor: SerologyDonor = {
   subject_type: "donor",
   case_donor_id: 7,
   case_donor_status: "fit",
+  source: "donor",
+  stock_unit: null,
   sequence_no: 1,
   number: "D-1",
   name: "Donor",

@@ -17,6 +17,7 @@ import {
   listBags,
   listPendingBloodCollections,
   recordPhlebotomy,
+  reserveStockUnit,
   type BagListParams,
   type CollectBloodRequest,
   type PendingBloodCollectionListParams,
@@ -103,10 +104,29 @@ export function useFindBloodCollection() {
  * deferred, case closed) it is refetched.
  */
 export function useCollectBlood(caseId: number) {
+  return useBloodCollectionStep(caseId, (request: CollectBloodRequest) =>
+    collectBlood(caseId, request)
+  )
+}
+
+/**
+ * "Print patient label" of a stock row (by its case donor id). Same cache handling as Collect:
+ * the row becomes `collected` (serology locked) and the bag `reserved` for Blood Issue.
+ */
+export function useReserveStockUnit(caseId: number) {
+  return useBloodCollectionStep(caseId, (caseDonorId: number) =>
+    reserveStockUnit(caseId, caseDonorId)
+  )
+}
+
+function useBloodCollectionStep<TInput>(
+  caseId: number,
+  mutationFn: (input: TInput) => Promise<BloodCollection>
+) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (request: CollectBloodRequest) => collectBlood(caseId, request),
+    mutationFn,
     onSuccess: (view: BloodCollection) => {
       queryClient.setQueriesData<BloodCollection>(
         { queryKey: bloodCollectionKeys.caseScreens(caseId) },

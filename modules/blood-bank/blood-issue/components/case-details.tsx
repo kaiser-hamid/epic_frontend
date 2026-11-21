@@ -34,6 +34,7 @@ import {
   screeningResultLabels,
 } from "@/modules/blood-bank/enums"
 import { SampleStatusBadge } from "@/modules/blood-bank/samples/components/sample-status-badge"
+import { StockUnitTag } from "@/modules/blood-bank/units/components/stock-unit-tag"
 import { bloodGroupLabels } from "@/modules/shared/patient/enums"
 
 /** Billed components: billed, reserved, issued and still to issue. */
@@ -213,6 +214,7 @@ function DonorCard({ donor }: { donor: IssueDonor }) {
           {donor.case_donor_status ? (
             <CaseDonorStatusBadge status={donor.case_donor_status} />
           ) : null}
+          <StockUnitTag subject={donor} showStatus />
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

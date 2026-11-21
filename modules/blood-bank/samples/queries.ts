@@ -10,6 +10,7 @@ import {
 
 import { caseKeys } from "@/modules/blood-bank/cases/queries"
 import {
+  checkStockUnit,
   collectSamples,
   findSampleCollectionByInvoice,
   getSampleCollection,
@@ -23,6 +24,7 @@ import type {
   CollectSubjectInput,
   SampleCollection,
 } from "@/modules/blood-bank/samples/types"
+import { unitKeys } from "@/modules/blood-bank/units/queries"
 
 export const sampleKeys = {
   all: ["blood-bank", "samples"] as const,
@@ -74,12 +76,24 @@ export function useCollectSamples(caseId: number) {
       queryClient.invalidateQueries({ queryKey: sampleKeys.pendingLists() })
       queryClient.invalidateQueries({ queryKey: sampleKeys.lists() })
       queryClient.invalidateQueries({ queryKey: caseKeys.detail(caseId) })
+      // A scanned stock bag is held for the case once its sample is drawn.
+      queryClient.invalidateQueries({ queryKey: unitKeys.lists() })
     },
     onError: () => {
       queryClient.invalidateQueries({
         queryKey: sampleKeys.collection(caseId),
       })
     },
+  })
+}
+
+/**
+ * Stock bag scan (a mutation, like the invoice lookups: it runs on Enter and nothing is
+ * cached). Resolves with the bag when it can be listed for Collect.
+ */
+export function useCheckStockUnit(caseId: number) {
+  return useMutation({
+    mutationFn: (unitNo: string) => checkStockUnit(caseId, unitNo),
   })
 }
 

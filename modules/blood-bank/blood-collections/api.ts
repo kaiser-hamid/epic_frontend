@@ -81,6 +81,22 @@ export async function collectBlood(
   return response.data.data
 }
 
+/**
+ * "Print patient label" for a stock row: the held stock bag is reserved for the patient and its
+ * patient label (printed over the old storage label) is logged. Returns the refreshed screen
+ * with that unit in `collected_units` (201). The bag stays in its fridge.
+ */
+export async function reserveStockUnit(
+  caseId: number,
+  caseDonorId: number
+): Promise<BloodCollection> {
+  const response = await apiClient.post<ResourceResponse<BloodCollection>>(
+    `${basePath}/cases/${caseId}/donors/${caseDonorId}/stock-unit`,
+    {}
+  )
+  return response.data.data
+}
+
 /** Open cases with a donor cleared at serology and not yet bled, oldest first by default. */
 export async function listPendingBloodCollections(
   params: PendingBloodCollectionListParams

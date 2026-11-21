@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import { StockRowBadge } from "@/modules/blood-bank/case-donors/components/stock-row-badge"
 import { CaseDetailsDialog } from "@/modules/blood-bank/cases/components/case-details-dialog"
 import { CloseCaseButton } from "@/modules/blood-bank/cases/components/close-case-button"
 import { CaseStatusBadge } from "@/modules/blood-bank/cases/components/case-status-badge"
@@ -286,8 +287,9 @@ export function CaseDetail({ caseId }: { caseId: number }) {
                       {entry.sequence_no}
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
+                      <div className="flex flex-col items-start">
                         <span>{entry.donor.name}</span>
+                        <StockRowBadge source={entry.source} />
                         <span className="text-xs text-muted-foreground">
                           {entry.donor.donor_no}
                         </span>

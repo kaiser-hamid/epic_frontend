@@ -25,9 +25,12 @@ export type DonorBag = {
 /**
  * One donor row. "Collect" is enabled while `is_collectable` (the donor is `eligible`, has no
  * bag yet, the case is open and still needs something). `collection` is null until collected.
+ * A stock row (`source = stock`) has no bag: "Print patient label" is enabled while
+ * `can_reserve_stock_unit` (accepted at serology, bag still held for the case).
  */
 export type CollectionDonor = SampleSubjectInfo & {
   is_collectable: boolean
+  can_reserve_stock_unit: boolean
   collection: DonorBag | null
 }
 

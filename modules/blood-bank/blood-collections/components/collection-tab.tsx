@@ -1,6 +1,6 @@
 "use client"
 
-import { DropletIcon, ScanBarcodeIcon } from "lucide-react"
+import { DropletIcon, PrinterIcon, ScanBarcodeIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -16,6 +16,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
   TableBody,
@@ -34,6 +35,7 @@ import {
 import {
   useBloodCollection,
   useFindBloodCollection,
+  useReserveStockUnit,
 } from "@/modules/blood-bank/blood-collections/queries"
 import { scanFocus } from "@/modules/blood-bank/blood-collections/focus"
 import type {
@@ -49,6 +51,8 @@ import {
   CaseStatus,
 } from "@/modules/blood-bank/enums"
 import { BloodBankPermission } from "@/modules/blood-bank/permissions"
+import { isStockRow } from "@/modules/blood-bank/samples/format"
+import { StockUnitTag } from "@/modules/blood-bank/units/components/stock-unit-tag"
 import { useUnitLabelPrinter } from "@/modules/blood-bank/units/components/unit-label-printer"
 import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
 import { useCan } from "@/modules/shared/rbac/use-can"
@@ -165,8 +169,35 @@ function CollectionWorkspace({
   const canCollect = useCan(BloodBankPermission.CollectionCollect)
   const { printLogged } = useUnitLabelPrinter()
   const [collecting, setCollecting] = useState<CollectionDonor | null>(null)
+  const reserve = useReserveStockUnit(caseId)
+  const hasPendingStockBag = view.donors.some(
+    (donor) => donor.can_reserve_stock_unit
+  )
   const needsNothingMore =
-    view.case.status === CaseStatus.Open && view.bag_plan.length === 0
+    view.case.status === CaseStatus.Open &&
+    view.bag_plan.length === 0 &&
+    !hasPendingStockBag
+
+  function handleReserve(donor: CollectionDonor) {
+    if (donor.case_donor_id === null || reserve.isPending) {
+      return
+    }
+
+    reserve.mutate(donor.case_donor_id, {
+      onSuccess: (next) => {
+        const units = next.collected_units
+          .map((unit) => unit.unit_no)
+          .join(", ")
+        toast.success(
+          `Patient label printed: ${units} is reserved for the patient.`
+        )
+        // The backend logged the patient label as printed and returned its printer command.
+        printLogged(next.collected_units)
+        onCollected()
+      },
+      onError: (error) => toast.error(bloodCollectionErrorText(error)),
+    })
+  }
 
   function handleCollected(next: BloodCollection) {
     setCollecting(null)
@@ -251,6 +282,12 @@ function CollectionWorkspace({
                       donor={donor}
                       canCollect={canCollect}
                       onCollect={() => setCollecting(donor)}
+                      isReserving={
+                        reserve.isPending &&
+                        reserve.variables === donor.case_donor_id
+                      }
+                      reserveDisabled={reserve.isPending}
+                      onReserve={() => handleReserve(donor)}
                     />
                   ))
                 )}
@@ -277,24 +314,40 @@ function CollectionWorkspace({
   )
 }
 
+/**
+ * One donor row. A stock row (a stock bag standing in for a donor) has no bag to collect: its
+ * action prints the patient label, which reserves the bag for the patient.
+ */
 function DonorRow({
   donor,
   canCollect,
   onCollect,
+  isReserving,
+  reserveDisabled,
+  onReserve,
 }: {
   donor: CollectionDonor
   canCollect: boolean
   onCollect: () => void
+  isReserving: boolean
+  reserveDisabled: boolean
+  onReserve: () => void
 }) {
   const { collection: bag } = donor
   const deferred = donor.case_donor_status === CaseDonorStatus.Deferred
   const name = donor.name ?? donor.number ?? "donor"
+  const stock = isStockRow(donor)
 
   return (
     <TableRow className={cn(deferred && "text-muted-foreground opacity-60")}>
       <TableCell className="tabular-nums">{donor.sequence_no ?? "—"}</TableCell>
       <TableCell className="font-medium">{donor.number ?? "—"}</TableCell>
-      <TableCell>{donor.name ?? "—"}</TableCell>
+      <TableCell>
+        <div className="flex flex-col items-start gap-1">
+          <span>{donor.name ?? "—"}</span>
+          <StockUnitTag subject={donor} showStatus />
+        </div>
+      </TableCell>
       <TableCell className="tabular-nums">
         {formatAge(donor.age) ?? "—"}
       </TableCell>
@@ -309,7 +362,9 @@ function DonorRow({
           "—"
         )}
       </TableCell>
-      <TableCell className="font-medium">{bag?.bag_no ?? "—"}</TableCell>
+      <TableCell className="font-medium">
+        {bag?.bag_no ?? donor.stock_unit?.unit_no ?? "—"}
+      </TableCell>
       <TableCell>
         {bag ? (
           <div className="flex flex-col">
@@ -325,15 +380,31 @@ function DonorRow({
       {canCollect ? (
         <TableCell>
           <div className="flex justify-end gap-2">
-            <Button
-              size="xs"
-              disabled={!donor.is_collectable}
-              onClick={onCollect}
-              aria-label={`Collect blood from ${name}`}
-            >
-              <DropletIcon data-icon="inline-start" />
-              Collect
-            </Button>
+            {stock ? (
+              <Button
+                size="xs"
+                disabled={!donor.can_reserve_stock_unit || reserveDisabled}
+                onClick={onReserve}
+                aria-label={`Print patient label of stock bag ${donor.stock_unit?.unit_no ?? ""}`}
+              >
+                {isReserving ? (
+                  <Spinner data-icon="inline-start" />
+                ) : (
+                  <PrinterIcon data-icon="inline-start" />
+                )}
+                Patient label
+              </Button>
+            ) : (
+              <Button
+                size="xs"
+                disabled={!donor.is_collectable}
+                onClick={onCollect}
+                aria-label={`Collect blood from ${name}`}
+              >
+                <DropletIcon data-icon="inline-start" />
+                Collect
+              </Button>
+            )}
           </div>
         </TableCell>
       ) : null}

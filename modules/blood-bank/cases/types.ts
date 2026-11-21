@@ -1,6 +1,7 @@
 import type { Donor } from "@/modules/blood-bank/donors/types"
 import type {
   CareType,
+  CaseDonorSource,
   CaseDonorStatus,
   CaseService,
   CaseStatus,
@@ -57,6 +58,10 @@ export type CaseDonor = {
   invoice_no: string | null
   deferral_reason: string | null
   assessed_at: string | null
+  /** `stock`: a stock bag standing in for a donor (`donor` is the bag's original donor). */
+  source: CaseDonorSource
+  /** The stock bag of a stock row; null for a real donor. */
+  unit_id: number | null
   donor: Donor
 }
 

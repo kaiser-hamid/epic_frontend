@@ -12,6 +12,9 @@ export const SerologyErrorCode = {
   SerologyLocked: "SEROLOGY_LOCKED",
   AmendmentReasonRequired: "AMENDMENT_REASON_REQUIRED",
   ReactiveDonorNotAcceptable: "REACTIVE_DONOR_NOT_ACCEPTABLE",
+  /** Accepting a deferred stock bag again: another case has taken it, or it was quarantined. */
+  UnitNotAvailable: "UNIT_NOT_AVAILABLE",
+  UnitExpired: "UNIT_EXPIRED",
 } as const
 
 /** Codes meaning the screen is out of date: toast, then reload it. */
@@ -24,6 +27,7 @@ export const serologyReloadCodes: readonly string[] = [
   SerologyErrorCode.CaseDonorNotInCase,
   // The form only records a new serology; this means someone saved one meanwhile.
   SerologyErrorCode.AmendmentReasonRequired,
+  SerologyErrorCode.UnitNotAvailable,
 ]
 
 export const REACTIVE_DONOR_TEXT = "A reactive donor cannot be accepted."
@@ -32,6 +36,10 @@ export const REACTIVE_DONOR_TEXT = "A reactive donor cannot be accepted."
 export const serologyErrorMessages: Partial<Record<string, string>> = {
   [SerologyErrorCode.CaseNotFound]: "No case found for this invoice.",
   [SerologyErrorCode.DonorSampleNotFound]: "Not a donor sample of this branch.",
+  [SerologyErrorCode.UnitNotAvailable]:
+    "This stock bag is no longer in stock (another case took it, or it was quarantined), so it can't be accepted again. The screen has been refreshed.",
+  [SerologyErrorCode.UnitExpired]:
+    "This stock bag has expired, so it can't be accepted again.",
   [SerologyErrorCode.CaseNotOpen]:
     "This case is closed or cancelled. The screen has been refreshed.",
   [SerologyErrorCode.CaseDonorNotInCase]:

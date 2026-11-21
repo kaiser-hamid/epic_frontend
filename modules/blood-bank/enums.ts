@@ -83,6 +83,21 @@ export const caseDonorStatusLabels: Record<CaseDonorStatus, string> = {
   collected: "Collected",
 }
 
+/**
+ * Where a case donor's blood comes from: a person who came to donate, or a stock unit standing
+ * in for a donor (its sample, serology, label and issue go through the donor steps).
+ */
+export const CaseDonorSource = {
+  Donor: "donor",
+  Stock: "stock",
+} as const
+export type CaseDonorSource = ValueOf<typeof CaseDonorSource>
+
+export const caseDonorSourceLabels: Record<CaseDonorSource, string> = {
+  donor: "Donor",
+  stock: "Stock bag",
+}
+
 export const SampleStatus = {
   Collected: "collected",
   InTesting: "in_testing",
@@ -129,8 +144,13 @@ export const collectionStatusLabels: Record<CollectionStatus, string> = {
   cancelled: "Cancelled",
 }
 
+/**
+ * `held`: a stock unit whose bag sample was taken for a case (serology pending); no other case
+ * can take it. It becomes `reserved` when its patient label is printed.
+ */
 export const UnitStatus = {
   Available: "available",
+  Held: "held",
   Reserved: "reserved",
   Issued: "issued",
   Quarantined: "quarantined",
@@ -142,6 +162,7 @@ export type UnitStatus = ValueOf<typeof UnitStatus>
 /** "For patient" and "In stock" are how the preparation screen names reserved and available. */
 export const unitStatusLabels: Record<UnitStatus, string> = {
   available: "In stock",
+  held: "Held",
   reserved: "For patient",
   issued: "Issued",
   quarantined: "Quarantined",

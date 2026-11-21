@@ -8,6 +8,12 @@ export const SampleErrorCode = {
   CaseDonorNotInCase: "CASE_DONOR_NOT_IN_CASE",
   CaseNotOpen: "CASE_NOT_OPEN",
   SampleNotInCase: "SAMPLE_NOT_IN_CASE",
+  UnitNotFound: "UNIT_NOT_FOUND",
+  UnitNotAvailable: "UNIT_NOT_AVAILABLE",
+  UnitAlreadyInCase: "UNIT_ALREADY_IN_CASE",
+  UnitExpired: "UNIT_EXPIRED",
+  UnitNotNeeded: "UNIT_NOT_NEEDED",
+  CaseTakesNoBlood: "CASE_TAKES_NO_BLOOD",
 } as const
 
 /** Text for sample collection error codes. */
@@ -24,6 +30,17 @@ export const sampleErrorMessages: Partial<Record<string, string>> = {
     "This case is closed or cancelled, so samples cannot be collected.",
   [SampleErrorCode.SampleNotInCase]:
     "A label belongs to a sample of another case.",
+  [SampleErrorCode.UnitNotFound]:
+    "No blood unit of this branch has this unit no.",
+  [SampleErrorCode.UnitNotAvailable]:
+    "This bag is not in stock: it is held, reserved or issued for another case, or quarantined.",
+  [SampleErrorCode.UnitAlreadyInCase]:
+    "This bag has already been taken for this case.",
+  [SampleErrorCode.UnitExpired]: "This bag has expired.",
+  [SampleErrorCode.UnitNotNeeded]:
+    "The case needs no more units of this component.",
+  [SampleErrorCode.CaseTakesNoBlood]:
+    "This case is billed for a procedure and is not given blood.",
   [ErrorCode.NotFound]: "This case was not found.",
   [ErrorCode.ReprintReasonRequired]: "Enter a reason to reprint the label.",
   INVALID_QUERY: "This list filter is not supported.",

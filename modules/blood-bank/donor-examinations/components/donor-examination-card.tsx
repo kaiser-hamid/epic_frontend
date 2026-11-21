@@ -52,6 +52,8 @@ import {
 } from "@/modules/blood-bank/donor-examinations/schemas"
 import type { ExaminationDonor } from "@/modules/blood-bank/donor-examinations/types"
 import { CaseDonorStatus } from "@/modules/blood-bank/enums"
+import { isStockRow } from "@/modules/blood-bank/samples/format"
+import { StockUnitTag } from "@/modules/blood-bank/units/components/stock-unit-tag"
 import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
 import { formatAge } from "@/modules/shared/patient/format"
 
@@ -142,6 +144,7 @@ export function DonorExaminationCard({
           {donor.case_donor_status ? (
             <ExaminationStatusBadge status={donor.case_donor_status} />
           ) : null}
+          <StockUnitTag subject={donor} />
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           {[
@@ -165,7 +168,9 @@ export function DonorExaminationCard({
           <Alert>
             <LockIcon />
             <AlertDescription>
-              Examination locked: donor sample already collected.
+              {isStockRow(donor)
+                ? "No physical examination: a stock bag is marked fit when its sample is taken."
+                : "Examination locked: donor sample already collected."}
             </AlertDescription>
           </Alert>
         ) : null}

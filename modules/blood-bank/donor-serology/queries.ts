@@ -23,6 +23,7 @@ import { serologyReloadCodes } from "@/modules/blood-bank/donor-serology/error-m
 import { focusView, scanFocus } from "@/modules/blood-bank/donor-serology/focus"
 import type { DonorSerology } from "@/modules/blood-bank/donor-serology/types"
 import { sampleKeys } from "@/modules/blood-bank/samples/queries"
+import { unitKeys } from "@/modules/blood-bank/units/queries"
 
 export const donorSerologyKeys = {
   all: ["blood-bank", "donor-serology"] as const,
@@ -105,6 +106,8 @@ export function useRecordDonorSerology(caseId: number) {
       })
       queryClient.invalidateQueries({ queryKey: sampleKeys.lists() })
       queryClient.invalidateQueries({ queryKey: caseKeys.detail(caseId) })
+      // Deferring a stock bag sends it back to stock or quarantine; accepting again re-holds it.
+      queryClient.invalidateQueries({ queryKey: unitKeys.lists() })
     },
     onError: (error) => {
       if (isApiError(error) && serologyReloadCodes.includes(error.code)) {

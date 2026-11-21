@@ -1,5 +1,6 @@
 import type { SerologyDonor } from "@/modules/blood-bank/donor-serology/types"
 import {
+  CaseDonorSource,
   CaseDonorStatus,
   CaseStatus,
   type CaseStatus as CaseStatusValue,
@@ -22,7 +23,9 @@ export function serologyLockReason(
 
   switch (donor.case_donor_status) {
     case CaseDonorStatus.Collected:
-      return "Bag collected — locked"
+      return donor.source === CaseDonorSource.Stock
+        ? "Patient label printed — locked"
+        : "Bag collected — locked"
     case CaseDonorStatus.Registered:
       return "Awaiting physical examination"
     case CaseDonorStatus.Deferred:

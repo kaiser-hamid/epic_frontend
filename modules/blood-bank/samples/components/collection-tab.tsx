@@ -1,6 +1,6 @@
 "use client"
 
-import { PrinterIcon, ScanBarcodeIcon, TestTubeIcon } from "lucide-react"
+import { PrinterIcon, ScanBarcodeIcon, TestTubeIcon, XIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -31,14 +31,18 @@ import { cn } from "@/lib/utils"
 import { CaseInformationPanel } from "@/modules/blood-bank/cases/components/case-information-panel"
 import { InvoiceScanBox } from "@/modules/blood-bank/cases/components/invoice-scan-box"
 import {
+  caseDonorSourceLabels,
   CaseDonorStatus,
   caseDonorStatusLabels,
   CaseService,
+  CaseStatus,
   SampleStatus,
+  SampleSubject,
 } from "@/modules/blood-bank/enums"
 import { BloodBankPermission } from "@/modules/blood-bank/permissions"
 import { useSampleLabelPrinter } from "@/modules/blood-bank/samples/components/sample-label-printer"
 import { SampleStatusBadge } from "@/modules/blood-bank/samples/components/sample-status-badge"
+import { StockBagScanBox } from "@/modules/blood-bank/samples/components/stock-bag-scan-box"
 import { sampleErrorText } from "@/modules/blood-bank/samples/error-messages"
 import {
   subjectKey,
@@ -53,8 +57,11 @@ import {
 import type {
   CollectionSample,
   CollectionSubject,
+  CollectSubjectInput,
   SampleCollection,
+  StockUnitInfo,
 } from "@/modules/blood-bank/samples/types"
+import { StockUnitTag } from "@/modules/blood-bank/units/components/stock-unit-tag"
 import { useCan } from "@/modules/shared/rbac/use-can"
 import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
 
@@ -156,11 +163,16 @@ function CollectionWorkspace({
   const { print, printCollected, isPrinting } = useSampleLabelPrinter()
   const collect = useCollectSamples(caseId)
   const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set())
+  // Stock bags scanned and checked, not on the case yet: Collect adds them (and holds them).
+  const [scannedBags, setScannedBags] = useState<readonly StockUnitInfo[]>([])
 
   // Ticks on rows that stopped being collectable (after a refresh) no longer count.
-  const collectableKeys = view.subjects
-    .filter((subject) => subject.is_collectable)
-    .map(subjectKey)
+  const collectableKeys = [
+    ...view.subjects
+      .filter((subject) => subject.is_collectable)
+      .map(subjectKey),
+    ...scannedBags.map(scannedBagKey),
+  ]
   const selectedCount = collectableKeys.filter((key) => ticked.has(key)).length
   const allState =
     collectableKeys.length > 0 && selectedCount === collectableKeys.length
@@ -192,13 +204,34 @@ function CollectionWorkspace({
     })
   }
 
+  function addScannedBag(unit: StockUnitInfo) {
+    setScannedBags((current) => [...current, unit])
+    setRowTicked(scannedBagKey(unit), true)
+  }
+
+  function removeScannedBag(unit: StockUnitInfo) {
+    setScannedBags((current) =>
+      current.filter((bag) => bag.unit_no !== unit.unit_no)
+    )
+    setRowTicked(scannedBagKey(unit), false)
+  }
+
   function handleCollect() {
-    const subjects = view.subjects
-      .filter(
-        (subject) => subject.is_collectable && ticked.has(subjectKey(subject))
-      )
-      .map(toCollectInput)
-      .filter((input) => input !== null)
+    const sentBags = scannedBags.filter((unit) =>
+      ticked.has(scannedBagKey(unit))
+    )
+    const subjects: CollectSubjectInput[] = [
+      ...view.subjects
+        .filter(
+          (subject) => subject.is_collectable && ticked.has(subjectKey(subject))
+        )
+        .map(toCollectInput)
+        .filter((input) => input !== null),
+      ...sentBags.map((unit) => ({
+        subject_type: SampleSubject.Donor,
+        unit_no: unit.unit_no,
+      })),
+    ]
     if (subjects.length === 0 || collect.isPending) {
       return
     }
@@ -206,6 +239,10 @@ function CollectionWorkspace({
     collect.mutate(subjects, {
       onSuccess: (next) => {
         setTicked(new Set())
+        // Collected bags are stock rows of the case now; unticked ones stay listed.
+        setScannedBags((current) =>
+          current.filter((unit) => !sentBags.includes(unit))
+        )
         const count = next.collected_sample_ids.length
         toast.success(
           count === 1 ? "1 sample collected." : `${count} samples collected.`
@@ -277,6 +314,19 @@ function CollectionWorkspace({
                     onPrint={(sample) => printSamples([sample])}
                   />
                 ))}
+                {scannedBags.map((unit) => (
+                  <ScannedBagRow
+                    key={scannedBagKey(unit)}
+                    unit={unit}
+                    canPrint={canPrint}
+                    ticked={ticked.has(scannedBagKey(unit))}
+                    onTickedChange={(checked) =>
+                      setRowTicked(scannedBagKey(unit), checked)
+                    }
+                    removeDisabled={collect.isPending}
+                    onRemove={() => removeScannedBag(unit)}
+                  />
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -317,6 +367,17 @@ function CollectionWorkspace({
               Label (All)
             </Button>
           ) : null}
+          {canCollect &&
+          view.case.status === CaseStatus.Open &&
+          view.case.service === CaseService.Transfusion ? (
+            <div className="border-t pt-3">
+              <StockBagScanBox
+                caseId={caseId}
+                listedUnitNos={scannedBags.map((unit) => unit.unit_no)}
+                onFound={addScannedBag}
+              />
+            </div>
+          ) : null}
           {!canCollect && !canPrint ? (
             <p className="text-sm text-muted-foreground">
               You can view this case but cannot collect samples or print labels
@@ -326,6 +387,80 @@ function CollectionWorkspace({
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+function scannedBagKey(unit: StockUnitInfo): string {
+  return `stock-${unit.unit_no}`
+}
+
+/**
+ * A scanned stock bag, checked but not on the case yet (only collectors see these rows). Ticked
+ * when listed; Collect adds it as a stock row, holds it and draws its sample.
+ */
+function ScannedBagRow({
+  unit,
+  canPrint,
+  ticked,
+  onTickedChange,
+  removeDisabled,
+  onRemove,
+}: {
+  unit: StockUnitInfo
+  canPrint: boolean
+  ticked: boolean
+  onTickedChange: (checked: boolean) => void
+  removeDisabled: boolean
+  onRemove: () => void
+}) {
+  return (
+    <TableRow data-state={ticked ? "selected" : undefined}>
+      <TableCell>
+        <span className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            disabled={removeDisabled}
+            onClick={onRemove}
+            aria-label={`Remove stock bag ${unit.unit_no}`}
+            title="Remove"
+          >
+            <XIcon />
+          </Button>
+          {caseDonorSourceLabels.stock}
+          <Badge variant="outline">Not collected</Badge>
+        </span>
+      </TableCell>
+      <TableCell className="font-medium">{unit.unit_no}</TableCell>
+      <TableCell>
+        <div className="flex flex-col">
+          <span>{unit.component.name}</span>
+          {unit.storage_location ? (
+            <span className="text-xs text-muted-foreground">
+              {unit.storage_location.name}
+            </span>
+          ) : null}
+        </div>
+      </TableCell>
+      <TableCell>—</TableCell>
+      <TableCell>—</TableCell>
+      <TableCell>
+        {unit.blood_group ? bloodGroupLabels[unit.blood_group] : "—"}
+      </TableCell>
+      <TableCell>—</TableCell>
+      <TableCell>—</TableCell>
+      <TableCell>—</TableCell>
+      <TableCell>—</TableCell>
+      <TableCell>
+        <Checkbox
+          checked={ticked}
+          onCheckedChange={(checked) => onTickedChange(checked === true)}
+          aria-label={`Collect sample from stock bag ${unit.unit_no}`}
+        />
+      </TableCell>
+      {/* No sample yet, so no label. */}
+      {canPrint ? <TableCell /> : null}
+    </TableRow>
   )
 }
 
@@ -356,9 +491,10 @@ function SubjectRow({
       className={cn(deferred && "text-muted-foreground opacity-60")}
     >
       <TableCell>
-        <span className="flex items-center gap-2">
+        <span className="flex flex-wrap items-center gap-2">
           {label}
           {deferred ? <Badge variant="destructive">Deferred</Badge> : null}
+          <StockUnitTag subject={subject} showStatus />
         </span>
       </TableCell>
       <TableCell className="font-medium">{subject.number ?? "—"}</TableCell>

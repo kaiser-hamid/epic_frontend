@@ -11,6 +11,8 @@ function donor(caseDonorId: number): SerologyDonor {
     subject_type: "donor",
     case_donor_id: caseDonorId,
     case_donor_status: "fit",
+    source: "donor",
+    stock_unit: null,
     sequence_no: caseDonorId,
     number: null,
     name: null,

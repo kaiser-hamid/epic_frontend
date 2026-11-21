@@ -5,23 +5,44 @@ import type {
 } from "@/modules/blood-bank/cases/types"
 import type {
   CareType,
+  CaseDonorSource,
   CaseDonorStatus,
   CaseService,
   CaseStatus,
   SampleStatus,
   SampleSubject,
+  UnitStatus,
 } from "@/modules/blood-bank/enums"
 import type { BloodGroup, Gender } from "@/modules/shared/patient/enums"
 
 /**
+ * The unit of a stock row: a stock bag standing in for a donor of the case. It is `held` from
+ * its bag sample until its patient label is printed (`reserved`), then `issued`.
+ */
+export type StockUnitInfo = {
+  id: number
+  unit_no: string
+  status: UnitStatus
+  component: { id: number; code: string; name: string }
+  blood_group: BloodGroup | null
+  expires_at: string
+  storage_location: { id: number; code: string; name: string } | null
+}
+
+/**
  * Who a sample is drawn from (`SubjectResource`), in one shape for the patient and donors.
  * `number` is the patient no or donor no; `age` is in years, `age_label` as shown. The `case_donor_*` and
- * `sequence_no` fields are null for the patient.
+ * `sequence_no` fields are null for the patient. A donor row's `source` is `stock` for a stock
+ * bag (the person is the bag's original donor; `stock_unit` is the bag), else `donor`.
  */
 export type SampleSubjectInfo = {
   subject_type: SampleSubject
   case_donor_id: number | null
   case_donor_status: CaseDonorStatus | null
+  /** Null for the patient. */
+  source: CaseDonorSource | null
+  /** The stock bag of a stock row; null otherwise. */
+  stock_unit: StockUnitInfo | null
   /** 2 or more: a replacement donor. */
   sequence_no: number | null
   number: string | null
@@ -106,10 +127,14 @@ export type SampleLabel = Sample & {
   label_command: string
 }
 
-/** One ticked row sent to `POST /cases/{id}/samples`. */
+/**
+ * One ticked row sent to `POST /cases/{id}/samples`: the patient, a donor of the case, or a
+ * scanned stock bag not yet on the case (`unit_no`: Collect adds it as a stock row and holds it).
+ */
 export type CollectSubjectInput =
   | { subject_type: typeof SampleSubject.Patient }
   | { subject_type: typeof SampleSubject.Donor; case_donor_id: number }
+  | { subject_type: typeof SampleSubject.Donor; unit_no: string }
 
 /** Filters the backend allows on `GET /api/blood-bank/samples`. */
 export type SampleFilters = {

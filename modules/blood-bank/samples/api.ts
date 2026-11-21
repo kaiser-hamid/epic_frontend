@@ -12,6 +12,7 @@ import type {
   SampleFilters,
   SampleLabel,
   SampleListItem,
+  StockUnitInfo,
 } from "@/modules/blood-bank/samples/types"
 
 const basePath = "/api/blood-bank"
@@ -69,6 +70,23 @@ export async function collectSamples(
   const response = await apiClient.post<ResourceResponse<SampleCollection>>(
     `${basePath}/cases/${caseId}/samples`,
     { subjects }
+  )
+  return response.data.data
+}
+
+/**
+ * Stock bag scan: whether the unit can be taken for the case, with nothing written. The screen
+ * then lists the bag for Collect, which adds it to the case, holds it and draws its sample
+ * (and checks again). `404 UNIT_NOT_FOUND`, `409 UNIT_NOT_AVAILABLE` / `UNIT_ALREADY_IN_CASE`,
+ * `422 UNIT_EXPIRED` / `UNIT_NOT_NEEDED` / `CASE_TAKES_NO_BLOOD` / `CASE_NOT_OPEN`.
+ */
+export async function checkStockUnit(
+  caseId: number,
+  unitNo: string
+): Promise<StockUnitInfo> {
+  const response = await apiClient.get<ResourceResponse<StockUnitInfo>>(
+    `${basePath}/cases/${caseId}/stock-units/check`,
+    { params: { unit_no: unitNo.trim() } }
   )
   return response.data.data
 }

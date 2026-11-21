@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { CaseDonorStatusBadge } from "@/modules/blood-bank/case-donors/components/case-donor-status-badge"
+import { StockRowBadge } from "@/modules/blood-bank/case-donors/components/stock-row-badge"
 import type { CaseDonor } from "@/modules/blood-bank/cases/types"
 import { CaseDonorStatus } from "@/modules/blood-bank/enums"
 import { bloodGroupLabels, genderLabels } from "@/modules/shared/patient/enums"
@@ -52,7 +53,12 @@ export function CaseDonorsTable({ donors }: { donors: CaseDonor[] }) {
                     {entry.sequence_no}
                   </TableCell>
                   <TableCell>{entry.donor.donor_no}</TableCell>
-                  <TableCell>{entry.donor.name}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col items-start gap-1">
+                      <span>{entry.donor.name}</span>
+                      <StockRowBadge source={entry.source} />
+                    </div>
+                  </TableCell>
                   <TableCell className="tabular-nums">
                     {formatAge(entry.donor.age) ?? "—"}
                   </TableCell>
