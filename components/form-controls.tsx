@@ -28,7 +28,6 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group"
 import { RequiredMark } from "@/components/required-mark"
-import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 import { ageFromDob, dobFromAge } from "@/lib/age-dob"
 
@@ -269,93 +268,6 @@ export function NumberControl({
             disabled={disabled}
             aria-invalid={fieldState.invalid}
           />
-          {description ? (
-            <FieldDescription>{description}</FieldDescription>
-          ) : null}
-          <FieldError errors={[fieldState.error]} />
-        </Field>
-      )}
-    />
-  )
-}
-
-/**
- * Phone that looks up a returning record. Digits only. The lookup runs on blur and on
- * Enter (`data-enter-key="native"`: the caller moves focus once the lookup is done).
- */
-export function PhoneControl({
-  name,
-  label,
-  required,
-  description,
-  placeholder = "01XXXXXXXXX",
-  disabled,
-  className,
-  pending = false,
-  onCommit,
-  onEdit,
-}: Omit<ControlProps, "hideLabel"> & {
-  name: FieldPathByValue<Values, string>
-  /** Shows a spinner while the lookup runs. */
-  pending?: boolean
-  /** Blur or Enter. On Enter the input is passed, so focus can move on afterwards. */
-  onCommit: (phone: string, enterFrom: HTMLInputElement | null) => void
-  /** Each edit of the number. */
-  onEdit?: () => void
-}) {
-  const { control } = useFormContext<Values>()
-
-  return (
-    <Controller
-      name={name}
-      control={control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid} className={className}>
-          <FieldLabel htmlFor={name}>
-            {label}
-            {required ? <RequiredMark /> : null}
-          </FieldLabel>
-          <InputGroup>
-            <InputGroupInput
-              type="tel"
-              inputMode="numeric"
-              maxLength={20}
-              data-enter-key="native"
-              id={name}
-              name={field.name}
-              ref={field.ref}
-              value={field.value}
-              onChange={(event) => {
-                field.onChange(event.target.value.replace(/\D/g, ""))
-                onEdit?.()
-              }}
-              onBlur={() => {
-                field.onBlur()
-                onCommit(field.value, null)
-              }}
-              onKeyDown={(event) => {
-                if (
-                  event.key === "Enter" &&
-                  !event.nativeEvent.isComposing &&
-                  !event.altKey &&
-                  !event.ctrlKey &&
-                  !event.metaKey &&
-                  !event.shiftKey
-                ) {
-                  event.preventDefault()
-                  onCommit(field.value, event.currentTarget)
-                }
-              }}
-              placeholder={placeholder}
-              disabled={disabled}
-              aria-invalid={fieldState.invalid}
-            />
-            {pending ? (
-              <InputGroupAddon align="inline-end">
-                <Spinner />
-              </InputGroupAddon>
-            ) : null}
-          </InputGroup>
           {description ? (
             <FieldDescription>{description}</FieldDescription>
           ) : null}

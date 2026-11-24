@@ -1,11 +1,6 @@
 "use client"
 
-import {
-  keepPreviousData,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
-import { useCallback } from "react"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 
 import {
   findDonorsByPhone,
@@ -51,16 +46,15 @@ export function useDonorSearch(term: string) {
   })
 }
 
-/** For the donor's phone field: returns a function to call on blur or Enter. Cached for a minute per number. */
-export function useFindDonorsByPhone() {
-  const queryClient = useQueryClient()
-  return useCallback(
-    (phone: string) =>
-      queryClient.fetchQuery({
-        queryKey: donorKeys.byPhone(phone),
-        queryFn: () => findDonorsByPhone(phone),
-        staleTime: 60_000,
-      }),
-    [queryClient]
-  )
+/**
+ * Donors registered with a phone number (exact match). `phone` is the number submitted with
+ * Enter; "" runs no request. Cached for a minute per number.
+ */
+export function useDonorPhoneLookup(phone: string) {
+  return useQuery({
+    queryKey: donorKeys.byPhone(phone),
+    queryFn: () => findDonorsByPhone(phone),
+    enabled: phone !== "",
+    staleTime: 60_000,
+  })
 }

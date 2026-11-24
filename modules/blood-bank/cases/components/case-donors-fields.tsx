@@ -12,22 +12,20 @@ import {
   DateControl,
   EnumControl,
   NumberControl,
-  PhoneControl,
   TextControl,
   YesNoControl,
 } from "@/components/form-controls"
 import {
   focusPast,
   LinkedRecord,
-  LookupMatchSelect,
-  usePhoneLookup,
+  PhoneLookupControl,
 } from "@/components/phone-lookup"
 import {
   donorFormValues,
   emptyNewDonor,
   type DonorsFormValues,
 } from "@/modules/blood-bank/cases/schemas"
-import { useFindDonorsByPhone } from "@/modules/blood-bank/donors/queries"
+import { useDonorPhoneLookup } from "@/modules/blood-bank/donors/queries"
 import type { Donor } from "@/modules/blood-bank/donors/types"
 import { religionLabels } from "@/modules/blood-bank/enums"
 import {
@@ -51,8 +49,9 @@ function describeDonor(donor: Donor) {
 }
 
 /**
- * Mobile number first: a returning donor found by it fills the entry read-only and is sent
- * as `donor_id`; otherwise the fields register a new donor.
+ * Mobile number first: Enter lists the donors registered with it ("New donor" first; no
+ * match goes straight on). A picked donor fills the entry read-only and is sent as
+ * `donor_id`; otherwise the fields register a new donor.
  *
  * Works in any form whose values hold `donors: CaseDonorValues[]` at the same paths (Add
  * donor). `blockedReason` keeps a found donor from being picked (e.g.
@@ -78,11 +77,8 @@ export function CaseDonorEntry({
   const formState = useFormState({ control, name: `donors.${index}.donor_id` })
   const [linked, setLinked] = useState<Donor | null>(null)
   const sectionRef = useRef<HTMLDivElement>(null)
-  const findDonors = useFindDonorsByPhone()
-  const lookup = usePhoneLookup(findDonors, {
-    enabled: canLookup,
-    canAutoPick: (donor) => (blockedReason?.(donor) ?? null) === null,
-  })
+  const [search, setSearch] = useState("")
+  const lookup = useDonorPhoneLookup(search)
   const isLinked = donorId !== undefined
   const donorIdError = getFieldState(
     `donors.${index}.donor_id`,
@@ -104,25 +100,18 @@ export function CaseDonorEntry({
     })
   }
 
-  async function onPhoneCommit(
-    phone: string,
-    enterFrom: HTMLInputElement | null
-  ) {
-    const result = await lookup.lookup(phone)
+  function pick(donor: Donor | null) {
+    link(donor)
     const section = sectionRef.current
-    if (!section) {
-      return
-    }
-    if (result.status === "one") {
-      const focused = document.activeElement
-      link(result.match)
-      // The phone or a field after it had focus; those are now disabled.
-      if (focused && section.contains(focused)) {
-        focusPast(section)
+    if (donor && section) {
+      // The entry is now locked: past it (to the next field, else Save).
+      focusPast(section)
+    } else {
+      // On to the new donor's fields.
+      const phoneInput = document.getElementById(phonePath)
+      if (phoneInput) {
+        focusNextField(phoneInput)
       }
-    } else if (enterFrom) {
-      // On to the match select when there are matches, else the new donor's fields.
-      focusNextField(enterFrom)
     }
   }
 
@@ -155,26 +144,23 @@ export function CaseDonorEntry({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <PhoneControl
+        <PhoneLookupControl
           name={phonePath}
-          label="Contact no"
           disabled={isLinked}
-          pending={lookup.pending}
-          onCommit={onPhoneCommit}
-          onEdit={lookup.forget}
+          searchEnabled={canLookup}
+          onSearch={(phone) =>
+            phone === search ? void lookup.refetch() : setSearch(phone)
+          }
+          matches={lookup.data}
+          loading={lookup.isFetching && !lookup.data}
+          error={lookup.isError}
+          noun="donor"
+          describe={describeDonor}
+          blockedReason={blockedReason}
+          onPick={pick}
         />
         <div className="flex flex-col justify-end gap-1 lg:col-span-3">
-          {lookup.matches.length > 0 ? (
-            <LookupMatchSelect
-              id={`donors.${index}.donor_match`}
-              matches={lookup.matches}
-              noun="donor"
-              describe={describeDonor}
-              value={donorId}
-              onChange={link}
-              blockedReason={blockedReason}
-            />
-          ) : isLinked ? (
+          {isLinked ? (
             <LinkedRecord
               recordNo={linked?.donor_no ?? `#${donorId}`}
               kind="Returning donor"
@@ -182,7 +168,7 @@ export function CaseDonorEntry({
             />
           ) : canLookup ? (
             <FieldDescription className="lg:pb-1.5">
-              A returning donor is filled in from the number.
+              Press Enter on the number to find a returning donor.
             </FieldDescription>
           ) : null}
           <FieldError errors={[donorIdError]} />

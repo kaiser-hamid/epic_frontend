@@ -35,6 +35,8 @@ type AutocompleteInputProps<T> = Omit<
   /** False when the user may not search (missing permission): Enter just moves on. */
   searchEnabled?: boolean
   getKey: (item: T) => string
+  /** Shown but not pickable (e.g. a donor already on the case). */
+  isItemDisabled?: (item: T) => boolean
   renderItem: (item: T) => ReactNode
   onSelect: (item: T) => void
   emptyText?: string
@@ -64,6 +66,7 @@ export function AutocompleteInput<T>({
   picked = false,
   searchEnabled = true,
   getKey,
+  isItemDisabled,
   renderItem,
   onSelect,
   emptyText = "No data found.",
@@ -79,7 +82,12 @@ export function AutocompleteInput<T>({
   const [requested, setOpen] = useState(false)
   const [highlighted, setHighlighted] = useState("")
   const keys = (items ?? []).map(getKey)
-  const active = keys.includes(highlighted) ? highlighted : (keys[0] ?? "")
+  const pickable = (items ?? [])
+    .filter((item) => !(isItemDisabled?.(item) ?? false))
+    .map(getKey)
+  const active = pickable.includes(highlighted)
+    ? highlighted
+    : (pickable[0] ?? "")
   const term = value.trim()
   // Enter searches; otherwise `<Form>` moves the focus on.
   const searchable = term !== "" && !picked && searchEnabled
@@ -181,6 +189,7 @@ export function AutocompleteInput<T>({
                     <CommandItem
                       key={getKey(item)}
                       value={getKey(item)}
+                      disabled={isItemDisabled?.(item) ?? false}
                       onSelect={() => {
                         setOpen(false)
                         onSelect(item)
