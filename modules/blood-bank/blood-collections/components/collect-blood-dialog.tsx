@@ -212,7 +212,6 @@ function CollectBloodForm({
               {...field}
               id="collect_notes"
               maxLength={500}
-              autoComplete="nope"
               aria-invalid={fieldState.invalid}
             />
             <FieldError errors={[fieldState.error]} />

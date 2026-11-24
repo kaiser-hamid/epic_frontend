@@ -136,7 +136,6 @@ export function DateInput({
             name={name}
             ref={ref}
             inputMode="numeric"
-            autoComplete="nope"
             maxLength={10}
             placeholder="DD/MM/YYYY"
             // No `aria-expanded`: `<Form>` would then leave Enter to the calendar.

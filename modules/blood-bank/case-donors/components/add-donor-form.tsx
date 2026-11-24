@@ -137,7 +137,6 @@ export function AddDonorForm({
                     onChange={field.onChange}
                     onBlur={field.onBlur}
                     maxLength={30}
-                    autoComplete="nope"
                     spellCheck={false}
                     aria-invalid={fieldState.invalid}
                   />

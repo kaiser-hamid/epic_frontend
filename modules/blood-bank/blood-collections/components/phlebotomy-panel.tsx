@@ -232,7 +232,6 @@ function RecordPhlebotomyForm({
               {...field}
               id="phlebotomy_notes"
               maxLength={500}
-              autoComplete="nope"
               aria-invalid={fieldState.invalid}
             />
             <FieldError errors={[fieldState.error]} />
@@ -340,7 +339,6 @@ function VitalsFields({
                 {...field}
                 id={id("temperature_f")}
                 inputMode="decimal"
-                autoComplete="nope"
                 maxLength={5}
                 aria-invalid={fieldState.invalid}
               />

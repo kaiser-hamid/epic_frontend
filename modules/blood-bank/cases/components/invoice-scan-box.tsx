@@ -115,7 +115,6 @@ export function InvoiceScanBox<TView extends ScanView>({
                   setLookupError(null)
                 }}
                 placeholder="Scan or type, then Enter"
-                autoComplete="nope"
                 spellCheck={false}
                 maxLength={30}
                 aria-invalid={lookupError !== null}
@@ -135,7 +134,7 @@ export function InvoiceScanBox<TView extends ScanView>({
             (the backend lookup takes `case_no` then).
           <Field>
             <FieldLabel htmlFor="scan_case_no">Case no</FieldLabel>
-            <Input id="scan_case_no" placeholder="Scan or type" autoComplete="nope" />
+            <Input id="scan_case_no" placeholder="Scan or type" />
           </Field>
           */}
         </Form>

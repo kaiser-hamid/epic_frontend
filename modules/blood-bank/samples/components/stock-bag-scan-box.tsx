@@ -102,7 +102,6 @@ export function StockBagScanBox({
               setError(null)
             }}
             placeholder="Unit no, then Enter"
-            autoComplete="nope"
             spellCheck={false}
             maxLength={50}
             aria-invalid={error !== null}

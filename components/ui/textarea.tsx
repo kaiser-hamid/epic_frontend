@@ -1,21 +1,27 @@
 import * as React from "react"
 import { cn } from "cn"
 
-// Chrome keys its saved suggestions on `name`; forms here use react-hook-form, so the DOM name is dropped.
+import { noAutofillProps, useNoAutofillRef } from "@/hooks/use-no-autofill"
+
+// Browser autofill and saved suggestions are always off (see `useNoAutofillRef`); forms here
+// use react-hook-form, so the caller's `name` and `autoComplete` are ignored.
 function Textarea({
   className,
-  autoComplete = "nope",
+  ref,
   ...props
 }: React.ComponentProps<"textarea">) {
+  const noAutofillRef = useNoAutofillRef(ref)
+
   return (
     <textarea
-      autoComplete={autoComplete}
       data-slot="textarea"
       className={cn(
         "flex field-sizing-content min-h-16 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
         className
       )}
       {...props}
+      {...noAutofillProps}
+      ref={noAutofillRef}
       name={undefined}
     />
   )

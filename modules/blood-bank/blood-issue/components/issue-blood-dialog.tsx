@@ -280,7 +280,6 @@ function IssueBloodForm({
                 {...field}
                 id="issue_transfusion_reason"
                 maxLength={TRANSFUSION_REASON_MAX}
-                autoComplete="nope"
                 aria-invalid={fieldState.invalid}
               />
               <FieldDescription>
@@ -486,7 +485,6 @@ function UnitCrossmatchRow({
                 {...field}
                 id={id("remarks")}
                 maxLength={REMARKS_MAX}
-                autoComplete="nope"
                 aria-invalid={fieldState.invalid}
               />
               <FieldError errors={[fieldState.error]} />
@@ -562,7 +560,6 @@ function VitalsBlock({
                 {...field}
                 id={id("temperature_f")}
                 inputMode="decimal"
-                autoComplete="nope"
                 maxLength={5}
                 aria-invalid={fieldState.invalid}
               />

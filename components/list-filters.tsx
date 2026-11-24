@@ -64,7 +64,6 @@ export function ScanFilter({
             }
           }}
           placeholder="Scan or type"
-          autoComplete="nope"
           spellCheck={false}
         />
       </InputGroup>

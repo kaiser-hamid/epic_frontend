@@ -104,7 +104,6 @@ export function DateTimeInput({
           id={id === undefined ? undefined : `${id}_time`}
           aria-label="Time"
           inputMode="numeric"
-          autoComplete="nope"
           maxLength={5}
           placeholder="HH:MM"
           value={time}

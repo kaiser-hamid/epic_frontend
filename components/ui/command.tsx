@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { InputGroup, InputGroupAddon } from "@/components/ui/input-group"
+import { noAutofillProps, useNoAutofillRef } from "@/hooks/use-no-autofill"
 import { SearchIcon, CheckIcon } from "lucide-react"
 
 function Command({
@@ -64,8 +65,11 @@ function CommandDialog({
 
 function CommandInput({
   className,
+  ref,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Input>) {
+  const noAutofillRef = useNoAutofillRef(ref)
+
   return (
     <div data-slot="command-input-wrapper" className="p-1 pb-0">
       <InputGroup className="h-8! rounded-lg! border-input/30 bg-input/30 shadow-none! *:data-[slot=input-group-addon]:pl-2!">
@@ -76,6 +80,8 @@ function CommandInput({
             className
           )}
           {...props}
+          {...noAutofillProps}
+          ref={noAutofillRef}
         />
         <InputGroupAddon>
           <SearchIcon className="size-4 shrink-0 opacity-50" />
