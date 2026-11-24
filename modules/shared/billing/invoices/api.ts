@@ -86,12 +86,15 @@ function newPatientPayload(patient: NewPatientValues) {
   }
 }
 
-/** Picked lines → `{ test_item_id, quantity }`, skipping rows without a test yet. */
+/**
+ * Picked lines → `{ test_item_id, quantity }`, skipping rows without a test. The quantity is
+ * not entered on the form: every line is billed as 1.
+ */
 export function billedLines(lines: readonly Partial<TestLineValues>[]) {
   return lines.flatMap((line) =>
-    line.test_item_id === undefined || !line.quantity
+    line.test_item_id === undefined
       ? []
-      : [{ test_item_id: line.test_item_id, quantity: line.quantity }]
+      : [{ test_item_id: line.test_item_id, quantity: 1 }]
   )
 }
 

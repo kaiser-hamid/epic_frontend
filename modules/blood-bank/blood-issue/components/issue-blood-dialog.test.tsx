@@ -142,7 +142,11 @@ async function pickStaff(
   search: string,
   name: RegExp
 ) {
-  await user.type(within(dialog).getByRole("combobox", { name: field }), search)
+  // Lookups search on Enter, not while typing.
+  await user.type(
+    within(dialog).getByRole("combobox", { name: field }),
+    `${search}{Enter}`
+  )
   await user.click(await screen.findByRole("option", { name }))
 }
 

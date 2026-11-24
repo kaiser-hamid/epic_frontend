@@ -3,7 +3,6 @@
 import { PlusIcon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import {
-  Controller,
   useController,
   useFieldArray,
   useFormContext,
@@ -13,12 +12,12 @@ import {
 import { AutocompleteInput } from "@/components/autocomplete-input"
 import { focusNextField } from "@/components/form"
 import { Money } from "@/components/money"
-import { NumberInput } from "@/components/number-input"
 import { ReadonlyInput } from "@/components/readonly-input"
 import { RequiredMark } from "@/components/required-mark"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FieldError } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -27,7 +26,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { lookupEmptyText, useLookupTerm } from "@/hooks/use-lookup-term"
 import { formatTaka } from "@/lib/format"
 import {
   hasBloodBankItems,
@@ -40,9 +38,9 @@ import type { TestItem } from "@/modules/shared/test-catalog/types"
 
 type TestLine = TestLineValues
 
-/** Catalog rate × quantity, for the preview only. The server bills from its own catalog. */
+/** Catalog rate (quantity is always 1), for the preview only. The server bills from its own catalog. */
 function lineAmount(line: Partial<TestLine> | undefined): number | null {
-  return line?.item && line.quantity ? line.item.rate * line.quantity : null
+  return line?.item ? line.item.rate : null
 }
 
 /**
@@ -60,9 +58,12 @@ export function InvoiceTestItemsFields() {
   const hasBloodBank = hasBloodBankItems(lines)
 
   function addTest() {
-    items.append({ quantity: 1 } as TestLine, {
-      focusName: `items.${items.fields.length}.test_item_id`,
-    })
+    items.append(
+      {},
+      {
+        focusName: `items.${items.fields.length}.test_item_id`,
+      }
+    )
   }
 
   return (
@@ -87,9 +88,7 @@ export function InvoiceTestItemsFields() {
               Item name <RequiredMark />
             </TableHead>
             <TableHead className="text-right">Rate</TableHead>
-            <TableHead>
-              Qty <RequiredMark />
-            </TableHead>
+            <TableHead>Qty</TableHead>
             <TableHead>Delivery status</TableHead>
             <TableHead>Delivery time</TableHead>
             <TableHead className="text-right">Amount</TableHead>
@@ -189,10 +188,10 @@ function TestLineRow({
   const item = line.item
   const [code, setCode] = useState(item?.code ?? "")
   const [itemName, setItemName] = useState(item?.name ?? "")
-  // Item ID and name share one term: the last edited of the two.
-  const lookupTerm = useLookupTerm()
+  // Item ID and name share one search: Enter in either runs it for that field's text.
+  const [search, setSearch] = useState("")
   const lookup = useTestItemLookup(
-    lookupTerm.search,
+    search,
     otherLines.flatMap(({ test_item_id }) =>
       test_item_id === undefined ? [] : [test_item_id]
     )
@@ -202,24 +201,29 @@ function TestLineRow({
   const rowLabel = `Test ${index + 1}`
 
   const listProps = {
+    onSearch: (term: string) =>
+      term === search ? void lookup.refetch() : setSearch(term),
     items: lookup.data,
-    loading: lookupTerm.waiting || lookup.isFetching,
+    loading: lookup.isFetching && !lookup.data,
+    error: lookup.isError,
+    picked: item !== undefined,
     getKey: (option: TestItem) => String(option.id),
     renderItem: testItemOption,
     listClassName: "w-96",
-    emptyText: lookupEmptyText(
-      { tooShort: lookupTerm.tooShort, isError: lookup.isError },
-      matchesPicked(otherLines, lookupTerm.search)
-        ? "All matching tests are already added."
-        : "No matching tests."
-    ),
+    emptyText: matchesPicked(otherLines, search)
+      ? "All matching tests are already added."
+      : "No data found.",
     onSelect: pick,
   }
 
-  function edit(next: { code: string; name: string }, typed: string) {
+  function edit(next: { code: string; name: string }) {
     setCode(next.code)
     setItemName(next.name)
-    lookupTerm.setTerm(typed)
+    // Typed but not picked: the row needs a test; an empty row is skipped.
+    setValue(
+      `items.${index}.typed`,
+      next.code.trim() !== "" || next.name.trim() !== ""
+    )
     if (item) {
       setValue(itemPath, undefined)
       onChange(undefined)
@@ -227,12 +231,15 @@ function TestLineRow({
   }
 
   function pick(option: TestItem) {
-    lookupTerm.setTerm("")
     setCode(option.code)
     setItemName(option.name)
     setValue(itemPath, option)
     onChange(option.id)
-    // On to the quantity.
+    // The quantity is fixed: on to the next test, adding its row after the last.
+    if (isLast) {
+      onAdd()
+      return
+    }
     const nameInput = document.getElementById(nameId)
     if (nameInput) {
       focusNextField(nameInput)
@@ -259,7 +266,7 @@ function TestLineRow({
           aria-invalid={fieldState.invalid}
           value={code}
           onValueChange={(text) =>
-            edit({ code: text, name: item ? "" : itemName }, text)
+            edit({ code: text, name: item ? "" : itemName })
           }
           onBlur={onBlur}
         />
@@ -272,9 +279,7 @@ function TestLineRow({
           aria-label={`${rowLabel} item name`}
           aria-invalid={fieldState.invalid}
           value={itemName}
-          onValueChange={(text) =>
-            edit({ code: item ? "" : code, name: text }, text)
-          }
+          onValueChange={(text) => edit({ code: item ? "" : code, name: text })}
         />
       </TableCell>
       <TableCell className="min-w-28">
@@ -285,47 +290,12 @@ function TestLineRow({
         />
       </TableCell>
       <TableCell className="w-20 min-w-20">
-        <Controller
-          name={`items.${index}.quantity`}
-          control={control}
-          render={({ field: quantity, fieldState: quantityState }) => (
-            <>
-              <NumberInput
-                id={quantity.name}
-                name={quantity.name}
-                ref={quantity.ref}
-                value={quantity.value}
-                onChange={quantity.onChange}
-                onBlur={quantity.onBlur}
-                max={999}
-                // Enter goes to the next row's Item ID, or adds a row after the last.
-                data-enter-key="native"
-                onKeyDown={(event) => {
-                  if (
-                    event.key !== "Enter" ||
-                    event.nativeEvent.isComposing ||
-                    event.altKey ||
-                    event.ctrlKey ||
-                    event.metaKey ||
-                    event.shiftKey
-                  ) {
-                    return
-                  }
-                  event.preventDefault()
-                  if (isLast) {
-                    onAdd()
-                  } else {
-                    document
-                      .getElementById(`items.${index + 1}.test_item_id`)
-                      ?.focus()
-                  }
-                }}
-                aria-label={`${rowLabel} quantity`}
-                aria-invalid={quantityState.invalid}
-              />
-              <FieldError errors={[quantityState.error]} className="mt-1" />
-            </>
-          )}
+        {/* Every test is billed once (`billedLines` sends 1); `<Form>` skips the box. */}
+        <Input
+          disabled
+          aria-label={`${rowLabel} quantity`}
+          className="tabular-nums"
+          value={item ? "1" : ""}
         />
       </TableCell>
       <TableCell className="min-w-28">

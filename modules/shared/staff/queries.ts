@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query"
 
-import { LOOKUP_MIN_LENGTH } from "@/hooks/use-lookup-term"
 import { lookupStaff } from "@/modules/shared/staff/api"
 
 export const staffKeys = {
@@ -11,13 +10,13 @@ export const staffKeys = {
   lookup: (search: string) => [...staffKeys.lookups(), search] as const,
 }
 
-/** Reference data: cached for a minute per term. Disabled below `LOOKUP_MIN_LENGTH` characters. */
+/** Reference data: cached for a minute per term. `search` is submitted with Enter; "" runs no request. */
 export function useStaffLookup(search: string) {
   const term = search.trim()
   return useQuery({
     queryKey: staffKeys.lookup(term),
     queryFn: () => lookupStaff(term),
-    enabled: term.length >= LOOKUP_MIN_LENGTH,
+    enabled: term !== "",
     staleTime: 60_000,
   })
 }

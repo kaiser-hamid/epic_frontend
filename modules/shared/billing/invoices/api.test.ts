@@ -31,7 +31,7 @@ const generalItem: TestItem = {
 const values: InvoiceValues = {
   invoice_no: "",
   patient: { ...emptyNewPatient, name: "Rahim Uddin", age_years: 40 },
-  items: [{ test_item_id: 12, quantity: 1 }],
+  items: [{ test_item_id: 12 }],
   referral: { is_self_referral: false, doctor_id: 3, remark: "" },
   patient_type_id: 1,
   delivery_at: "2026-11-09T19:00",
@@ -81,13 +81,13 @@ describe("toCreateInvoicePayload", () => {
     expect(body(values)).not.toHaveProperty("category_details")
 
     const items = [
-      { test_item_id: 12, quantity: 1, item: generalItem },
-      { test_item_id: 30, quantity: 2, item: bloodBankItem },
+      { test_item_id: 12, item: generalItem },
+      { test_item_id: 30, item: bloodBankItem },
     ]
     expect(body({ ...values, items })).toMatchObject({
       items: [
         { test_item_id: 12, quantity: 1 },
-        { test_item_id: 30, quantity: 2 },
+        { test_item_id: 30, quantity: 1 },
       ],
       category_details: { care_type: "daycare" },
     })

@@ -75,14 +75,40 @@ export function patientFormValues(patient: Patient): NewPatientValues {
   }
 }
 
+/** One test line. The quantity is not entered: every line is billed as 1 (see `billedLines`). */
 export const testLineSchema = z.object({
-  test_item_id: id("Select a test."),
-  quantity: wholeNumber(1, 999),
+  /** Unset on a row with no test picked; a row left empty is ignored. */
+  test_item_id: id("Select a test.").optional(),
+  /** Item ID or name text typed without picking a test; display only, never sent. */
+  typed: z.boolean().optional(),
   /** The looked-up item, for display (department, rate, category) only; never sent. */
   item: z.custom<TestItem>().optional(),
 })
 
 export type TestLineValues = z.infer<typeof testLineSchema>
+
+/**
+ * Picking a test on the last row adds the next row, so an empty row is normal and is skipped.
+ * A row with typed text still needs its test picked, and the bill needs at least one test.
+ */
+const testLinesSchema = z.array(testLineSchema).superRefine((lines, ctx) => {
+  lines.forEach((line, index) => {
+    if (line.test_item_id === undefined && line.typed) {
+      ctx.addIssue({
+        code: "custom",
+        path: [index, "test_item_id"],
+        message: "Select a test.",
+      })
+    }
+  })
+  if (lines.every((line) => line.test_item_id === undefined)) {
+    ctx.addIssue({
+      code: "custom",
+      path: [0, "test_item_id"],
+      message: "Add at least one test.",
+    })
+  }
+})
 
 /** Counter amounts are typed in whole taka: the payable always is (it is rounded to 10 taka). */
 export const MAX_TAKA = 100_000_000
@@ -109,7 +135,7 @@ export const invoiceSchema = z
     /** Set when the phone lookup found the patient. */
     patient_id: z.number().int().positive().optional(),
     patient: newPatientSchema,
-    items: z.array(testLineSchema).min(1, "Add at least one test."),
+    items: testLinesSchema,
     referral: z.object({
       is_self_referral: z.boolean(),
       doctor_id: id("Select a doctor.").optional(),
@@ -185,7 +211,7 @@ export type InvoiceValues = z.infer<typeof invoiceSchema>
 export const emptyInvoiceValues: InvoiceValues = {
   invoice_no: "",
   patient: emptyNewPatient,
-  items: [{ quantity: 1 } as TestLineValues],
+  items: [{}],
   referral: { is_self_referral: false, remark: "" },
   patient_type_id: undefined as unknown as number,
   delivery_at: "",

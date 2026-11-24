@@ -1,7 +1,7 @@
 "use client"
 
 import { Command as CommandPrimitive } from "cmdk"
-import { useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 
 import {
   CommandEmpty,
@@ -9,6 +9,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
+import { focusNextField } from "@/components/form"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { Spinner } from "@/components/ui/spinner"
@@ -19,78 +20,132 @@ type AutocompleteInputProps<T> = Omit<
   "value" | "onChange" | "onSelect" | "role"
 > & {
   value: string
-  /** Typed text; opens the suggestions. */
+  /** Typed text. Typing closes the results; they belong to the text searched. */
   onValueChange: (text: string) => void
-  /** Suggestions for the current text. */
+  /** Enter on typed text: run the lookup for the trimmed text; its results come back as `items`. */
+  onSearch: (term: string) => void
+  /** Results of the last search. */
   items: readonly T[] | undefined
-  /** Suggestions for the current text are not in yet; Enter waits for them. */
+  /** The search is running (no results to show yet). */
   loading?: boolean
+  /** The search failed. */
+  error?: boolean
+  /** The text is a picked record: Enter moves on instead of searching again. */
+  picked?: boolean
+  /** False when the user may not search (missing permission): Enter just moves on. */
+  searchEnabled?: boolean
   getKey: (item: T) => string
   renderItem: (item: T) => ReactNode
   onSelect: (item: T) => void
   emptyText?: string
-  /** Width of the suggestions; defaults to the input width, at least 18rem. */
+  /**
+   * No results is an ordinary answer here (a new phone number): instead of "No data found."
+   * the results stay closed and focus moves on to the next field.
+   */
+  emptyMovesOn?: boolean
+  /** Width of the results; defaults to the input width, at least 18rem. */
   listClassName?: string
 }
 
 /**
- * Text input with a suggestion list (type-ahead). Arrow keys move through the list and
- * Enter picks; with nothing to pick, Enter keeps its `<Form>` meaning (next field).
- * Filtering is up to the caller (server lookups).
+ * Lookup input that searches on Enter, never while typing. Enter on typed text runs
+ * `onSearch` and opens the results under the input: arrow keys move, Enter picks, Escape
+ * closes, and "No data found." says when nothing matched (Enter there moves on; after a
+ * failed search it retries; with `emptyMovesOn` it moves on without the message). Enter on
+ * an empty field (or on a picked record) keeps its `<Form>` meaning: next field.
  */
 export function AutocompleteInput<T>({
   value,
   onValueChange,
+  onSearch,
   items,
   loading = false,
+  error = false,
+  picked = false,
+  searchEnabled = true,
   getKey,
   renderItem,
   onSelect,
-  emptyText = "No match.",
+  emptyText = "No data found.",
+  emptyMovesOn = false,
   listClassName,
   className,
   onKeyDown,
   onBlur,
   ...inputProps
 }: AutocompleteInputProps<T>) {
-  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  // Opened by Enter; shown unless `emptyMovesOn` skips an empty result.
+  const [requested, setOpen] = useState(false)
   const [highlighted, setHighlighted] = useState("")
   const keys = (items ?? []).map(getKey)
   const active = keys.includes(highlighted) ? highlighted : (keys[0] ?? "")
-  const showList = open && value.trim() !== ""
-  // Expanded only while there is something Enter can pick (or will be soon).
-  const expanded = showList && (loading || keys.length > 0)
+  const term = value.trim()
+  // Enter searches; otherwise `<Form>` moves the focus on.
+  const searchable = term !== "" && !picked && searchEnabled
+  const skipEmpty =
+    emptyMovesOn && requested && !loading && !error && keys.length === 0
+  const open = requested && !skipEmpty
+
+  // Nothing found where that is expected: straight on to the next field (its blur closes).
+  useEffect(() => {
+    if (skipEmpty && rootRef.current) {
+      focusNextField(rootRef.current)
+    }
+  }, [skipEmpty])
 
   return (
     <CommandPrimitive
+      ref={rootRef}
       shouldFilter={false}
       value={active}
       onValueChange={setHighlighted}
       className={cn("min-w-0", className)}
     >
-      <Popover open={showList} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverAnchor asChild>
           <Input
             {...inputProps}
             role="combobox"
             aria-autocomplete="list"
-            aria-expanded={expanded}
+            aria-expanded={open}
+            data-enter-key={searchable ? "native" : undefined}
             value={value}
             onChange={(event) => {
               onValueChange(event.target.value)
-              setOpen(true)
+              setOpen(false)
             }}
             onKeyDown={(event) => {
               onKeyDown?.(event)
-              if (showList) {
+              const plainEnter =
+                event.key === "Enter" &&
+                !event.nativeEvent.isComposing &&
+                !event.altKey &&
+                !event.ctrlKey &&
+                !event.metaKey &&
+                !event.shiftKey
+              if (open) {
+                // The results take arrows and Enter. With none to pick, Enter retries a
+                // failed search, or closes "No data found." and moves on.
+                if (plainEnter && !loading && keys.length === 0) {
+                  event.preventDefault()
+                  if (error && searchable) {
+                    onSearch(term)
+                  } else {
+                    setOpen(false)
+                    focusNextField(event.currentTarget)
+                  }
+                }
                 return
               }
               // Closed: keep keys (Home, End, Enter) away from the list.
               event.stopPropagation()
-              if (event.key === "ArrowDown" && value.trim() !== "") {
-                event.preventDefault()
-                setOpen(true)
+              if (!plainEnter || !searchable) {
+                return
               }
+              event.preventDefault()
+              onSearch(term)
+              setOpen(true)
             }}
             onBlur={(event) => {
               setOpen(false)
@@ -116,7 +171,11 @@ export function AutocompleteInput<T>({
               </div>
             ) : (
               <>
-                <CommandEmpty>{emptyText}</CommandEmpty>
+                <CommandEmpty>
+                  {error
+                    ? "Could not search. Press Enter to retry."
+                    : emptyText}
+                </CommandEmpty>
                 <CommandGroup>
                   {(items ?? []).map((item) => (
                     <CommandItem

@@ -1,17 +1,24 @@
 "use client"
 
-import { useFormContext, useFormState, useWatch } from "react-hook-form"
+import { useState } from "react"
+import { flushSync } from "react-dom"
+import {
+  useController,
+  useFormContext,
+  useFormState,
+  useWatch,
+} from "react-hook-form"
 
+import { AutocompleteInput } from "@/components/autocomplete-input"
 import { focusNextField } from "@/components/form"
-import { FieldError } from "@/components/ui/field"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import {
   AgeControl,
   DateControl,
   EnumControl,
-  PhoneControl,
   TextControl,
 } from "@/components/form-controls"
-import { LookupMatchSelect, usePhoneLookup } from "@/components/phone-lookup"
+import { LinkedRecord } from "@/components/phone-lookup"
 import {
   emptyNewPatient,
   patientFormValues,
@@ -23,7 +30,7 @@ import {
   maritalStatusLabels,
   patientTitleLabels,
 } from "@/modules/shared/patient/enums"
-import { useFindPatientsByPhone } from "@/modules/shared/patient/queries"
+import { usePatientPhoneLookup } from "@/modules/shared/patient/queries"
 import type { Patient } from "@/modules/shared/patient/types"
 import { SharedPermission } from "@/modules/shared/rbac/permissions"
 import { useCan } from "@/modules/shared/rbac/use-can"
@@ -44,71 +51,128 @@ function describePatient(patient: Patient) {
   }
 }
 
+const NEW_PATIENT = "new"
+type PhoneOption = Patient | typeof NEW_PATIENT
+
+function phoneOption(option: PhoneOption) {
+  if (option === NEW_PATIENT) {
+    return <span className="font-medium">New patient</span>
+  }
+  const { title, detail } = describePatient(option)
+  return (
+    <div className="flex flex-col">
+      <span>{title}</span>
+      {detail ? (
+        <span className="text-xs text-muted-foreground">{detail}</span>
+      ) : null}
+    </div>
+  )
+}
+
 /**
- * Contact no first: patients registered with it (one phone may serve a whole family) are
- * offered in a select, "New patient" by default. A picked patient fills the section
- * read-only and is sent as `patient_id`; otherwise the fields register a new patient.
+ * Contact no first: Enter looks up the patients registered with it (one phone may serve a
+ * whole family) and lists them under the field, "New patient" first. A picked patient fills
+ * the section read-only and is sent as `patient_id`; otherwise the fields register a new
+ * patient.
  */
 export function InvoicePatientFields() {
   const { control, getValues, setValue, clearErrors, getFieldState } =
     useFormContext<InvoiceValues>()
   const patientId = useWatch({ control, name: "patient_id" })
   const formState = useFormState({ control, name: "patient_id" })
-  // Finding a returning patient needs the patient search.
+  const {
+    field: {
+      ref: phoneRef,
+      value: phone,
+      onChange: setPhone,
+      onBlur: onPhoneBlur,
+    },
+    fieldState: phoneState,
+  } = useController({ control, name: PHONE })
+  // Finding a returning patient needs the patient search; without it Enter just moves on.
   const canLookup = useCan(SharedPermission.PatientView)
-  const findPatients = useFindPatientsByPhone()
-  // A family often shares one number, so even a single match is offered, never auto-picked.
-  const lookup = usePhoneLookup(findPatients, {
-    enabled: canLookup,
-    canAutoPick: () => false,
-  })
+  const [search, setSearch] = useState("")
+  const lookup = usePatientPhoneLookup(search)
+  const [linked, setLinked] = useState<Patient | null>(null)
   const isLinked = patientId !== undefined
   const patientIdError = getFieldState("patient_id", formState).error
+  // A family often shares one number, so a match is never assumed: "New patient" comes first.
+  const options: PhoneOption[] | undefined =
+    lookup.data && lookup.data.length > 0
+      ? [NEW_PATIENT, ...lookup.data]
+      : lookup.data
 
-  /** Fills the section from a picked patient, or empties it for a new one. */
+  /** Fills the section from a picked patient, or empties it for a new one; rendered at once. */
   function link(patient: Patient | null) {
-    setValue("patient_id", patient?.id)
-    setValue(
-      "patient",
-      patient
-        ? patientFormValues(patient)
-        : { ...emptyNewPatient, phone: getValues(PHONE) }
-    )
-    clearErrors(["patient_id", "patient"])
+    flushSync(() => {
+      setLinked(patient)
+      setValue("patient_id", patient?.id)
+      setValue(
+        "patient",
+        patient
+          ? patientFormValues(patient)
+          : { ...emptyNewPatient, phone: getValues(PHONE) }
+      )
+      clearErrors(["patient_id", "patient"])
+    })
   }
 
-  async function onPhoneCommit(
-    phone: string,
-    enterFrom: HTMLInputElement | null
-  ) {
-    await lookup.lookup(phone)
-    // On to the match select when there are matches, else the new patient's fields.
-    if (enterFrom) {
-      focusNextField(enterFrom)
+  function pick(option: PhoneOption) {
+    link(option === NEW_PATIENT ? null : option)
+    // On to the new patient's fields, or past the section a picked patient locked.
+    const phoneInput = document.getElementById(PHONE)
+    if (phoneInput) {
+      focusNextField(phoneInput)
     }
+  }
+
+  function unlink() {
+    link(null)
+    document.getElementById(PHONE)?.focus()
   }
 
   return (
     <div className="grid gap-4 sm:grid-cols-6">
-      <PhoneControl
-        name={PHONE}
-        label="Contact no"
-        className="sm:col-span-3"
-        // Back to "New patient" in the select to change the number.
-        disabled={isLinked}
-        pending={lookup.pending}
-        onCommit={onPhoneCommit}
-        onEdit={lookup.forget}
-      />
+      <Field data-invalid={phoneState.invalid} className="sm:col-span-3">
+        <FieldLabel htmlFor={PHONE}>Contact no</FieldLabel>
+        <AutocompleteInput
+          id={PHONE}
+          ref={phoneRef}
+          type="tel"
+          inputMode="numeric"
+          maxLength={20}
+          placeholder="01XXXXXXXXX"
+          // "Change" beside the linked patient frees the number again.
+          disabled={isLinked}
+          value={phone}
+          onValueChange={(text) => setPhone(text.replace(/\D/g, ""))}
+          onBlur={onPhoneBlur}
+          onSearch={(term) =>
+            term === search ? void lookup.refetch() : setSearch(term)
+          }
+          searchEnabled={canLookup}
+          // A new number is ordinary: no match goes straight on to the new patient's fields.
+          emptyMovesOn
+          picked={isLinked}
+          items={options}
+          loading={lookup.isFetching && !lookup.data}
+          error={lookup.isError}
+          getKey={(option) =>
+            option === NEW_PATIENT ? NEW_PATIENT : String(option.id)
+          }
+          renderItem={phoneOption}
+          onSelect={pick}
+          listClassName="w-96"
+          aria-invalid={phoneState.invalid}
+        />
+        <FieldError errors={[phoneState.error]} />
+      </Field>
       <div className="flex flex-col justify-end gap-1 sm:col-span-3">
-        {lookup.matches.length > 0 ? (
-          <LookupMatchSelect
-            id="patient_match"
-            matches={lookup.matches}
-            noun="patient"
-            describe={describePatient}
-            value={patientId}
-            onChange={link}
+        {isLinked ? (
+          <LinkedRecord
+            recordNo={linked?.patient_no ?? `#${patientId}`}
+            kind="Returning patient"
+            onUnlink={unlink}
           />
         ) : null}
         <FieldError errors={[patientIdError]} />

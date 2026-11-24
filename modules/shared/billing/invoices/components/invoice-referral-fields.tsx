@@ -11,7 +11,6 @@ import { ReadonlyInput } from "@/components/readonly-input"
 import { RequiredMark } from "@/components/required-mark"
 import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
-import { lookupEmptyText, useLookupTerm } from "@/hooks/use-lookup-term"
 import { CheckboxControl, TextControl } from "@/components/form-controls"
 import type { InvoiceValues } from "@/modules/shared/billing/invoices/schemas"
 import { useDoctorLookup } from "@/modules/shared/doctor/queries"
@@ -138,28 +137,27 @@ function DoctorFields({
   const [selected, setSelected] = useState<Doctor | null>(null)
   const [code, setCode] = useState("")
   const [doctorName, setDoctorName] = useState("")
-  // Code and name share one term: the last edited of the two.
-  const lookupTerm = useLookupTerm()
-  const lookup = useDoctorLookup(lookupTerm.search)
+  // Code and name share one search: Enter in either runs it for that field's text.
+  const [search, setSearch] = useState("")
+  const lookup = useDoctorLookup(search)
   const nameId = `${name}.name`
 
   const listProps = {
+    onSearch: (term: string) =>
+      term === search ? void lookup.refetch() : setSearch(term),
     items: lookup.data,
-    loading: lookupTerm.waiting || lookup.isFetching,
+    loading: lookup.isFetching && !lookup.data,
+    error: lookup.isError,
+    picked: selected !== null,
     getKey: (doctor: Doctor) => String(doctor.id),
     renderItem: doctorItem,
-    emptyText: lookupEmptyText(
-      { tooShort: lookupTerm.tooShort, isError: lookup.isError },
-      "No doctor found."
-    ),
     disabled,
     onSelect: pick,
   }
 
-  function edit(next: { code: string; name: string }, typed: string) {
+  function edit(next: { code: string; name: string }) {
     setCode(next.code)
     setDoctorName(next.name)
-    lookupTerm.setTerm(typed)
     if (selected) {
       setSelected(null)
       onChange(undefined)
@@ -170,7 +168,6 @@ function DoctorFields({
     setSelected(doctor)
     setCode(doctor.code)
     setDoctorName(doctor.name)
-    lookupTerm.setTerm("")
     onChange(doctor.id)
     // Degree, address and contact are read-only: on to the next editable field.
     const nameInput = document.getElementById(nameId)
@@ -210,7 +207,7 @@ function DoctorFields({
           ref={inputRef}
           value={code}
           onValueChange={(text) =>
-            edit({ code: text, name: selected ? "" : doctorName }, text)
+            edit({ code: text, name: selected ? "" : doctorName })
           }
           onBlur={onBlur}
           aria-invalid={fieldState.invalid}
@@ -227,7 +224,7 @@ function DoctorFields({
           id={nameId}
           value={doctorName}
           onValueChange={(text) =>
-            edit({ code: selected ? "" : code, name: text }, text)
+            edit({ code: selected ? "" : code, name: text })
           }
           aria-invalid={fieldState.invalid}
         />
@@ -264,7 +261,10 @@ function staffItem(staff: Staff) {
   )
 }
 
-/** Staff member who brought the patient (optional): search by code, the name is filled in. */
+/**
+ * Staff member who brought the patient (optional). Code and name both search, like the
+ * doctor; picking fills both and shows the designation.
+ */
 function StaffFields() {
   const { control } = useFormContext<InvoiceValues>()
   const {
@@ -273,58 +273,89 @@ function StaffFields() {
   } = useController({ control, name: STAFF })
   const [selected, setSelected] = useState<Staff | null>(null)
   const [code, setCode] = useState("")
-  const lookupTerm = useLookupTerm()
-  const lookup = useStaffLookup(lookupTerm.search)
+  const [staffName, setStaffName] = useState("")
+  // Code and name share one search: Enter in either runs it for that field's text.
+  const [search, setSearch] = useState("")
+  const lookup = useStaffLookup(search)
+  const nameId = `${STAFF}.name`
+
+  const listProps = {
+    onSearch: (term: string) =>
+      term === search ? void lookup.refetch() : setSearch(term),
+    items: lookup.data,
+    loading: lookup.isFetching && !lookup.data,
+    error: lookup.isError,
+    picked: selected !== null,
+    getKey: (staff: Staff) => String(staff.id),
+    renderItem: staffItem,
+    listClassName: "w-80",
+    onSelect: pick,
+  }
+
+  function edit(next: { code: string; name: string }) {
+    setCode(next.code)
+    setStaffName(next.name)
+    if (selected) {
+      setSelected(null)
+      onChange(undefined)
+    }
+  }
+
+  function pick(staff: Staff) {
+    setSelected(staff)
+    setCode(staff.employee_id)
+    setStaffName(staff.name)
+    onChange(staff.id)
+    // The designation is read-only: on to the next editable field.
+    const nameInput = document.getElementById(nameId)
+    if (nameInput) {
+      focusNextField(nameInput)
+    }
+  }
 
   return (
-    <Field data-invalid={fieldState.invalid}>
-      <FieldLabel htmlFor={STAFF}>Reffered by Employee(Marketing)</FieldLabel>
-      <div className="flex gap-2">
+    <div
+      role="group"
+      aria-label="Reffered by Employee(Marketing)"
+      className="grid gap-3 rounded-lg border p-3 sm:grid-cols-6"
+    >
+      <p className="text-sm font-medium sm:col-span-6">
+        Reffered by Employee(Marketing)
+      </p>
+      <Field data-invalid={fieldState.invalid} className="sm:col-span-2">
+        <FieldLabel htmlFor={STAFF}>Employee code</FieldLabel>
         <AutocompleteInput
+          {...listProps}
           id={STAFF}
           ref={inputRef}
-          className="w-32 shrink-0"
-          listClassName="w-80"
-          placeholder="Code"
           value={code}
-          onValueChange={(text) => {
-            setCode(text)
-            lookupTerm.setTerm(text)
-            if (selected) {
-              setSelected(null)
-              onChange(undefined)
-            }
-          }}
+          onValueChange={(text) =>
+            edit({ code: text, name: selected ? "" : staffName })
+          }
           onBlur={onBlur}
-          items={lookup.data}
-          loading={lookupTerm.waiting || lookup.isFetching}
-          getKey={(staff) => String(staff.id)}
-          renderItem={staffItem}
-          emptyText={lookupEmptyText(
-            { tooShort: lookupTerm.tooShort, isError: lookup.isError },
-            "No staff found."
-          )}
-          onSelect={(staff) => {
-            setSelected(staff)
-            setCode(staff.employee_id)
-            lookupTerm.setTerm("")
-            onChange(staff.id)
-          }}
           aria-invalid={fieldState.invalid}
         />
-        <ReadonlyInput
-          aria-label="Staff name"
-          className="min-w-0 flex-1"
-          value={
-            selected
-              ? [selected.name, designationLabel(selected.designation)]
-                  .filter(Boolean)
-                  .join(" · ")
-              : null
+        <FieldError errors={[fieldState.error]} />
+      </Field>
+      <Field className="sm:col-span-2">
+        <FieldLabel htmlFor={nameId}>Employee name</FieldLabel>
+        <AutocompleteInput
+          {...listProps}
+          id={nameId}
+          value={staffName}
+          onValueChange={(text) =>
+            edit({ code: selected ? "" : code, name: text })
           }
+          aria-invalid={fieldState.invalid}
         />
-      </div>
-      <FieldError errors={[fieldState.error]} />
-    </Field>
+      </Field>
+      <Field className="sm:col-span-2">
+        <FieldLabel htmlFor={`${STAFF}.designation`}>Designation</FieldLabel>
+        <ReadonlyInput
+          id={`${STAFF}.designation`}
+          value={selected ? designationLabel(selected.designation) : null}
+        />
+      </Field>
+    </div>
   )
 }

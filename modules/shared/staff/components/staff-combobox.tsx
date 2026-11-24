@@ -4,7 +4,6 @@ import { useState } from "react"
 
 import { AutocompleteInput } from "@/components/autocomplete-input"
 import { ReadonlyInput } from "@/components/readonly-input"
-import { lookupEmptyText, useLookupTerm } from "@/hooks/use-lookup-term"
 import { designationLabel } from "@/modules/shared/auth/enums"
 import { useStaffLookup } from "@/modules/shared/staff/queries"
 import type { Staff } from "@/modules/shared/staff/types"
@@ -25,8 +24,8 @@ function staffItem(staff: Staff) {
 }
 
 /**
- * Picks an active staff member (`GET /api/staff/lookup`): type the employee id or name, pick a
- * suggestion, and the name and designation are shown beside it. Only the user id is reported;
+ * Picks an active staff member (`GET /api/staff/lookup`): type the employee id or name, press
+ * Enter and pick a result, and the name and designation are shown beside it. Only the user id is reported;
  * editing the text clears the choice. For react-hook-form, pass the field's `ref`, `onBlur`
  * and an `onChange` taking the id.
  */
@@ -53,8 +52,8 @@ export function StaffCombobox({
 }) {
   const [selected, setSelected] = useState<Staff | null>(null)
   const [text, setText] = useState("")
-  const lookupTerm = useLookupTerm()
-  const lookup = useStaffLookup(lookupTerm.search)
+  const [search, setSearch] = useState("")
+  const lookup = useStaffLookup(search)
   // A value reset from outside (form reset) clears the shown choice too.
   const shown = selected !== null && selected.id === value ? selected : null
 
@@ -69,25 +68,24 @@ export function StaffCombobox({
         value={text}
         onValueChange={(next) => {
           setText(next)
-          lookupTerm.setTerm(next)
           if (value !== undefined) {
             setSelected(null)
             onChange(undefined)
           }
         }}
         onBlur={onBlur}
+        onSearch={(term) =>
+          term === search ? void lookup.refetch() : setSearch(term)
+        }
         items={lookup.data}
-        loading={lookupTerm.waiting || lookup.isFetching}
+        loading={lookup.isFetching && !lookup.data}
+        error={lookup.isError}
+        picked={shown !== null}
         getKey={(staff) => String(staff.id)}
         renderItem={staffItem}
-        emptyText={lookupEmptyText(
-          { tooShort: lookupTerm.tooShort, isError: lookup.isError },
-          "No staff found."
-        )}
         onSelect={(staff) => {
           setSelected(staff)
           setText(staff.employee_id)
-          lookupTerm.setTerm("")
           onChange(staff.id)
         }}
         aria-invalid={invalid}

@@ -12,7 +12,7 @@ import type { TestItem } from "@/modules/shared/test-catalog/types"
 const valid: InvoiceValues = {
   invoice_no: "",
   patient: { ...emptyNewPatient, name: "Rahim Uddin", age_years: 40 },
-  items: [{ test_item_id: 12, quantity: 1 }],
+  items: [{ test_item_id: 12 }],
   referral: { is_self_referral: false, doctor_id: 3, remark: "" },
   patient_type_id: 1,
   delivery_at: `${todayIsoDate()}T19:00`,
@@ -85,14 +85,23 @@ describe("invoiceSchema", () => {
     ])
   })
 
+  it("skips empty test rows but needs a pick for typed text and at least one test", () => {
+    expect(issuePaths({ ...valid, items: [{ test_item_id: 12 }, {}] })).toEqual(
+      []
+    )
+    expect(
+      issuePaths({ ...valid, items: [{ test_item_id: 12 }, { typed: true }] })
+    ).toEqual([["items", 1, "test_item_id"]])
+    expect(issuePaths({ ...valid, items: [{}] })).toEqual([
+      ["items", 0, "test_item_id"],
+    ])
+  })
+
   it("flags a repeated test on its second row", () => {
     expect(
       issuePaths({
         ...valid,
-        items: [
-          { test_item_id: 12, quantity: 1 },
-          { test_item_id: 12, quantity: 1 },
-        ],
+        items: [{ test_item_id: 12 }, { test_item_id: 12 }],
       })
     ).toEqual([["items", 1, "test_item_id"]])
   })

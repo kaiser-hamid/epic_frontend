@@ -1,11 +1,6 @@
 "use client"
 
-import {
-  keepPreviousData,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
-import { useCallback } from "react"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 
 import {
   findPatientsByPhone,
@@ -41,18 +36,14 @@ export function usePatient(id: number | null | undefined) {
 }
 
 /**
- * For "type the number, then fill the form" fields: returns a function to call on blur or
- * Enter. Cached for a minute, so committing the same number again does not refetch.
+ * Patients registered with a phone number (exact match; a family may share one). `phone` is
+ * the number submitted with Enter; "" runs no request. Cached for a minute per number.
  */
-export function useFindPatientsByPhone() {
-  const queryClient = useQueryClient()
-  return useCallback(
-    (phone: string) =>
-      queryClient.fetchQuery({
-        queryKey: patientKeys.byPhone(phone),
-        queryFn: () => findPatientsByPhone(phone),
-        staleTime: 60_000,
-      }),
-    [queryClient]
-  )
+export function usePatientPhoneLookup(phone: string) {
+  return useQuery({
+    queryKey: patientKeys.byPhone(phone),
+    queryFn: () => findPatientsByPhone(phone),
+    enabled: phone !== "",
+    staleTime: 60_000,
+  })
 }
