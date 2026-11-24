@@ -18,19 +18,22 @@ export const noAutofillProps = {
 } as const
 
 /**
- * Chrome ignores "off" for address autofill on name/phone/address-like fields, but shows no
- * address suggestions on a field with an unrecognized token. That token turns its list of
- * earlier entries back on, so it is paired with a fresh random `name` (the key of that list).
+ * Chrome ignores "off" for address autofill on name/phone/address-like fields, and even with
+ * an unrecognized token ("nope") it offers saved contact values once the typed text matches
+ * one. A recognized non-address type that Chrome never fills on desktop makes it classify the
+ * field as that type, so no address suggestions on focus or while typing. Any value other than
+ * "off" turns its list of earlier entries back on, so it is paired with a fresh random `name`
+ * (the key of that list).
  */
-const FOCUSED_AUTOCOMPLETE = "nope"
+const FOCUSED_AUTOCOMPLETE = "one-time-code"
 
 function randomFieldName() {
   return `f-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
 }
 
 /**
- * Callback ref that, on every focus, gives the element a new random DOM `name` and the
- * unrecognized autocomplete token (back to "off" on blur), then forwards to `ref`. Chrome
+ * Callback ref that, on every focus, gives the element a new random DOM `name` and
+ * `FOCUSED_AUTOCOMPLETE` (back to "off" on blur), then forwards to `ref`. Chrome
  * asks for suggestions after the focus event, so it never sees a name with saved entries
  * nor a field it will offer addresses for. Done in the DOM so server and client markup match.
  */
