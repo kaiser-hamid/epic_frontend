@@ -56,6 +56,7 @@ export function TimePicker({
   onBlur,
   disabled,
   invalid,
+  variant = "outline",
   className,
 }: {
   id?: string
@@ -65,6 +66,8 @@ export function TimePicker({
   onBlur?: () => void
   disabled?: boolean
   invalid?: boolean
+  /** "ghost" when it is part of a larger box (`DateTimePicker`). */
+  variant?: "outline" | "ghost"
   className?: string
 }) {
   const [open, setOpen] = useState(false)
@@ -93,7 +96,7 @@ export function TimePicker({
         <Button
           id={id}
           type="button"
-          variant="outline"
+          variant={variant}
           disabled={disabled}
           aria-invalid={invalid}
           aria-label={

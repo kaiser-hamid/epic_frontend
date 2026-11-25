@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
 import { errorMessage, hasErrorCode } from "@/lib/api-error"
-import { todayIsoDate } from "@/lib/format"
 import { applyServerErrors } from "@/lib/form-errors"
 import { InvoiceDiscountFields } from "@/modules/shared/billing/invoices/components/invoice-discount-fields"
 import { InvoicePatientFields } from "@/modules/shared/billing/invoices/components/invoice-patient-fields"
@@ -36,6 +35,7 @@ import {
 } from "@/modules/shared/billing/invoices/error-messages"
 import { useCreateInvoice } from "@/modules/shared/billing/invoices/queries"
 import {
+  defaultDeliveryAt,
   emptyInvoiceValues,
   invoiceCategories,
   invoiceSchema,
@@ -94,8 +94,7 @@ function InvoiceEntryForm({
 
   const form = useForm<InvoiceValues>({
     resolver: zodResolver(invoiceSchema),
-    // Delivery starts on today; only the time is left to pick.
-    defaultValues: { ...emptyInvoiceValues, delivery_at: `${todayIsoDate()}T` },
+    defaultValues: { ...emptyInvoiceValues, delivery_at: defaultDeliveryAt() },
   })
   const lines = useWatch({ control: form.control, name: "items" })
   const detailCategories = invoiceCategories(lines).filter(

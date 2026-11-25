@@ -1,3 +1,5 @@
+import { TZDate } from "@date-fns/tz"
+import { format } from "date-fns"
 import { z } from "zod"
 
 import {
@@ -9,7 +11,7 @@ import {
   text,
   wholeNumber,
 } from "@/lib/form-schemas"
-import { localDateTimeToIso, todayIsoDate } from "@/lib/format"
+import { APP_TIMEZONE, localDateTimeToIso, todayIsoDate } from "@/lib/format"
 import {
   BloodGroup,
   Gender,
@@ -117,6 +119,21 @@ export const MAX_TAKA = 100_000_000
  * `datetime-local` value read as Asia/Dhaka time; required, today or later (the server checks
  * the same).
  */
+const FIVE_MINUTES = 5 * 60_000
+const DELIVERY_LEAD = 8 * 60 * 60_000
+
+/**
+ * Where a new bill's delivery starts (`YYYY-MM-DDTHH:mm`, Dhaka): today, at the time 8 hours
+ * from now, rounded up to the time list's 5-minute steps. A stopgap until the real rule.
+ */
+export function defaultDeliveryAt(now = Date.now()): string {
+  const later = new TZDate(
+    Math.ceil((now + DELIVERY_LEAD) / FIVE_MINUTES) * FIVE_MINUTES,
+    APP_TIMEZONE
+  )
+  return `${todayIsoDate()}T${format(later, "HH:mm")}`
+}
+
 export const deliveryAt = z.string().superRefine((value, ctx) => {
   if (localDateTimeToIso(value) === null) {
     ctx.addIssue({

@@ -4,11 +4,10 @@ import { addYears } from "date-fns"
 import { useEffect, useState } from "react"
 import { Controller, useFormContext, useWatch } from "react-hook-form"
 
-import { DateInput } from "@/components/date-input"
+import { DateTimePicker } from "@/components/date-time-picker"
 import { Money } from "@/components/money"
 import { NumberInput } from "@/components/number-input"
 import { RequiredMark } from "@/components/required-mark"
-import { TimePicker } from "@/components/time-picker"
 import {
   Field,
   FieldDescription,
@@ -22,17 +21,9 @@ import {
   type InvoiceValues,
 } from "@/modules/shared/billing/invoices/schemas"
 
-/** `YYYY-MM-DDTHH:mm` → its date and time parts ("" when missing). */
-function splitDateTime(value: string): { date: string; time: string } {
-  const at = value.indexOf("T")
-  return at === -1
-    ? { date: value, time: "" }
-    : { date: value.slice(0, at), time: value.slice(at + 1) }
-}
-
 /**
- * When the reports will be ready; printed on every copy of the bill. The form starts on today;
- * the calendar offers today up to a year ahead, and the time is picked from a list (Dhaka).
+ * When the reports will be ready; printed on every copy of the bill. Date and time sit in one
+ * box, each picked from its own list: the calendar offers today up to a year ahead (Dhaka).
  */
 export function InvoiceDeliveryField() {
   const { control } = useFormContext<InvoiceValues>()
@@ -45,44 +36,26 @@ export function InvoiceDeliveryField() {
     <Controller
       name="delivery_at"
       control={control}
-      render={({ field, fieldState }) => {
-        const { date, time } = splitDateTime(field.value)
-        const join = (nextDate: string, nextTime: string) =>
-          nextDate === "" && nextTime === "" ? "" : `${nextDate}T${nextTime}`
-
-        return (
-          <Field data-invalid={fieldState.invalid}>
-            <FieldLabel htmlFor="delivery_at">
-              Delivery date
-              <RequiredMark />
-            </FieldLabel>
-            <div className="flex gap-2 sm:max-w-80">
-              <div className="min-w-0 flex-1">
-                <DateInput
-                  id="delivery_at"
-                  name={field.name}
-                  ref={field.ref}
-                  value={date}
-                  onChange={(nextDate) => field.onChange(join(nextDate, time))}
-                  onBlur={field.onBlur}
-                  min={today}
-                  max={lastDay}
-                  invalid={fieldState.invalid}
-                />
-              </div>
-              <TimePicker
-                id="delivery_at_time"
-                value={time}
-                onChange={(nextTime) => field.onChange(join(date, nextTime))}
-                onBlur={field.onBlur}
-                invalid={fieldState.invalid}
-                className="w-36 shrink-0"
-              />
-            </div>
-            <FieldError errors={[fieldState.error]} />
-          </Field>
-        )
-      }}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid}>
+          <FieldLabel htmlFor="delivery_at">
+            Delivery date
+            <RequiredMark />
+          </FieldLabel>
+          <DateTimePicker
+            id="delivery_at"
+            ref={field.ref}
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            min={today}
+            max={lastDay}
+            invalid={fieldState.invalid}
+            className="sm:max-w-80"
+          />
+          <FieldError errors={[fieldState.error]} />
+        </Field>
+      )}
     />
   )
 }
