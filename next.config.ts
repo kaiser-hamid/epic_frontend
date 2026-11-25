@@ -3,6 +3,9 @@ import type { NextConfig } from "next"
 import { serverEnv } from "./lib/env"
 
 const nextConfig: NextConfig = {
+  // next dev only serves its JS to localhost; without this, 127.0.0.1 gets
+  // server HTML that never hydrates (forms then submit natively and reload).
+  allowedDevOrigins: ["127.0.0.1"],
   experimental: {
     agentFeedback: true,
   },
