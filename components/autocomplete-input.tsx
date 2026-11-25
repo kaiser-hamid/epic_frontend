@@ -10,13 +10,17 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { focusNextField } from "@/components/form"
-import { Input } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 
 type AutocompleteInputProps<T> = Omit<
-  React.ComponentProps<typeof Input>,
+  React.ComponentProps<typeof InputGroupInput>,
   "value" | "onChange" | "onSelect" | "role"
 > & {
   value: string
@@ -51,7 +55,8 @@ type AutocompleteInputProps<T> = Omit<
 
 /**
  * Lookup input that searches on Enter, never while typing. Enter on typed text runs
- * `onSearch` and opens the results under the input: arrow keys move, Enter picks, Escape
+ * `onSearch`; while it runs a spinner shows in the input and the focus stays (Enter waits).
+ * Then the results open under the input: arrow keys move, Enter picks, Escape
  * closes, and "No data found." says when nothing matched (Enter there moves on; after a
  * failed search it retries; with `emptyMovesOn` it moves on without the message). Enter on
  * an empty field (or on a picked record) keeps its `<Form>` meaning: next field.
@@ -93,7 +98,9 @@ export function AutocompleteInput<T>({
   const searchable = term !== "" && !picked && searchEnabled
   const skipEmpty =
     emptyMovesOn && requested && !loading && !error && keys.length === 0
-  const open = requested && !skipEmpty
+  // The answer opens the list; until then the spinner in the input shows the search.
+  const searching = requested && loading
+  const open = requested && !loading && !skipEmpty
 
   // Nothing found where that is expected: straight on to the next field (its blur closes).
   useEffect(() => {
@@ -112,54 +119,70 @@ export function AutocompleteInput<T>({
     >
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverAnchor asChild>
-          <Input
-            {...inputProps}
-            role="combobox"
-            aria-autocomplete="list"
-            aria-expanded={open}
-            data-enter-key={searchable ? "native" : undefined}
-            value={value}
-            onChange={(event) => {
-              onValueChange(event.target.value)
-              setOpen(false)
-            }}
-            onKeyDown={(event) => {
-              onKeyDown?.(event)
-              const plainEnter =
-                event.key === "Enter" &&
-                !event.nativeEvent.isComposing &&
-                !event.altKey &&
-                !event.ctrlKey &&
-                !event.metaKey &&
-                !event.shiftKey
-              if (open) {
-                // The results take arrows and Enter. With none to pick, Enter retries a
-                // failed search, or closes "No data found." and moves on.
-                if (plainEnter && !loading && keys.length === 0) {
-                  event.preventDefault()
-                  if (error && searchable) {
-                    onSearch(term)
-                  } else {
-                    setOpen(false)
-                    focusNextField(event.currentTarget)
+          <InputGroup>
+            <InputGroupInput
+              {...inputProps}
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={open}
+              aria-busy={searching}
+              data-enter-key={searchable ? "native" : undefined}
+              value={value}
+              onChange={(event) => {
+                onValueChange(event.target.value)
+                setOpen(false)
+              }}
+              onKeyDown={(event) => {
+                onKeyDown?.(event)
+                const plainEnter =
+                  event.key === "Enter" &&
+                  !event.nativeEvent.isComposing &&
+                  !event.altKey &&
+                  !event.ctrlKey &&
+                  !event.metaKey &&
+                  !event.shiftKey
+                if (searching) {
+                  // Wait for the answer: Enter neither searches again nor moves on.
+                  event.stopPropagation()
+                  if (plainEnter) {
+                    event.preventDefault()
                   }
+                  return
                 }
-                return
-              }
-              // Closed: keep keys (Home, End, Enter) away from the list.
-              event.stopPropagation()
-              if (!plainEnter || !searchable) {
-                return
-              }
-              event.preventDefault()
-              onSearch(term)
-              setOpen(true)
-            }}
-            onBlur={(event) => {
-              setOpen(false)
-              onBlur?.(event)
-            }}
-          />
+                if (open) {
+                  // The results take arrows and Enter. With none to pick, Enter retries a
+                  // failed search, or closes "No data found." and moves on.
+                  if (plainEnter && keys.length === 0) {
+                    event.preventDefault()
+                    if (error && searchable) {
+                      onSearch(term)
+                    } else {
+                      setOpen(false)
+                      focusNextField(event.currentTarget)
+                    }
+                  }
+                  return
+                }
+                // Closed: keep keys (Home, End, Enter) away from the list.
+                event.stopPropagation()
+                if (!plainEnter || !searchable) {
+                  return
+                }
+                event.preventDefault()
+                onSearch(term)
+                setOpen(true)
+              }}
+              onBlur={(event) => {
+                setOpen(false)
+                onBlur?.(event)
+              }}
+            />
+            {searching ? (
+              <InputGroupAddon align="inline-end">
+                <Spinner />
+              </InputGroupAddon>
+            ) : null}
+          </InputGroup>
         </PopoverAnchor>
         <PopoverContent
           align="start"
@@ -173,34 +196,24 @@ export function AutocompleteInput<T>({
           onMouseDown={(event) => event.preventDefault()}
         >
           <CommandList>
-            {loading ? (
-              <div className="flex justify-center p-4">
-                <Spinner />
-              </div>
-            ) : (
-              <>
-                <CommandEmpty>
-                  {error
-                    ? "Could not search. Press Enter to retry."
-                    : emptyText}
-                </CommandEmpty>
-                <CommandGroup>
-                  {(items ?? []).map((item) => (
-                    <CommandItem
-                      key={getKey(item)}
-                      value={getKey(item)}
-                      disabled={isItemDisabled?.(item) ?? false}
-                      onSelect={() => {
-                        setOpen(false)
-                        onSelect(item)
-                      }}
-                    >
-                      {renderItem(item)}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </>
-            )}
+            <CommandEmpty>
+              {error ? "Could not search. Press Enter to retry." : emptyText}
+            </CommandEmpty>
+            <CommandGroup>
+              {(items ?? []).map((item) => (
+                <CommandItem
+                  key={getKey(item)}
+                  value={getKey(item)}
+                  disabled={isItemDisabled?.(item) ?? false}
+                  onSelect={() => {
+                    setOpen(false)
+                    onSelect(item)
+                  }}
+                >
+                  {renderItem(item)}
+                </CommandItem>
+              ))}
+            </CommandGroup>
           </CommandList>
         </PopoverContent>
       </Popover>
